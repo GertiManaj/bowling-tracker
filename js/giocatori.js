@@ -129,7 +129,7 @@ function renderPlayers() {
           </div>
         </div>
         ${statsHtml}
-        <div class="player-card-actions">
+        <div class="player-card-actions action-btn-wrap">
           <button class="player-action-btn edit" onclick="openEditModal(${p.id})">✏ Modifica</button>
           <button class="player-action-btn delete" onclick="openDeleteModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">✕ Elimina</button>
         </div>

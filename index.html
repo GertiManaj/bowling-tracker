@@ -33,7 +33,9 @@
       <a href="giocatori.html">Giocatori</a>
     </nav>
 
-    <button class="btn-new-session" onclick="openModal()">+ Nuova Partita</button>
+    <button class="btn-new-session auth-required" onclick="openModal()">+ Nuova Partita</button>
+    <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
+    <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
 
   </div>
 </header>
@@ -224,6 +226,32 @@
 
 <!-- Script (caricato alla fine per performance) -->
 <script src="js/app.js"></script>
+
+
+<!-- ══ MODAL LOGIN ══ -->
+<div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--neon)">🔐 Accedi</div>
+      <button class="modal-close" onclick="closeLoginModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.05em;margin-bottom:0.5rem">
+        Inserisci la password per modificare i dati
+      </p>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••"/>
+      </div>
+      <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeLoginModal()">Annulla</button>
+      <button class="btn-primary" id="btnLoginSubmit" onclick="submitLogin()">Accedi</button>
+    </div>
+  </div>
+</div>
+<script src="js/auth.js"></script>
 
 </body>
 </html>

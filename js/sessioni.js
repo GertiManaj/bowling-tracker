@@ -183,7 +183,7 @@ function renderSessions() {
         <div class="session-card-detail">
           ${teamList.length ? `<div class="detail-teams">${teamsHtml}</div>` : '<div style="color:var(--text-muted);font-size:0.8rem">Nessun punteggio registrato</div>'}
           ${notesHtml}
-          <div class="detail-actions">
+          <div class="detail-actions action-btn-wrap">
             <button class="detail-action-btn edit"   onclick="openEditModal(${s.id})">✏ Modifica</button>
             <button class="detail-action-btn delete" onclick="openDeleteModal(${s.id}, '${formatDate(s.date)}')">✕ Elimina</button>
           </div>

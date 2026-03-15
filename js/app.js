@@ -260,6 +260,7 @@ async function loadHof() {
 let allPlayers = [];
 
 async function openModal() {
+  if (!window.isLoggedIn) { openLoginModal(); return; }
   // Carica lista giocatori dal DB
   try {
     allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
