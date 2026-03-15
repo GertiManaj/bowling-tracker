@@ -134,11 +134,34 @@ function renderSessions() {
     const teamsHtml = teamList.map((t, ti) => {
       const win   = t.total === maxTotal && maxTotal > 0;
       const color = tColors[ti % tColors.length];
-      const rows  = t.players.map(p => `
-        <div class="detail-player-row">
-          <span>${p.emoji || '🎳'} ${p.player_name}</span>
-          <span class="detail-player-score${parseInt(p.score) === maxScore ? ' top' : ''}">${p.score}</span>
-        </div>`).join('');
+      // Raggruppa per giocatore e mostra game separati
+      const byPlayer = {};
+      t.players.forEach(p => {
+        if (!byPlayer[p.player_name]) byPlayer[p.player_name] = { ...p, games: [] };
+        byPlayer[p.player_name].games.push({ game: p.game_number || 1, score: p.score });
+      });
+      // Calcola totale per giocatore
+      Object.values(byPlayer).forEach(p => {
+        p.total = p.games.reduce((s, g) => s + parseInt(g.score), 0);
+      });
+      const maxPlayerScore = Math.max(...Object.values(byPlayer).map(p => p.total));
+
+      const rows = Object.values(byPlayer).map(p => {
+        const gamesHtml = p.games.length > 1
+          ? p.games.sort((a,b) => a.game - b.game).map(g =>
+              `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
+            ).join(' ')
+          : '';
+        const isTop = p.total === maxPlayerScore;
+        return `
+          <div class="detail-player-row">
+            <span>${p.emoji || '🎳'} ${p.player_name}</span>
+            <div style="display:flex;align-items:center;gap:0.4rem;font-family:'Share Tech Mono',monospace;font-size:0.8rem">
+              ${gamesHtml ? `<span style="font-size:0.7rem;color:var(--text-muted)">${gamesHtml}</span>` : ''}
+              <span class="detail-player-score${isTop ? ' top' : ''}">${p.total}</span>
+            </div>
+          </div>`;
+      }).join('');
 
       return `
         <div class="detail-team">

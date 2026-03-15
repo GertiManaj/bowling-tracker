@@ -261,7 +261,6 @@ let allPlayers = [];
 
 async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
-  // Carica lista giocatori dal DB
   try {
     allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
   } catch (e) {
@@ -274,16 +273,32 @@ async function openModal() {
   document.getElementById('sessionNotes').value    = '';
   document.getElementById('teamAName').value       = '';
   document.getElementById('teamBName').value       = '';
-  document.getElementById('teamARows').innerHTML   = '';
-  document.getElementById('teamBRows').innerHTML   = '';
+  document.getElementById('numGames').value        = '2';
   document.getElementById('totalA').textContent    = 'Totale: 0';
   document.getElementById('totalB').textContent    = 'Totale: 0';
 
-  // 3 righe iniziali per squadra
-  addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
-  addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
-
+  buildGameRows();
   document.getElementById('modalOverlay').classList.add('open');
+}
+
+// Costruisce le righe giocatori con una colonna per ogni game
+function buildGameRows() {
+  const numGames = parseInt(document.getElementById('numGames').value) || 1;
+  ['A', 'B'].forEach(team => {
+    const container = document.getElementById(`team${team}Rows`);
+    // Salva giocatori già selezionati
+    const selected = [];
+    container.querySelectorAll('.player-row').forEach(row => {
+      selected.push(row.querySelector('select')?.value || '');
+    });
+    container.innerHTML = '';
+    // Ricrea 3 righe (o quante erano)
+    const count = Math.max(selected.length, 3);
+    for (let i = 0; i < count; i++) {
+      addPlayerRow(team, selected[i] || null, numGames);
+    }
+  });
+  calcTotals();
 }
 
 function closeModal() {
@@ -294,18 +309,25 @@ function handleOverlayClick(e) {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
 
-function addPlayerRow(team) {
+function addPlayerRow(team, selectedId = null, numGames = null) {
+  const ng   = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}">${p.emoji || '🎳'} ${p.name}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
+
+  // Crea input score per ogni game
+  const gameInputs = Array.from({length: ng}, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="calcTotals()"/>`
   ).join('');
 
   const row = document.createElement('div');
-  row.className = 'score-row';
+  row.className = 'player-row';
+  row.style.cssText = `display:grid;grid-template-columns:1fr ${Array(ng).fill('70px').join(' ')} 32px;gap:0.4rem;align-items:center;margin-bottom:0.4rem`;
   row.innerHTML = `
     <select class="form-input" onchange="calcTotals()">
       <option value="">— Giocatore —</option>${opts}
     </select>
-    <input type="number" class="form-input" placeholder="Score" min="0" max="300" oninput="calcTotals()"/>
+    ${gameInputs}
     <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
 
   document.getElementById(`team${team}Rows`).appendChild(row);
@@ -314,7 +336,7 @@ function addPlayerRow(team) {
 function calcTotals() {
   ['A', 'B'].forEach(t => {
     let tot = 0;
-    document.querySelectorAll(`#team${t}Rows input[type="number"]`).forEach(i => {
+    document.querySelectorAll(`#team${t}Rows .score-input`).forEach(i => {
       if (i.value) tot += parseInt(i.value) || 0;
     });
     document.getElementById(`total${t}`).textContent = `Totale: ${tot}`;
@@ -333,15 +355,21 @@ async function saveSession() {
     return;
   }
 
-  // Costruisci payload squadre
+  // Costruisci payload squadre con game multipli
+  const numGames = parseInt(document.getElementById('numGames').value) || 1;
   const teams = [];
   ['A', 'B'].forEach(t => {
     const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
     const players = [];
-    document.querySelectorAll(`#team${t}Rows .score-row`).forEach(row => {
-      const pid   = row.querySelector('select')?.value;
-      const score = row.querySelector('input[type="number"]')?.value;
-      if (pid && score) players.push({ player_id: parseInt(pid), score: parseInt(score) });
+    document.querySelectorAll(`#team${t}Rows .player-row`).forEach(row => {
+      const pid = row.querySelector('select')?.value;
+      if (!pid) return;
+      // Un record per ogni game
+      row.querySelectorAll('.score-input').forEach(input => {
+        const gameNum = parseInt(input.dataset.game);
+        const score   = input.value;
+        if (score) players.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
+      });
     });
     if (players.length > 0) teams.push({ name, players });
   });

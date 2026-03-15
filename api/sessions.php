@@ -55,8 +55,9 @@ if ($method === 'POST') {
 
             foreach ($team['players'] as $player) {
                 if (empty($player['player_id']) || !isset($player['score'])) continue;
-                $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score) VALUES (?, ?, ?, ?)');
-                $sc->execute([$sessionId, $player['player_id'], $teamId, $player['score']]);
+                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
+                $sc->execute([$sessionId, $player['player_id'], $teamId, $player['score'], $gameNumber]);
             }
         }
 
