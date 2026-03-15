@@ -1,0 +1,277 @@
+/* ============================================
+   sessioni.css — stili pagina Sessioni
+   ============================================ */
+
+   .main-sessioni {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  
+  /* ── FILTRI ── */
+  .filters-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  
+  .search-input { flex: 1; min-width: 200px; }
+  
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .results-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-left: 0.2rem;
+  }
+  
+  /* ── CARD SESSIONE ── */
+  .session-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    animation: fadeInUp 0.4s ease both;
+    transition: border-color 0.2s;
+  }
+  
+  .session-card:hover { border-color: #3a3a5a; }
+  
+  /* Riga principale — sempre visibile */
+  .session-card-header {
+    display: grid;
+    grid-template-columns: 110px 1fr auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+  
+  .session-card-header:hover { background: rgba(255,255,255,0.02); }
+  
+  .session-card-date {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  
+  .session-date-day {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--neon);
+    text-shadow: 0 0 12px rgba(232,255,0,0.35);
+  }
+  
+  .session-date-month {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  
+  .session-card-info { display: flex; flex-direction: column; gap: 0.3rem; }
+  
+  .session-location {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  
+  .session-players {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .session-card-winner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    min-width: 100px;
+  }
+  
+  .winner-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  
+  .winner-name  { font-weight: 700; font-size: 0.9rem; color: var(--gold); }
+  .winner-score { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--neon); }
+  
+  .session-card-toggle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    transition: transform 0.25s;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .session-card.open .session-card-toggle { transform: rotate(180deg); }
+  
+  /* ── DETTAGLIO ESPANSO ── */
+  .session-card-detail {
+    border-top: 1px solid var(--border);
+    display: none;
+    padding: 1rem 1.2rem;
+    gap: 1rem;
+    flex-direction: column;
+    background: rgba(0,0,0,0.15);
+  }
+  
+  .session-card.open .session-card-detail { display: flex; }
+  
+  .detail-teams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .detail-team {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  
+  .detail-team-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.8rem;
+    background: var(--surface2);
+  }
+  
+  .detail-team-name {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  
+  .detail-team-total {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+  }
+  
+  .detail-team-players { padding: 0.5rem 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  
+  .detail-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+  }
+  
+  .detail-player-score {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--neon3);
+  }
+  
+  .detail-player-score.top { color: var(--gold); }
+  
+  /* Note sessione */
+  .session-notes {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    padding: 0.5rem 0.8rem;
+    background: var(--surface2);
+    border-radius: 4px;
+    border-left: 3px solid var(--neon);
+  }
+  
+  /* Bottoni azioni nel dettaglio */
+  .detail-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-top: 0.3rem;
+    border-top: 1px solid var(--border);
+  }
+  
+  .detail-action-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.4rem 0.9rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  
+  .detail-action-btn.edit:hover   { border-color: var(--neon);  color: var(--neon);  background: rgba(232,255,0,0.05); }
+  .detail-action-btn.delete:hover { border-color: var(--neon2); color: var(--neon2); background: rgba(255,60,172,0.05); }
+  
+  /* ── STATO VUOTO ── */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+  }
+  
+  .empty-state-icon { font-size: 3rem; display: block; margin-bottom: 1rem; }
+  
+  /* ── MODAL extras ── */
+  .total-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  
+  .btn-delete {
+    background: rgba(255,60,172,0.15);
+    border: 1px solid rgba(255,60,172,0.4);
+    color: var(--neon2);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.55rem 1.4rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-delete:hover { background: rgba(255,60,172,0.25); box-shadow: 0 0 20px rgba(255,60,172,0.3); }
+  
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .session-card-header { grid-template-columns: 80px 1fr auto auto; }
+    .detail-teams        { grid-template-columns: 1fr; }
+    .filters-bar         { flex-direction: column; align-items: stretch; }
+    .session-card-winner { display: none; }
+  }

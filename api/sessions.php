@@ -1,0 +1,150 @@
+<?php
+// ============================================
+//  api/sessions.php
+//  GET    → lista sessioni con dettagli
+//  POST   → salva una nuova sessione
+//  PUT    → modifica una sessione esistente
+//  DELETE → elimina una sessione
+// ============================================
+require_once 'db.php';
+
+$pdo    = getDB();
+$method = $_SERVER['REQUEST_METHOD'];
+
+// ── GET ──────────────────────────────────────
+if ($method === 'GET') {
+    $sessions = $pdo->query('
+        SELECT id, date, location, notes FROM sessions
+        ORDER BY date DESC
+    ')->fetchAll();
+
+    foreach ($sessions as &$session) {
+        $s = $pdo->prepare('SELECT * FROM scores_detail WHERE date = ?');
+        $s->execute([$session['date']]);
+        $session['scores'] = $s->fetchAll();
+
+        $t = $pdo->prepare('SELECT id, name FROM teams WHERE session_id = ?');
+        $t->execute([$session['id']]);
+        $session['teams'] = $t->fetchAll();
+    }
+
+    echo json_encode($sessions);
+    exit;
+}
+
+// ── POST — nuova sessione ────────────────────
+if ($method === 'POST') {
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($data['date'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'La data è obbligatoria']);
+        exit;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes) VALUES (?, ?, ?)');
+        $stmt->execute([$data['date'], $data['location'] ?? 'Bowling', $data['notes'] ?? null]);
+        $sessionId = $pdo->lastInsertId();
+
+        foreach ($data['teams'] as $team) {
+            $t = $pdo->prepare('INSERT INTO teams (session_id, name) VALUES (?, ?)');
+            $t->execute([$sessionId, $team['name']]);
+            $teamId = $pdo->lastInsertId();
+
+            foreach ($team['players'] as $player) {
+                if (empty($player['player_id']) || !isset($player['score'])) continue;
+                $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score) VALUES (?, ?, ?, ?)');
+                $sc->execute([$sessionId, $player['player_id'], $teamId, $player['score']]);
+            }
+        }
+
+        $pdo->commit();
+        http_response_code(201);
+        echo json_encode(['success' => true, 'session_id' => $sessionId]);
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── PUT — modifica sessione ──────────────────
+if ($method === 'PUT') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id   = intval($data['id'] ?? 0);
+
+    if (!$id || empty($data['date'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'ID e data sono obbligatori']);
+        exit;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        // 1. Aggiorna dati sessione
+        $pdo->prepare('UPDATE sessions SET date = ?, location = ?, notes = ? WHERE id = ?')
+            ->execute([$data['date'], $data['location'] ?? 'Bowling', $data['notes'] ?? null, $id]);
+
+        // 2. Elimina vecchi scores e teams (li ricreiamo da zero)
+        $pdo->prepare('DELETE FROM scores WHERE session_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM teams  WHERE session_id = ?')->execute([$id]);
+
+        // 3. Ricrea squadre e punteggi
+        foreach ($data['teams'] as $team) {
+            $t = $pdo->prepare('INSERT INTO teams (session_id, name) VALUES (?, ?)');
+            $t->execute([$id, $team['name']]);
+            $teamId = $pdo->lastInsertId();
+
+            foreach ($team['players'] as $player) {
+                if (empty($player['player_id']) || !isset($player['score'])) continue;
+                $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score) VALUES (?, ?, ?, ?)');
+                $sc->execute([$id, $player['player_id'], $teamId, $player['score']]);
+            }
+        }
+
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// ── DELETE — elimina sessione ────────────────
+if ($method === 'DELETE') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id   = intval($data['id'] ?? 0);
+
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['error' => 'ID non valido']);
+        exit;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        // CASCADE elimina anche scores e teams collegati
+        $pdo->prepare('DELETE FROM scores  WHERE session_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM teams   WHERE session_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM sessions WHERE id = ?')->execute([$id]);
+
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+http_response_code(405);
+echo json_encode(['error' => 'Metodo non consentito']);

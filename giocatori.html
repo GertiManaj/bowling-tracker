@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Strike Zone — Giocatori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/giocatori.css"/>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="header-glow"></div>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-pin">🎳</div>
+      <div class="logo-text">
+        <span class="logo-title">STRIKE ZONE</span>
+        <span class="logo-sub">Bowling Tracker v1.0</span>
+      </div>
+    </div>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="sessioni.html">Sessioni</a>
+      <a href="statistiche.html">Statistiche</a>
+      <a href="giocatori.html" class="active">Giocatori</a>
+    </nav>
+    <button class="btn-new-session" onclick="openAddModal()">+ Nuovo Giocatore</button>
+  </div>
+</header>
+
+<!-- ══ HERO BAR ══ -->
+<div class="hero-bar">
+  <div class="hero-bar-inner">
+    <div class="hero-stat">
+      <div class="hero-stat-label">Giocatori totali</div>
+      <div class="hero-stat-value neon" id="stat-totali">—</div>
+      <div class="hero-stat-sub">nel gruppo</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Media più alta</div>
+      <div class="hero-stat-value pink" id="stat-best-avg">—</div>
+      <div class="hero-stat-sub" id="stat-best-avg-name">caricamento...</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Record assoluto</div>
+      <div class="hero-stat-value cyan" id="stat-record">—</div>
+      <div class="hero-stat-sub" id="stat-record-name">caricamento...</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Partite totali</div>
+      <div class="hero-stat-value orange" id="stat-partite">—</div>
+      <div class="hero-stat-sub">punteggi registrati</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<main class="main-players">
+
+  <!-- Barra ricerca -->
+  <div class="search-bar">
+    <input
+      type="text"
+      class="form-input search-input"
+      id="searchInput"
+      placeholder="🔍  Cerca giocatore..."
+      oninput="filterPlayers()"
+    />
+    <div class="sort-btns">
+      <button class="sort-btn active" onclick="sortBy('name', this)">A–Z</button>
+      <button class="sort-btn" onclick="sortBy('media', this)">Media ↓</button>
+      <button class="sort-btn" onclick="sortBy('record', this)">Record ↓</button>
+      <button class="sort-btn" onclick="sortBy('partite', this)">Partite ↓</button>
+    </div>
+  </div>
+
+  <!-- Griglia giocatori -->
+  <div class="players-grid" id="players-grid">
+    <!-- Skeleton -->
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+  </div>
+
+</main>
+
+<footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
+
+<!-- ══ MODAL: AGGIUNGI / MODIFICA ══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">➕ Nuovo Giocatore</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Selettore emoji -->
+      <div class="form-group">
+        <label class="form-label">Avatar</label>
+        <div class="emoji-grid" id="emojiGrid"></div>
+        <input type="hidden" id="selectedEmoji" value="🎳"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Soprannome</label>
+        <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50"/>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="savePlayer()">Salva</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFERMA ELIMINAZIONE ══ -->
+<div class="modal-overlay" id="deleteOverlay" onclick="handleDeleteOverlayClick(event)">
+  <div class="modal" style="max-width:420px">
+
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--neon2)">⚠ Elimina Giocatore</div>
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <p style="font-size:1rem;line-height:1.5;color:var(--text)">
+        Stai per eliminare <strong id="deletePlayerName" style="color:var(--neon2)"></strong>.
+      </p>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem;font-family:'Share Tech Mono',monospace">
+        ⚠ Verranno eliminati anche tutti i suoi punteggi. Questa azione è irreversibile.
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeDeleteModal()">Annulla</button>
+      <button class="btn-delete" id="btnDelete" onclick="confirmDelete()">Elimina</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="js/giocatori.js"></script>
+</body>
+</html>

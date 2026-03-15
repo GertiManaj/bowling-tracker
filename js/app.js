@@ -1,0 +1,394 @@
+// ============================================
+//  app.js — Strike Zone Bowling Tracker
+//  Tutta la logica JS separata dall'HTML
+// ============================================
+
+const API = 'api'; // percorso relativo alla cartella api/
+
+// ── UTILITY ─────────────────────────────────
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('it-IT', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  }).toUpperCase();
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3500);
+}
+
+// ── HERO BAR: STATISTICHE ────────────────────
+
+async function loadStats() {
+  try {
+    const data = await fetch(`${API}/stats.php`).then(r => r.json());
+
+    document.getElementById('stat-sessioni').textContent     = data.totale_sessioni ?? '—';
+    document.getElementById('stat-sessioni-sub').textContent = "dall'inizio";
+    document.getElementById('stat-record').textContent       = data.record_assoluto ?? '—';
+    document.getElementById('stat-media').textContent        = data.media_gruppo ?? '—';
+
+    if (data.record_holder) {
+      document.getElementById('stat-record-sub').textContent =
+        `${data.record_holder.emoji} ${data.record_holder.name} · ${formatDate(data.record_holder.date)}`;
+    }
+
+    if (data.ultima_sessione) {
+      const d = new Date(data.ultima_sessione.date);
+      document.getElementById('stat-ultima').textContent =
+        d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).toUpperCase();
+      document.getElementById('stat-ultima-sub').textContent = data.ultima_sessione.location;
+    }
+  } catch (e) {
+    console.error('Errore stats:', e);
+  }
+}
+
+// ── CLASSIFICA GENERALE ──────────────────────
+
+async function loadLeaderboard() {
+  try {
+    const players = await fetch(`${API}/leaderboard.php`).then(r => r.json());
+    const maxM    = Math.max(...players.map(p => parseFloat(p.media) || 0));
+
+    const medals  = ['🥇', '🥈', '🥉'];
+    const mColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)'];
+    const bColors = ['var(--neon)', 'var(--neon3)', 'var(--neon4)', 'var(--neon2)'];
+
+    let html = '';
+
+    players.forEach((p, i) => {
+      const bc    = bColors[i % bColors.length];
+      const pct   = maxM > 0 ? Math.round(parseFloat(p.media) / maxM * 100) : 0;
+      const delay = (i * 0.07).toFixed(2);
+
+      // Rank (medaglia o numero)
+      const rankEl = i < 3
+        ? `<div class="rank" style="color:${mColors[i]};text-shadow:0 0 10px ${mColors[i]}88">${medals[i]}</div>`
+        : `<div class="rank-other">${i + 1}</div>`;
+
+      // Sparkline dal trend
+      const trend = p.trend || [];
+      let spark = '';
+      if (trend.length) {
+        const mx = Math.max(...trend);
+        trend.forEach((v, ti) => {
+          const h    = mx > 0 ? Math.round(v / mx * 100) : 50;
+          const last = ti === trend.length - 1;
+          spark += `<div class="sparkline-bar${last ? ' last' : ''}"
+            style="height:${h}%;background:${bc};${last ? 'opacity:1;box-shadow:0 0 6px ' + bc : ''}"></div>`;
+        });
+      } else {
+        spark = '<span style="color:var(--text-muted);font-size:0.65rem">—</span>';
+      }
+
+      const nameColor = i === 0 ? 'var(--gold)' : i === 1 ? 'var(--silver)' : i === 2 ? 'var(--bronze)' : 'var(--text)';
+
+      html += `
+        <div class="leaderboard-row" style="animation-delay:${delay}s">
+          ${rankEl}
+          <div class="player-info">
+            <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
+            <div>
+              <div class="player-name">${p.name}</div>
+              <div class="player-tag">${p.nickname ? p.nickname.toUpperCase() + ' · ' : ''}${p.partite} partite</div>
+            </div>
+          </div>
+          <div class="stat-cell" style="color:${nameColor}">
+            <strong>${p.media ?? '—'}</strong>
+            <div class="mini-bar-bg">
+              <div class="mini-bar-fill" style="width:0%;background:${bc};box-shadow:0 0 6px ${bc}" data-w="${pct}%"></div>
+            </div>
+          </div>
+          <div class="stat-cell col-partite">${p.partite}</div>
+          <div class="stat-cell best">${p.record ?? '—'}</div>
+          <div class="stat-cell"><div class="sparkline">${spark}</div></div>
+        </div>`;
+    });
+
+    document.getElementById('leaderboard-body').innerHTML = html ||
+      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessun giocatore</div>';
+
+    // Anima le barre dopo il render
+    setTimeout(() => {
+      document.querySelectorAll('.mini-bar-fill').forEach(el => { el.style.width = el.dataset.w; });
+    }, 100);
+
+  } catch (e) {
+    document.getElementById('leaderboard-body').innerHTML =
+      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.75rem">Errore nel caricamento</div>';
+    console.error('Errore leaderboard:', e);
+  }
+}
+
+// ── SESSIONI RECENTI ─────────────────────────
+
+async function loadSessions() {
+  try {
+    const sessions = await fetch(`${API}/sessions.php`).then(r => r.json());
+
+    // Lista ultime 5
+    let html = '';
+    sessions.slice(0, 5).forEach(s => {
+      const sc   = s.scores || [];
+      const best = sc.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
+      const names = [...new Set(sc.map(x => x.player_name))].join(' · ');
+
+      html += `
+        <div class="session-item">
+          <div class="session-item-left">
+            <div class="session-item-date">${formatDate(s.date)} · ${s.location}</div>
+            <div class="session-item-players">${names || '—'}</div>
+          </div>
+          <div class="session-winner">
+            <div class="session-winner-label">Miglior punteggio</div>
+            <div class="session-winner-name">${best.player_name || '—'}</div>
+            <div class="session-winner-score">${best.score || '—'} pts</div>
+          </div>
+        </div>`;
+    });
+
+    document.getElementById('sessions-body').innerHTML = html ||
+      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna sessione ancora — inizia a giocare! 🎳</div>';
+
+    // Sidebar: ultima sessione
+    if (sessions.length > 0) renderLastSession(sessions[0]);
+
+  } catch (e) {
+    console.error('Errore sessioni:', e);
+  }
+}
+
+function renderLastSession(s) {
+  const teams  = s.teams  || [];
+  const scores = s.scores || [];
+
+  // Raggruppa punteggi per nome squadra
+  const byTeam = {};
+  teams.forEach(t => { byTeam[t.name] = { name: t.name, total: 0, players: [] }; });
+  scores.forEach(sc => {
+    if (byTeam[sc.team_name]) {
+      byTeam[sc.team_name].total += parseInt(sc.score) || 0;
+      byTeam[sc.team_name].players.push(sc);
+    }
+  });
+
+  const teamList = Object.values(byTeam);
+  const maxT     = Math.max(...teamList.map(t => t.total));
+  const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
+
+  let teamsHtml = '';
+  teamList.forEach((t, i) => {
+    const win    = t.total === maxT && maxT > 0;
+    const c      = tColors[i % tColors.length];
+    const plHtml = t.players.map(p =>
+      `<div class="team-player-row">
+        <span>${p.emoji || '🎳'} ${p.player_name}</span>
+        <span class="team-player-score">${p.score}</span>
+      </div>`
+    ).join('');
+
+    teamsHtml += `
+      <div class="team-block">
+        <div class="team-header">
+          <span class="team-name-lbl" style="color:${c}">${t.name}</span>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <span class="team-tag ${win ? 'win' : 'lose'}">${win ? 'VITTORIA' : 'SCONFITTA'}</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${win ? c : 'var(--text-muted)'}">${t.total}</span>
+          </div>
+        </div>
+        <div class="team-players">${plHtml}</div>
+      </div>`;
+  });
+
+  document.getElementById('last-session-card').innerHTML = `
+    <div class="card-header">
+      <div class="card-title">${formatDate(s.date)}</div>
+      <div class="card-date">${s.location}</div>
+    </div>
+    <div class="session-teams">
+      ${teamsHtml || '<div style="padding:1rem;color:var(--text-muted);font-size:0.8rem">Nessun punteggio</div>'}
+    </div>`;
+}
+
+// ── HALL OF FAME ─────────────────────────────
+
+async function loadHof() {
+  try {
+    const d = await fetch(`${API}/stats.php`).then(r => r.json());
+
+    document.getElementById('hof-card').innerHTML = `
+      <div class="hof-row" style="padding:1rem 1.2rem">
+        <div>
+          <div class="hof-label">Record assoluto</div>
+          <div style="font-family:'Black Han Sans',sans-serif;font-size:1.4rem;color:var(--gold);text-shadow:0 0 15px rgba(255,215,0,0.4)">
+            ${d.record_assoluto ?? '—'}
+          </div>
+          <div class="hof-sub">
+            ${d.record_holder ? d.record_holder.emoji + ' ' + d.record_holder.name + ' · ' + formatDate(d.record_holder.date) : '—'}
+          </div>
+        </div>
+        <div style="font-size:2.5rem">🏆</div>
+      </div>
+      <div class="hof-row">
+        <div>
+          <div class="hof-label">Più vittorie</div>
+          <div class="hof-name">${d.most_wins ? d.most_wins.emoji + ' ' + d.most_wins.name : '—'}</div>
+          <div class="hof-sub">${d.most_wins ? d.most_wins.vittorie + ' sessioni vinte' : ''}</div>
+        </div>
+        <div class="hof-val" style="color:var(--neon)">${d.most_wins?.vittorie ?? '—'}</div>
+      </div>
+      <div class="hof-row">
+        <div>
+          <div class="hof-label">Più migliorato</div>
+          <div class="hof-name">${d.most_improved ? d.most_improved.emoji + ' ' + d.most_improved.name : '—'}</div>
+          <div class="hof-sub">${d.most_improved ? '+' + d.most_improved.miglioramento + ' pts di media' : 'min. 4 partite'}</div>
+        </div>
+        <div class="hof-val" style="color:var(--neon2)">📈</div>
+      </div>`;
+  } catch (e) {
+    console.error('Errore HoF:', e);
+  }
+}
+
+// ── MODAL: NUOVA PARTITA ─────────────────────
+
+let allPlayers = [];
+
+async function openModal() {
+  // Carica lista giocatori dal DB
+  try {
+    allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
+  } catch (e) {
+    allPlayers = [];
+  }
+
+  // Reset campi
+  document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionLocation').value = '';
+  document.getElementById('sessionNotes').value    = '';
+  document.getElementById('teamAName').value       = '';
+  document.getElementById('teamBName').value       = '';
+  document.getElementById('teamARows').innerHTML   = '';
+  document.getElementById('teamBRows').innerHTML   = '';
+  document.getElementById('totalA').textContent    = 'Totale: 0';
+  document.getElementById('totalB').textContent    = 'Totale: 0';
+
+  // 3 righe iniziali per squadra
+  addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
+  addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function addPlayerRow(team) {
+  const opts = allPlayers.map(p =>
+    `<option value="${p.id}">${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
+
+  const row = document.createElement('div');
+  row.className = 'score-row';
+  row.innerHTML = `
+    <select class="form-input" onchange="calcTotals()">
+      <option value="">— Giocatore —</option>${opts}
+    </select>
+    <input type="number" class="form-input" placeholder="Score" min="0" max="300" oninput="calcTotals()"/>
+    <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
+
+  document.getElementById(`team${team}Rows`).appendChild(row);
+}
+
+function calcTotals() {
+  ['A', 'B'].forEach(t => {
+    let tot = 0;
+    document.querySelectorAll(`#team${t}Rows input[type="number"]`).forEach(i => {
+      if (i.value) tot += parseInt(i.value) || 0;
+    });
+    document.getElementById(`total${t}`).textContent = `Totale: ${tot}`;
+  });
+}
+
+async function saveSession() {
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.textContent = 'Salvataggio...';
+
+  const date = document.getElementById('sessionDate').value;
+  if (!date) {
+    showToast('Inserisci la data', 'error');
+    btn.disabled = false; btn.textContent = 'Salva Partita';
+    return;
+  }
+
+  // Costruisci payload squadre
+  const teams = [];
+  ['A', 'B'].forEach(t => {
+    const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
+    const players = [];
+    document.querySelectorAll(`#team${t}Rows .score-row`).forEach(row => {
+      const pid   = row.querySelector('select')?.value;
+      const score = row.querySelector('input[type="number"]')?.value;
+      if (pid && score) players.push({ player_id: parseInt(pid), score: parseInt(score) });
+    });
+    if (players.length > 0) teams.push({ name, players });
+  });
+
+  if (!teams.length) {
+    showToast('Inserisci almeno un punteggio', 'error');
+    btn.disabled = false; btn.textContent = 'Salva Partita';
+    return;
+  }
+
+  try {
+    const res  = await fetch(`${API}/sessions.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date,
+        location: document.getElementById('sessionLocation').value || 'Bowling',
+        notes:    document.getElementById('sessionNotes').value,
+        teams
+      })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      closeModal();
+      showToast('Partita salvata!');
+      // Ricarica tutto
+      loadStats();
+      loadLeaderboard();
+      loadSessions();
+      loadHof();
+    } else {
+      showToast(data.error || 'Errore nel salvataggio', 'error');
+    }
+  } catch (e) {
+    showToast('Errore di connessione', 'error');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Salva Partita';
+}
+
+// ── INIT ─────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadStats();
+  loadLeaderboard();
+  loadSessions();
+  loadHof();
+});

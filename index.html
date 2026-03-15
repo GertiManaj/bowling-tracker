@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Strike Zone — Bowling Tracker</title>
+
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+
+  <!-- Stili -->
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="header-glow"></div>
+  <div class="header-inner">
+
+    <div class="logo">
+      <div class="logo-pin">🎳</div>
+      <div class="logo-text">
+        <span class="logo-title">STRIKE ZONE</span>
+        <span class="logo-sub">Bowling Tracker v1.0</span>
+      </div>
+    </div>
+
+    <nav>
+      <a href="#" class="active">Dashboard</a>
+      <a href="sessioni.html">Sessioni</a>
+      <a href="statistiche.html">Statistiche</a>
+      <a href="giocatori.html">Giocatori</a>
+    </nav>
+
+    <button class="btn-new-session" onclick="openModal()">+ Nuova Partita</button>
+
+  </div>
+</header>
+
+<!-- ══ HERO BAR — statistiche rapide ══ -->
+<div class="hero-bar">
+  <div class="hero-bar-inner">
+
+    <div class="hero-stat">
+      <div class="hero-stat-label">Sessioni giocate</div>
+      <div class="hero-stat-value neon" id="stat-sessioni">—</div>
+      <div class="hero-stat-sub" id="stat-sessioni-sub">caricamento...</div>
+    </div>
+
+    <div class="hero-stat">
+      <div class="hero-stat-label">Record assoluto</div>
+      <div class="hero-stat-value pink" id="stat-record">—</div>
+      <div class="hero-stat-sub" id="stat-record-sub">caricamento...</div>
+    </div>
+
+    <div class="hero-stat">
+      <div class="hero-stat-label">Media del gruppo</div>
+      <div class="hero-stat-value cyan" id="stat-media">—</div>
+      <div class="hero-stat-sub">media di tutti i punteggi</div>
+    </div>
+
+    <div class="hero-stat">
+      <div class="hero-stat-label">Ultima sessione</div>
+      <div class="hero-stat-value orange" id="stat-ultima">—</div>
+      <div class="hero-stat-sub" id="stat-ultima-sub">caricamento...</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ CONTENUTO PRINCIPALE ══ -->
+<main>
+
+  <!-- ── COLONNA SINISTRA ── -->
+  <div>
+
+    <!-- Classifica generale -->
+    <div class="section-title">
+      <span class="accent"></span>
+      Classifica Generale
+    </div>
+
+    <div class="leaderboard-table">
+      <div class="leaderboard-header">
+        <div>#</div>
+        <div>Giocatore</div>
+        <div style="text-align:center">Media</div>
+        <div style="text-align:center" class="col-partite">Partite</div>
+        <div style="text-align:center">Record</div>
+        <div style="text-align:center">Trend</div>
+      </div>
+      <div id="leaderboard-body">
+        <!-- Skeleton loader, sostituito da app.js -->
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-row"></div>
+      </div>
+    </div>
+
+    <!-- Sessioni recenti -->
+    <div class="section-title" style="margin-top:2rem">
+      <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+      Sessioni Recenti
+    </div>
+
+    <div class="card">
+      <div id="sessions-body">
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-row"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- Ultima sessione -->
+    <div>
+      <div class="section-title">
+        <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
+        Ultima Sessione
+      </div>
+      <div class="card" id="last-session-card">
+        <div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.75rem">
+          caricamento...
+        </div>
+      </div>
+    </div>
+
+    <!-- Hall of Fame -->
+    <div>
+      <div class="section-title">
+        <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
+        Hall of Fame
+      </div>
+      <div class="card" id="hof-card">
+        <div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.75rem">
+          caricamento...
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
+
+<!-- ══ MODAL: NUOVA PARTITA ══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+
+    <div class="modal-header">
+      <div class="modal-title">🎳 Nuova Partita</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="sessionDate"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Luogo</label>
+          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        </div>
+      </div>
+
+      <!-- Squadra A -->
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-a-title">⚡ Squadra A</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
+          </div>
+          <div id="teamARows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+
+      <!-- Squadra B -->
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-b-title">🔥 Squadra B</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
+          </div>
+          <div id="teamBRows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note (opzionale)</label>
+        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast notifiche -->
+<div class="toast" id="toast"></div>
+
+<!-- Script (caricato alla fine per performance) -->
+<script src="js/app.js"></script>
+
+</body>
+</html>

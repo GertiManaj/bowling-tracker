@@ -1,0 +1,25 @@
+# ============================================
+#  .gitignore — File da NON caricare su GitHub
+# ============================================
+
+# Variabili d'ambiente (contengono password!)
+.env
+
+# Dipendenze PHP
+/vendor/
+
+# File di sistema Mac
+.DS_Store
+**/.DS_Store
+
+# File di sistema Windows
+Thumbs.db
+desktop.ini
+
+# Log
+*.log
+/logs/
+
+# Cache
+/cache/
+*.cache

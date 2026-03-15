@@ -1,0 +1,293 @@
+/* ============================================
+   giocatori.css — stili specifici pagina Giocatori
+   ============================================ */
+
+/* ── LAYOUT PAGINA ── */
+.main-players {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  /* ── BARRA RICERCA + ORDINAMENTO ── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+  }
+  
+  .sort-btns {
+    display: flex;
+    gap: 0.3rem;
+  }
+  
+  .sort-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.45rem 0.9rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  
+  .sort-btn:hover {
+    border-color: var(--neon);
+    color: var(--neon);
+  }
+  
+  .sort-btn.active {
+    background: rgba(232,255,0,0.08);
+    border-color: rgba(232,255,0,0.4);
+    color: var(--neon);
+  }
+  
+  /* ── GRIGLIA GIOCATORI ── */
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  
+  /* ── CARD GIOCATORE ── */
+  .player-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+    animation: fadeInUp 0.4s ease both;
+    position: relative;
+  }
+  
+  .player-card:hover {
+    border-color: var(--accent, var(--neon));
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  
+  /* Striscia colorata in cima */
+  .player-card-stripe {
+    height: 4px;
+    background: var(--accent, var(--neon));
+    box-shadow: 0 0 12px var(--accent, var(--neon));
+  }
+  
+  /* Intestazione con emoji e nome */
+  .player-card-header {
+    padding: 1.2rem 1.2rem 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+  
+  .player-card-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    border: 2px solid var(--accent, var(--neon));
+    background: rgba(255,255,255,0.04);
+    flex-shrink: 0;
+  }
+  
+  .player-card-name {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  
+  .player-card-nickname {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+  }
+  
+  /* Statistiche nella card */
+  .player-card-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+  
+  .player-stat-item {
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  
+  .player-stat-item:last-child { border-right: none; }
+  
+  .player-stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  
+  .player-stat-value {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  
+  .player-stat-value.highlight {
+    color: var(--accent, var(--neon));
+    text-shadow: 0 0 10px var(--accent, var(--neon));
+  }
+  
+  /* Bottoni azioni */
+  .player-card-actions {
+    display: flex;
+    border-top: 1px solid var(--border);
+  }
+  
+  .player-action-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 0.6rem;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+  }
+  
+  .player-action-btn:first-child {
+    border-right: 1px solid var(--border);
+  }
+  
+  .player-action-btn.edit:hover {
+    background: rgba(232,255,0,0.06);
+    color: var(--neon);
+  }
+  
+  .player-action-btn.delete:hover {
+    background: rgba(255,60,172,0.06);
+    color: var(--neon2);
+  }
+  
+  /* Badge "nessuna partita" */
+  .no-games-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0.6rem;
+    border-top: 1px solid var(--border);
+  }
+  
+  /* ── SELETTORE EMOJI ── */
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.4rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem;
+  }
+  
+  .emoji-btn {
+    font-size: 1.3rem;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 0.3rem;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+  }
+  
+  .emoji-btn:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--border);
+  }
+  
+  .emoji-btn.selected {
+    border-color: var(--neon);
+    background: rgba(232,255,0,0.1);
+    box-shadow: 0 0 8px rgba(232,255,0,0.3);
+  }
+  
+  /* ── BOTTONE ELIMINA ── */
+  .btn-delete {
+    background: rgba(255,60,172,0.15);
+    border: 1px solid rgba(255,60,172,0.4);
+    color: var(--neon2);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.55rem 1.4rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-delete:hover {
+    background: rgba(255,60,172,0.25);
+    box-shadow: 0 0 20px rgba(255,60,172,0.3);
+  }
+  
+  /* ── STATO VUOTO ── */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+  }
+  
+  .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
+  
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .search-bar { flex-direction: column; align-items: stretch; }
+    .sort-btns  { justify-content: flex-start; flex-wrap: wrap; }
+    .players-grid { grid-template-columns: 1fr 1fr; }
+    .emoji-grid   { grid-template-columns: repeat(6, 1fr); }
+  }
+  
+  @media (max-width: 400px) {
+    .players-grid { grid-template-columns: 1fr; }
+  }

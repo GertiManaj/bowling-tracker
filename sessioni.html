@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Strike Zone — Sessioni</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/sessioni.css"/>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="header-glow"></div>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-pin">🎳</div>
+      <div class="logo-text">
+        <span class="logo-title">STRIKE ZONE</span>
+        <span class="logo-sub">Bowling Tracker v1.0</span>
+      </div>
+    </div>
+    <nav>
+      <a href="index.html">Dashboard</a>
+      <a href="sessioni.html" class="active">Sessioni</a>
+      <a href="statistiche.html">Statistiche</a>
+      <a href="giocatori.html">Giocatori</a>
+    </nav>
+    <button class="btn-new-session" onclick="openAddModal()">+ Nuova Partita</button>
+  </div>
+</header>
+
+<!-- ══ HERO BAR ══ -->
+<div class="hero-bar">
+  <div class="hero-bar-inner">
+    <div class="hero-stat">
+      <div class="hero-stat-label">Sessioni totali</div>
+      <div class="hero-stat-value neon" id="stat-totali">—</div>
+      <div class="hero-stat-sub">dalla prima partita</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Punteggio più alto</div>
+      <div class="hero-stat-value pink" id="stat-record">—</div>
+      <div class="hero-stat-sub" id="stat-record-sub">caricamento...</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Media del gruppo</div>
+      <div class="hero-stat-value cyan" id="stat-media">—</div>
+      <div class="hero-stat-sub">tutti i punteggi</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Ultima sessione</div>
+      <div class="hero-stat-value orange" id="stat-ultima">—</div>
+      <div class="hero-stat-sub" id="stat-ultima-sub">caricamento...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<main class="main-sessioni">
+
+  <!-- Filtri -->
+  <div class="filters-bar">
+    <input
+      type="text"
+      class="form-input search-input"
+      id="searchInput"
+      placeholder="🔍  Cerca per luogo o giocatore..."
+      oninput="filterSessions()"
+    />
+    <div class="filter-group">
+      <label class="form-label" style="margin-bottom:0">Da</label>
+      <input type="date" class="form-input" id="filterFrom" onchange="filterSessions()" style="width:auto"/>
+    </div>
+    <div class="filter-group">
+      <label class="form-label" style="margin-bottom:0">A</label>
+      <input type="date" class="form-input" id="filterTo" onchange="filterSessions()" style="width:auto"/>
+    </div>
+    <button class="sort-btn" onclick="resetFilters()">✕ Reset</button>
+  </div>
+
+  <!-- Contatore risultati -->
+  <div class="results-count" id="resultsCount"></div>
+
+  <!-- Lista sessioni -->
+  <div id="sessions-list">
+    <div class="skeleton" style="height:80px;border-radius:8px;margin-bottom:0.5rem"></div>
+    <div class="skeleton" style="height:80px;border-radius:8px;margin-bottom:0.5rem"></div>
+    <div class="skeleton" style="height:80px;border-radius:8px"></div>
+  </div>
+
+</main>
+
+<footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
+
+<!-- ══ MODAL: AGGIUNGI / MODIFICA SESSIONE ══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" style="width:620px">
+
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">🎳 Nuova Partita</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input type="date" class="form-input" id="sessionDate"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Luogo</label>
+          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        </div>
+      </div>
+
+      <!-- Squadra A -->
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-a-title">⚡ Squadra A</span>
+          <span class="total-display" id="totalA">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
+          </div>
+          <div id="teamARows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+
+      <!-- Squadra B -->
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-b-title">🔥 Squadra B</span>
+          <span class="total-display" id="totalB">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
+          </div>
+          <div id="teamBRows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note (opzionale)</label>
+        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFERMA ELIMINAZIONE ══ -->
+<div class="modal-overlay" id="deleteOverlay" onclick="handleDeleteOverlayClick(event)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--neon2)">⚠ Elimina Sessione</div>
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:1rem;line-height:1.5;color:var(--text)">
+        Stai per eliminare la sessione del <strong id="deleteSessionDate" style="color:var(--neon2)"></strong>.
+      </p>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem;font-family:'Share Tech Mono',monospace">
+        ⚠ Verranno eliminati tutti i punteggi di quella serata. Azione irreversibile.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeDeleteModal()">Annulla</button>
+      <button class="btn-delete" id="btnDelete" onclick="confirmDelete()">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="js/sessioni.js"></script>
+</body>
+</html>
