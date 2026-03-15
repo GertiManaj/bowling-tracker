@@ -1,7 +1,6 @@
 <?php
 // ============================================
 //  migrate.php — Aggiunge game_number a scores
-//  Aprire una volta sola poi eliminare!
 //  URL: /migrate.php?key=bowling2024
 // ============================================
 
@@ -18,41 +17,51 @@ $pdo     = getDB();
 $success = [];
 $errors  = [];
 
-$queries = [
-    // Aggiunge game_number se non esiste già
-    "ALTER TABLE scores ADD COLUMN IF NOT EXISTS game_number INT NOT NULL DEFAULT 1",
+// Controlla se la colonna game_number esiste già
+$check = $pdo->prepare("
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'scores'
+    AND COLUMN_NAME = 'game_number'
+");
+$check->execute();
+$exists = (int)$check->fetchColumn() > 0;
 
-    // Aggiunge indice per query più veloci
-    "ALTER TABLE scores ADD INDEX IF NOT EXISTS idx_game_number (game_number)",
+$queries = [];
 
-    // Aggiorna la vista scores_detail per includere game_number
-    "CREATE OR REPLACE VIEW scores_detail AS
-        SELECT sc.id, se.date, se.location,
-            p.name AS player_name, p.id AS player_id, p.emoji,
-            t.name AS team_name, sc.score, sc.game_number
-        FROM scores sc
-        JOIN sessions se ON sc.session_id = se.id
-        JOIN players  p  ON sc.player_id  = p.id
-        LEFT JOIN teams t ON sc.team_id   = t.id
-        ORDER BY se.date DESC, sc.game_number ASC, sc.score DESC",
+if (!$exists) {
+    $queries[] = "ALTER TABLE scores ADD COLUMN game_number INT NOT NULL DEFAULT 1";
+    $queries[] = "ALTER TABLE scores ADD INDEX idx_game_number (game_number)";
+} else {
+    $success[] = "Colonna game_number già presente — skip";
+}
 
-    // Aggiorna la vista leaderboard per sommare i game (media per sessione)
-    "CREATE OR REPLACE VIEW leaderboard AS
-        SELECT p.id, p.name, p.nickname, p.emoji,
-            COUNT(DISTINCT CONCAT(sc.session_id)) AS partite,
-            ROUND(AVG(session_totals.total), 1)   AS media,
-            MAX(session_totals.total)              AS record,
-            MIN(session_totals.total)              AS minimo
-        FROM players p
-        LEFT JOIN scores sc ON sc.player_id = p.id
-        LEFT JOIN (
-            SELECT player_id, session_id, SUM(score) AS total
-            FROM scores
-            GROUP BY player_id, session_id
-        ) session_totals ON session_totals.player_id = p.id AND session_totals.session_id = sc.session_id
-        GROUP BY p.id
-        ORDER BY media DESC",
-];
+// Aggiorna le viste sempre
+$queries[] = "CREATE OR REPLACE VIEW scores_detail AS
+    SELECT sc.id, se.date, se.location,
+        p.name AS player_name, p.id AS player_id, p.emoji,
+        t.name AS team_name, sc.score, sc.game_number
+    FROM scores sc
+    JOIN sessions se ON sc.session_id = se.id
+    JOIN players  p  ON sc.player_id  = p.id
+    LEFT JOIN teams t ON sc.team_id   = t.id
+    ORDER BY se.date DESC, sc.game_number ASC, sc.score DESC";
+
+$queries[] = "CREATE OR REPLACE VIEW leaderboard AS
+    SELECT p.id, p.name, p.nickname, p.emoji,
+        COUNT(DISTINCT sc.session_id) AS partite,
+        ROUND(AVG(st.total), 1)       AS media,
+        MAX(st.total)                 AS record,
+        MIN(st.total)                 AS minimo
+    FROM players p
+    LEFT JOIN (
+        SELECT player_id, session_id, SUM(score) AS total
+        FROM scores
+        GROUP BY player_id, session_id
+    ) st ON st.player_id = p.id
+    LEFT JOIN scores sc ON sc.player_id = p.id AND sc.session_id = st.session_id
+    GROUP BY p.id
+    ORDER BY media DESC";
 
 foreach ($queries as $sql) {
     try {
@@ -67,7 +76,7 @@ foreach ($queries as $sql) {
 <html lang="it">
 <head>
   <meta charset="UTF-8"/>
-  <title>Migrazione DB — Strike Zone</title>
+  <title>Migrazione — Strike Zone</title>
   <style>
     body { font-family: monospace; background: #0a0a0f; color: #e8e8f0; padding: 2rem; }
     h1   { color: #e8ff00; }
@@ -78,7 +87,7 @@ foreach ($queries as $sql) {
   </style>
 </head>
 <body>
-  <h1>🎳 Strike Zone — Migrazione Database</h1>
+  <h1>🎳 Migrazione Database</h1>
   <div class="box">
     <h2 style="color:#00f5ff">Operazioni (<?= count($success) ?>)</h2>
     <?php foreach ($success as $s): ?>
@@ -94,7 +103,7 @@ foreach ($queries as $sql) {
   </div>
   <?php endif; ?>
   <div class="warn">
-    ⚠️ <strong>IMPORTANTE:</strong> elimina questo file dopo l'uso!<br><br>
+    ⚠️ Elimina questo file dopo l'uso:<br><br>
     <code>rm /Applications/XAMPP/xamppfiles/htdocs/bowling/migrate.php && cd /Applications/XAMPP/xamppfiles/htdocs/bowling && git add . && git commit -m "rimuovi migrate.php" && git push</code>
   </div>
   <?php if (!$errors): ?>
