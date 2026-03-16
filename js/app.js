@@ -302,6 +302,7 @@ async function loadSessions() {
 
     // Sidebar: ultima sessione
     cachedSessions = sessions;
+    window.cachedSessions = cachedSessions;
     if (sessions.length > 0) renderLastSession(sessions[0]);
 
   } catch (e) {
