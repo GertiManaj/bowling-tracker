@@ -1,0 +1,248 @@
+/* ============================================
+   profilo.css — Pagina Profilo Giocatore
+   ============================================ */
+
+.main-profilo {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── HERO PROFILO ── */
+.profile-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.profile-hero-stripe {
+  height: 6px;
+  background: var(--accent-color, var(--neon));
+  box-shadow: 0 0 20px var(--accent-color, var(--neon));
+}
+
+.profile-hero-body {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.profile-avatar-big {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem;
+  border: 3px solid var(--accent-color, var(--neon));
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 0 30px var(--accent-color, var(--neon));
+  flex-shrink: 0;
+}
+
+.profile-name {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.profile-nickname {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 0.4rem;
+}
+
+.profile-since {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  letter-spacing: 0.1em;
+}
+
+/* Confronto con media gruppo */
+.profile-vs-group {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.vs-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.vs-value {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.vs-diff {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+}
+
+.vs-diff.pos { background: rgba(232,255,0,0.12); color: var(--neon); }
+.vs-diff.neg { background: rgba(255,60,172,0.1); color: var(--neon2); }
+.vs-diff.eq  { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+/* ── STATS GRID ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: var(--accent-color, var(--neon)); }
+
+.stat-card-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stat-card-value {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--accent-color, var(--neon));
+  text-shadow: 0 0 15px var(--accent-color, var(--neon));
+}
+
+.stat-card-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ── DUE COLONNE ── */
+.profilo-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* ── COMPAGNI ── */
+.teammate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.teammate-row:last-child { border-bottom: none; }
+.teammate-row:hover { background: rgba(255,255,255,0.02); }
+
+.teammate-info { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; }
+
+.teammate-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.teammate-together {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.teammate-wins {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--neon);
+}
+
+.win-pct {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+}
+
+.win-pct.high   { background: rgba(232,255,0,0.12);  color: var(--neon);  }
+.win-pct.medium { background: rgba(0,245,255,0.10);  color: var(--neon3); }
+.win-pct.low    { background: rgba(255,107,53,0.10); color: var(--neon4); }
+
+/* ── STORICO ── */
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  animation: fadeInUp 0.4s ease both;
+}
+
+.history-item:hover { border-color: #3a3a5a; }
+
+.history-header {
+  display: grid;
+  grid-template-columns: 110px 1fr auto auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.2rem;
+}
+
+.history-date-day   { font-family: 'Black Han Sans', sans-serif; font-size: 1.3rem; color: var(--accent-color, var(--neon)); line-height: 1; }
+.history-date-month { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+.history-location   { font-weight: 600; font-size: 0.9rem; }
+.history-team       { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+.history-total {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 1.4rem;
+  color: var(--text);
+  text-align: right;
+}
+
+.history-games {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 0.2rem;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 800px) {
+  .stats-grid       { grid-template-columns: repeat(2,1fr); }
+  .profilo-two-col  { grid-template-columns: 1fr; }
+  .profile-hero-body { flex-direction: column; text-align: center; }
+  .profile-vs-group  { margin-left: 0; align-items: center; }
+  .history-header    { grid-template-columns: 80px 1fr auto auto; }
+}

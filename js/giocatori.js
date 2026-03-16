@@ -121,12 +121,13 @@ function renderPlayers() {
     return `
       <div class="player-card" style="--accent:${color};animation-delay:${(i * 0.05).toFixed(2)}s">
         <div class="player-card-stripe"></div>
-        <div class="player-card-header">
+        <div class="player-card-header" onclick="window.location.href='profilo.html?id=${p.id}'" style="cursor:pointer" title="Vedi profilo">
           <div class="player-card-avatar" style="border-color:${color}">${p.emoji || '🎳'}</div>
           <div>
             <div class="player-card-name">${p.name}</div>
             <div class="player-card-nickname">${p.nickname || '&nbsp;'}</div>
           </div>
+          <div style="margin-left:auto;font-size:0.65rem;font-family:'Share Tech Mono',monospace;color:var(--text-muted);letter-spacing:0.1em">PROFILO →</div>
         </div>
         ${statsHtml}
         <div class="player-card-actions action-btn-wrap">
