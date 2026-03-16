@@ -167,30 +167,55 @@ function renderLastSession(s) {
   const teams  = s.teams  || [];
   const scores = s.scores || [];
 
-  // Raggruppa punteggi per nome squadra
+  // Raggruppa punteggi per squadra, poi per giocatore (somma game multipli)
   const byTeam = {};
-  teams.forEach(t => { byTeam[t.name] = { name: t.name, total: 0, players: [] }; });
+  teams.forEach(t => { byTeam[t.name] = { name: t.name, total: 0, players: {} }; });
+
   scores.forEach(sc => {
-    if (byTeam[sc.team_name]) {
-      byTeam[sc.team_name].total += parseInt(sc.score) || 0;
-      byTeam[sc.team_name].players.push(sc);
+    if (!byTeam[sc.team_name]) return;
+    const team   = byTeam[sc.team_name];
+    const pname  = sc.player_name;
+    // Accumula per giocatore (somma tutti i game)
+    if (!team.players[pname]) {
+      team.players[pname] = { name: pname, emoji: sc.emoji, total: 0, games: [] };
     }
+    team.players[pname].total += parseInt(sc.score) || 0;
+    team.players[pname].games.push({ game: sc.game_number || 1, score: sc.score });
+    team.total += parseInt(sc.score) || 0;
+  });
+
+  // Deduplicazione totale squadra: somma totali giocatori (evita doppio conteggio)
+  Object.values(byTeam).forEach(team => {
+    team.total = Object.values(team.players).reduce((s, p) => s + p.total, 0);
   });
 
   const teamList = Object.values(byTeam);
   const maxT     = Math.max(...teamList.map(t => t.total));
   const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
+  const numGames = scores.length > 0 ? Math.max(...scores.map(sc => sc.game_number || 1)) : 1;
 
   let teamsHtml = '';
   teamList.forEach((t, i) => {
-    const win    = t.total === maxT && maxT > 0;
-    const c      = tColors[i % tColors.length];
-    const plHtml = t.players.map(p =>
-      `<div class="team-player-row">
-        <span>${p.emoji || '🎳'} ${p.player_name}</span>
-        <span class="team-player-score">${p.score}</span>
-      </div>`
-    ).join('');
+    const win      = t.total === maxT && maxT > 0;
+    const c        = tColors[i % tColors.length];
+    const maxScore = Math.max(...Object.values(t.players).map(p => p.total));
+
+    const plHtml = Object.values(t.players).map(p => {
+      const gamesHtml = numGames > 1
+        ? p.games.sort((a,b) => a.game - b.game)
+            .map(g => `<span style="font-size:0.68rem;color:var(--text-muted)">G${g.game}:${g.score}</span>`)
+            .join(' ')
+        : '';
+      const isTop = p.total === maxScore;
+      return `
+        <div class="team-player-row">
+          <span>${p.emoji || '🎳'} ${p.name}</span>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            ${gamesHtml ? `<span style="font-family:'Share Tech Mono',monospace">${gamesHtml}</span>` : ''}
+            <span class="team-player-score" style="${isTop ? 'color:var(--gold)' : ''}">${p.total}</span>
+          </div>
+        </div>`;
+    }).join('');
 
     teamsHtml += `
       <div class="team-block">
@@ -208,7 +233,7 @@ function renderLastSession(s) {
   document.getElementById('last-session-card').innerHTML = `
     <div class="card-header">
       <div class="card-title">${formatDate(s.date)}</div>
-      <div class="card-date">${s.location}</div>
+      <div class="card-date">${s.location}${numGames > 1 ? ` · ${numGames} game` : ''}</div>
     </div>
     <div class="session-teams">
       ${teamsHtml || '<div style="padding:1rem;color:var(--text-muted);font-size:0.8rem">Nessun punteggio</div>'}
