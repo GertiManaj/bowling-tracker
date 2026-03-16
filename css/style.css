@@ -324,3 +324,56 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem 2rem; text-align: 
   border-color: var(--text-muted) !important;
   color: var(--text) !important;
 }
+/* ── TEMA CHIARO ── */
+body.light {
+  --bg:         #f0f0f5;
+  --surface:    #ffffff;
+  --surface2:   #e8e8f0;
+  --border:     #ccccdd;
+  --text:       #1a1a2e;
+  --text-muted: #888899;
+  --neon:       #b8cc00;
+  --neon2:      #cc1a7a;
+  --neon3:      #0099bb;
+  --neon4:      #cc4400;
+  --gold:       #cc9900;
+  --silver:     #888899;
+  --bronze:     #9a5a1a;
+}
+
+body.light::before { opacity: 0.1; }
+body.light::after  { display: none; }
+
+body.light header {
+  background: linear-gradient(180deg, rgba(184,204,0,0.06) 0%, transparent 100%);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+body.light .hero-bar  { box-shadow: 0 1px 0 var(--border); }
+body.light .card,
+body.light .leaderboard-table,
+body.light .chart-card,
+body.light .rank-table-wrap { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+body.light .modal { box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
+
+body.light .logo-title {
+  text-shadow: 0 0 20px rgba(184,204,0,0.4);
+}
+
+/* Toggle button */
+.theme-toggle {
+  font-size: 1.1rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 34px; height: 34px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.theme-toggle:hover {
+  border-color: var(--neon);
+  color: var(--neon);
+}
