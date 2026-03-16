@@ -169,7 +169,8 @@ initTheme();
     <!-- Classifica generale -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
       <div class="section-title" style="margin-bottom:0;flex:1"><span class="accent"></span>Classifica</div>
-      <div style="display:flex;gap:0.3rem">
+      <div style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap">
+        <button id="btnSaveClassifica" onclick="saveClassifica()" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.35rem 0.7rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon4)';this.style.color='var(--neon4)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📸 Salva classifica</button>
         <button class="lb-toggle-btn active" onclick="setLeaderboardMode('all',this)" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:rgba(232,255,0,0.08);border:1px solid rgba(232,255,0,0.4);color:var(--neon);padding:0.4rem 0.9rem;border-radius:4px;cursor:pointer">Di sempre</button>
         <button class="lb-toggle-btn" onclick="setLeaderboardMode('last',this)" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.4rem 0.9rem;border-radius:4px;cursor:pointer">Ultima serata</button>
       </div>
@@ -218,6 +219,9 @@ initTheme();
       <div class="section-title">
         <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
         Ultima Sessione
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
+        <button id="btnSaveSerata" onclick="saveUltimaSerata()" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.35rem 0.7rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon4)';this.style.color='var(--neon4)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📸 Salva serata</button>
       </div>
       <div class="card" id="last-session-card">
         <div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.75rem">
@@ -367,6 +371,7 @@ initTheme();
   </div>
 </div>
 <script src="js/auth.js"></script>
+<script src="js/screenshot.js"></script>
 
 
 <script>

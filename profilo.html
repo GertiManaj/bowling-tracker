@@ -57,6 +57,11 @@ window.addEventListener('DOMContentLoaded',function(){
     <div style="padding:3rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace">caricamento...</div>
   </div>
 
+  <!-- Bottone salva profilo -->
+  <div style="display:flex;justify-content:flex-end;margin-top:-1rem">
+    <button id="btnSaveProfilo" onclick="saveProfilo()" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.35rem 0.7rem;border-radius:4px;cursor:pointer" onmouseover="this.style.borderColor='var(--neon4)';this.style.color='var(--neon4)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📸 Salva profilo</button>
+  </div>
+
   <!-- STATS GRID -->
   <div class="stats-grid" id="statsGrid"></div>
 
@@ -104,6 +109,7 @@ window.addEventListener('DOMContentLoaded',function(){
 <div class="toast" id="toast"></div>
 
 <script src="js/auth.js"></script>
+<script src="js/screenshot.js"></script>
 <script src="js/profilo.js"></script>
 <script>
 function toggleTheme(){const l=document.body.classList.contains('light');const t=l?'dark':'light';document.body.classList.toggle('light',!l);localStorage.setItem('theme',t);document.getElementById('themeToggle').textContent=l?'☀️':'🌙';}
