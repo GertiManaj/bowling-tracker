@@ -1,25 +1,159 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 require_once 'db.php';
 $pdo = getDB();
 $id = intval($_GET['id'] ?? 0);
-if (!$id) { echo json_encode(['error' => 'ID mancante']); exit; }
+if (!$id) { echo json_encode(['error' => 'ID non valido']); exit; }
 
-try {
-    // Test 1: info base
-    $q = $pdo->prepare('SELECT id, name, nickname, emoji, created_at FROM players WHERE id = ?');
-    $q->execute([$id]);
-    $player = $q->fetch();
-    if (!$player) { echo json_encode(['error' => 'Giocatore non trovato']); exit; }
+// Info base
+$q = $pdo->prepare('SELECT id, name, nickname, emoji, created_at FROM players WHERE id = ?');
+$q->execute([$id]);
+$player = $q->fetch();
+if (!$player) { echo json_encode(['error' => 'Giocatore non trovato']); exit; }
 
-    // Test 2: stats semplici
-    $q2 = $pdo->prepare('SELECT COUNT(DISTINCT session_id) AS serate, COUNT(id) AS game_totali, MAX(score) AS record_game FROM scores WHERE player_id = ?');
-    $q2->execute([$id]);
-    $stats = $q2->fetch();
+// Totali per sessione (somma game)
+$qTot = $pdo->prepare('SELECT session_id, SUM(score) AS totale FROM scores WHERE player_id = ? GROUP BY session_id');
+$qTot->execute([$id]);
+$sessionTotals = $qTot->fetchAll();
+$totali = array_column($sessionTotals, 'totale');
+$serate = count($totali);
+$mediaSerata = $serate > 0 ? round(array_sum($totali) / $serate, 1) : null;
+$recordSerata = $serate > 0 ? max($totali) : null;
+$minimoSerata = $serate > 0 ? min($totali) : null;
 
-    echo json_encode(['player' => $player, 'stats' => $stats, 'ok' => true]);
+// Game totali e media game
+$qGame = $pdo->prepare('SELECT COUNT(id) AS game_totali, ROUND(AVG(score),1) AS media_game FROM scores WHERE player_id = ?');
+$qGame->execute([$id]);
+$gameStats = $qGame->fetch();
 
-} catch (Exception $e) {
-    echo json_encode(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+// Vittorie squadra
+$qVit = $pdo->prepare('
+    SELECT COUNT(DISTINCT sc.session_id) AS vittorie
+    FROM scores sc
+    WHERE sc.player_id = ?
+    AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id) = (
+        SELECT MAX(team_tot) FROM (
+            SELECT SUM(s3.score) AS team_tot FROM scores s3
+            WHERE s3.session_id = sc.session_id GROUP BY s3.team_id
+        ) t
+    )
+');
+$qVit->execute([$id]);
+$vittorie = $qVit->fetchColumn();
+
+// Volte top scorer
+$qTop = $pdo->prepare('
+    SELECT COUNT(*) AS volte
+    FROM (SELECT session_id, SUM(score) AS totale FROM scores WHERE player_id = ? GROUP BY session_id) myTot
+    WHERE myTot.totale = (
+        SELECT MAX(tot) FROM (
+            SELECT player_id, SUM(score) AS tot FROM scores
+            WHERE session_id = myTot.session_id GROUP BY player_id
+        ) allTot
+    )
+');
+$qTop->execute([$id]);
+$topScorer = $qTop->fetchColumn();
+
+// Media gruppo
+$qGruppo = $pdo->query('SELECT ROUND(AVG(tot),1) AS media FROM (SELECT player_id, session_id, SUM(score) AS tot FROM scores GROUP BY player_id, session_id) t');
+$mediaGruppo = $qGruppo->fetchColumn();
+
+// Storico sessioni
+$qHist = $pdo->prepare('
+    SELECT se.id AS session_id, se.date, se.location,
+        t.name AS team_name, sc.team_id,
+        SUM(sc.score) AS totale,
+        GROUP_CONCAT(sc.score ORDER BY sc.game_number ASC SEPARATOR ",") AS game_scores
+    FROM scores sc
+    JOIN sessions se ON sc.session_id = se.id
+    LEFT JOIN teams t ON sc.team_id = t.id
+    WHERE sc.player_id = ?
+    GROUP BY se.id, sc.team_id
+    ORDER BY se.date DESC
+');
+$qHist->execute([$id]);
+$historyRaw = $qHist->fetchAll();
+
+// Aggiungi flag vittoria e top scorer per ogni sessione
+$history = [];
+foreach ($historyRaw as $h) {
+    // Team total
+    $qTeamTot = $pdo->prepare('SELECT SUM(score) FROM scores WHERE team_id = ?');
+    $qTeamTot->execute([$h['team_id']]);
+    $teamTotal = (int)$qTeamTot->fetchColumn();
+
+    // Max team total nella sessione
+    $qMaxTeam = $pdo->prepare('SELECT MAX(tot) FROM (SELECT SUM(score) AS tot FROM scores WHERE session_id = ? GROUP BY team_id) t');
+    $qMaxTeam->execute([$h['session_id']]);
+    $maxTeam = (int)$qMaxTeam->fetchColumn();
+
+    // Max player total nella sessione
+    $qMaxPlayer = $pdo->prepare('SELECT MAX(tot) FROM (SELECT player_id, SUM(score) AS tot FROM scores WHERE session_id = ? GROUP BY player_id) t');
+    $qMaxPlayer->execute([$h['session_id']]);
+    $maxPlayer = (int)$qMaxPlayer->fetchColumn();
+
+    $h['vittoria']   = $teamTotal === $maxTeam;
+    $h['top_scorer'] = (int)$h['totale'] === $maxPlayer;
+    $h['games']      = array_map('intval', explode(',', $h['game_scores']));
+    unset($h['game_scores'], $h['team_id']);
+    $history[] = $h;
 }
+
+// Trend
+$trend = array_map(fn($h) => [
+    'date'     => $h['date'],
+    'totale'   => (int)$h['totale'],
+    'location' => $h['location'],
+], array_reverse($history));
+
+// Compagni di squadra
+$qTeam = $pdo->prepare('
+    SELECT p.id, p.name, p.emoji,
+        COUNT(DISTINCT a.session_id) AS volte_insieme
+    FROM scores a
+    JOIN scores b ON a.session_id = b.session_id AND a.team_id = b.team_id AND b.player_id != a.player_id
+    JOIN players p ON b.player_id = p.id
+    WHERE a.player_id = ?
+    GROUP BY p.id
+    ORDER BY volte_insieme DESC
+');
+$qTeam->execute([$id]);
+$teammatesRaw = $qTeam->fetchAll();
+
+// Vittorie per ogni compagno
+$teammates = [];
+foreach ($teammatesRaw as $t) {
+    $qTW = $pdo->prepare('
+        SELECT COUNT(DISTINCT a.session_id) AS vittorie
+        FROM scores a
+        JOIN scores b ON a.session_id = b.session_id AND a.team_id = b.team_id AND b.player_id = ?
+        WHERE a.player_id = ?
+        AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = a.team_id) = (
+            SELECT MAX(team_tot) FROM (
+                SELECT SUM(s3.score) AS team_tot FROM scores s3
+                WHERE s3.session_id = a.session_id GROUP BY s3.team_id
+            ) mx
+        )
+    ');
+    $qTW->execute([$t['id'], $id]);
+    $t['vittorie_insieme'] = (int)$qTW->fetchColumn();
+    $teammates[] = $t;
+}
+
+echo json_encode([
+    'player'       => $player,
+    'stats'        => [
+        'serate'          => $serate,
+        'game_totali'     => (int)$gameStats['game_totali'],
+        'media_serata'    => $mediaSerata,
+        'media_game'      => $gameStats['media_game'],
+        'record_serata'   => $recordSerata,
+        'minimo_serata'   => $minimoSerata,
+        'vittorie_squadra'=> (int)$vittorie,
+        'volte_top_scorer'=> (int)$topScorer,
+    ],
+    'media_gruppo' => (float)$mediaGruppo,
+    'history'      => $history,
+    'trend'        => $trend,
+    'teammates'    => $teammates,
+]);
