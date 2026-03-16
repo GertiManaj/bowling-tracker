@@ -56,8 +56,19 @@ let cachedSessions  = [];
 
 function setLeaderboardMode(mode, btn) {
   leaderboardMode = mode;
-  document.querySelectorAll('.lb-toggle-btn').forEach(b => b.classList.remove('active'));
+  window.leaderboardMode = mode;
+  // Reset tutti i toggle
+  document.querySelectorAll('.lb-toggle-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background   = 'none';
+    b.style.borderColor  = 'var(--border)';
+    b.style.color        = 'var(--text-muted)';
+  });
+  // Attiva quello cliccato
   btn.classList.add('active');
+  btn.style.background  = 'rgba(232,255,0,0.08)';
+  btn.style.borderColor = 'rgba(232,255,0,0.4)';
+  btn.style.color       = 'var(--neon)';
   renderLeaderboard();
 }
 
