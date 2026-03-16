@@ -51,8 +51,8 @@ async function loadStats() {
 // ── CLASSIFICA GENERALE ──────────────────────
 
 let leaderboardMode = 'all'; // 'all' | 'last'
-let cachedPlayers   = [];
-let cachedSessions  = [];
+window.cachedPlayers = [];
+lwindow.cachedSessions = [];
 
 function setLeaderboardMode(mode, btn) {
   leaderboardMode = mode;
