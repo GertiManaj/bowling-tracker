@@ -824,7 +824,7 @@ function useSuggestedTeams() {
 // ── SALVA FOTO CLASSIFICA (dinamico) ────────────
 function saveFotoClassifica() {
   if (window.leaderboardMode === 'last') {
-    saveUltimaSerata();
+    saveClassificaUltimaSerata();
   } else {
     saveClassifica();
   }

@@ -230,6 +230,136 @@ async function saveClassifica() {
   if (btn) { btn.disabled=false; btn.textContent='📸 Salva classifica'; }
 }
 
+// ── CLASSIFICA ULTIMA SERATA ────────────────────
+async function saveClassificaUltimaSerata() {
+  const btn = document.getElementById('btnSaveClassifica');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Generando...'; }
+
+  try {
+    const sessions = window.cachedSessions || [];
+    if (!sessions.length) { showToast('Nessuna sessione', 'error'); return; }
+
+    const s      = sessions[0];
+    const scores = s.scores || [];
+
+    // Raggruppa per giocatore e somma i game
+    const byPlayer = {};
+    scores.forEach(sc => {
+      if (!byPlayer[sc.player_name]) {
+        byPlayer[sc.player_name] = { name: sc.player_name, emoji: sc.emoji, total: 0, team: sc.team_name };
+      }
+      byPlayer[sc.player_name].total += parseInt(sc.score)||0;
+    });
+
+    // Ordina per totale decrescente
+    const players = Object.values(byPlayer).sort((a,b) => b.total - a.total);
+    const noGames = (window.cachedPlayers || []).filter(p =>
+      !players.find(x => x.name === p.name)
+    );
+
+    const W = 700, ROW = 52, PAD = 20;
+    const H = PAD + 75 + players.length * ROW + PAD;
+    const { c, ctx } = makeCanvas(W, H);
+
+    // Sfondo
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, W, H);
+
+    // Titolo
+    ctx.fillStyle = '#e8ff00';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('🎳 STRIKE ZONE — ULTIMA SERATA', PAD, PAD + 24);
+    ctx.fillStyle = '#555570';
+    ctx.font = '11px monospace';
+    const dateStr = new Date(s.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+    ctx.fillText(`${dateStr} · ${s.location}`, PAD, PAD + 42);
+
+    // Header
+    ctx.fillStyle = '#18182a';
+    ctx.fillRect(0, PAD + 50, W, 26);
+    ctx.fillStyle = '#555570';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('#', 28, PAD + 67);
+    ctx.fillText('GIOCATORE', 100, PAD + 67);
+    ctx.textAlign = 'right';
+    ctx.fillText('SQUADRA', 480, PAD + 67);
+    ctx.fillText('TOTALE', 620, PAD + 67);
+    ctx.textAlign = 'left';
+
+    // Righe giocatori
+    players.forEach((p, i) => {
+      const y      = PAD + 78 + i * ROW;
+      const yCenter = y + ROW / 2;
+      const color  = COLORS[i % COLORS.length];
+
+      ctx.fillStyle = i % 2 === 0 ? '#11111a' : '#0d0d16';
+      ctx.fillRect(0, y, W, ROW);
+
+      // Rank
+      if (i < 3) {
+        ctx.font = '18px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(MEDALS[i], 32, yCenter + 6);
+      } else {
+        ctx.fillStyle = '#444460';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(i+1), 32, yCenter + 4);
+      }
+      ctx.textAlign = 'left';
+
+      // Avatar
+      ctx.beginPath();
+      ctx.arc(76, yCenter, 17, 0, Math.PI*2);
+      ctx.fillStyle = color + '18';
+      ctx.fill();
+      ctx.strokeStyle = color + '66';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.font = '16px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.emoji || '🎳', 76, yCenter + 5);
+      ctx.textAlign = 'left';
+
+      // Nome
+      ctx.fillStyle = i === 0 ? '#ffd700' : '#e8e8f0';
+      ctx.font = i === 0 ? 'bold 14px sans-serif' : '13px sans-serif';
+      ctx.fillText(p.name, 100, yCenter + 4);
+
+      // Squadra
+      ctx.fillStyle = '#555570';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(p.team || '—', 480, yCenter + 4);
+
+      // Totale
+      ctx.fillStyle = i === 0 ? '#ffd700' : color;
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText(String(p.total), 620, yCenter + 4);
+      ctx.textAlign = 'left';
+    });
+
+    // Footer
+    ctx.fillStyle = '#111120';
+    ctx.fillRect(0, H-24, W, 24);
+    ctx.fillStyle = '#444460';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('web-production-e43fd.up.railway.app', W/2, H-8);
+
+    const blob = await blobFromCanvas(c);
+    const date = new Date(s.date + 'T12:00:00').toLocaleDateString('it-IT').replace(/\//g,'-');
+    await shareOrDownload(blob, `classifica-serata-${date}.png`, 'Classifica Ultima Serata');
+    showToast('Foto classifica serata pronta!');
+
+  } catch(e) {
+    console.error(e);
+    showToast('Errore nella generazione', 'error');
+  }
+
+  if (btn) { btn.disabled=false; btn.textContent='📸 Salva foto'; }
+}
+
 // ── ULTIMA SERATA ─────────────────────────────
 async function saveUltimaSerata() {
   const btn = document.getElementById('btnSaveSerata');
