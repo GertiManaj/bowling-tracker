@@ -16,11 +16,18 @@ elseif ($from)     { $dateWhere = 'WHERE se.date >= ?';            $dateParams =
 elseif ($to)       { $dateWhere = 'WHERE se.date <= ?';            $dateParams = [$to]; }
 
 // ── TOTALI ───────────────────────────────────
+// Usa totali per sessione (somma game) per record e media
 $q = $pdo->prepare("
-    SELECT COUNT(*) AS totale_punteggi,
-           MAX(sc.score) AS record_assoluto,
-           ROUND(AVG(sc.score),1) AS media_gruppo
-    FROM scores sc JOIN sessions se ON sc.session_id = se.id $dateWhere
+    SELECT
+        MAX(st.totale)           AS record_assoluto,
+        ROUND(AVG(st.totale),1)  AS media_gruppo
+    FROM (
+        SELECT player_id, session_id, SUM(score) AS totale
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        $dateWhere
+        GROUP BY player_id, session_id
+    ) st
 ");
 $q->execute($dateParams);
 $totals = $q->fetch();
@@ -29,11 +36,19 @@ $qSess = $pdo->prepare("SELECT COUNT(*) FROM sessions se " . ($dateWhere ?: ''))
 $qSess->execute($dateParams);
 $totals['totale_sessioni'] = $qSess->fetchColumn();
 
-// Record holder
+// Record holder — basato sul totale della serata
 $qRec = $pdo->prepare("
-    SELECT p.name, p.emoji, sc.score, se.date
-    FROM scores sc JOIN players p ON sc.player_id=p.id JOIN sessions se ON sc.session_id=se.id
-    $dateWhere ORDER BY sc.score DESC LIMIT 1
+    SELECT p.name, p.emoji, st.totale AS score, se.date
+    FROM (
+        SELECT player_id, session_id, SUM(score) AS totale
+        FROM scores sc2
+        JOIN sessions se2 ON sc2.session_id = se2.id
+        $dateWhere
+        GROUP BY player_id, session_id
+    ) st
+    JOIN players  p  ON st.player_id  = p.id
+    JOIN sessions se ON st.session_id = se.id
+    ORDER BY st.totale DESC LIMIT 1
 ");
 $qRec->execute($dateParams);
 $recordHolder = $qRec->fetch();

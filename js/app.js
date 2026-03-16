@@ -249,9 +249,16 @@ async function loadSessions() {
     // Lista ultime 5
     let html = '';
     sessions.slice(0, 5).forEach(s => {
-      const sc   = s.scores || [];
-      const best = sc.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
+      const sc    = s.scores || [];
       const names = [...new Set(sc.map(x => x.player_name))].join(' · ');
+
+      // Calcola totale per giocatore (somma tutti i game)
+      const totals = {};
+      sc.forEach(x => {
+        totals[x.player_name] = totals[x.player_name] || { name: x.player_name, emoji: x.emoji, total: 0 };
+        totals[x.player_name].total += parseInt(x.score) || 0;
+      });
+      const best = Object.values(totals).reduce((a, b) => b.total > a.total ? b : a, { total: 0 });
 
       html += `
         <div class="session-item">
@@ -260,9 +267,9 @@ async function loadSessions() {
             <div class="session-item-players">${names || '—'}</div>
           </div>
           <div class="session-winner">
-            <div class="session-winner-label">Miglior punteggio</div>
-            <div class="session-winner-name">${best.player_name || '—'}</div>
-            <div class="session-winner-score">${best.score || '—'} pts</div>
+            <div class="session-winner-label">Miglior serata</div>
+            <div class="session-winner-name">${best.name || '—'}</div>
+            <div class="session-winner-score">${best.total || '—'} pts</div>
           </div>
         </div>`;
     });
