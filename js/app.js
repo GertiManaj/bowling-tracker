@@ -66,7 +66,6 @@ async function loadLeaderboard() {
     cachedPlayers = await fetch(`${API}/leaderboard.php`).then(r => r.json());
     window.cachedPlayers = cachedPlayers;
     renderLeaderboard();
-    buildSuggestPlayers();
   } catch (e) {
     document.getElementById('leaderboard-body').innerHTML =
       '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.75rem">Errore nel caricamento</div>';
@@ -586,9 +585,79 @@ async function saveSession() {
 }
 
 
+
+// ── CALENDARIO ──────────────────────────────
+
+let calendarDate = new Date();
+
+function renderCalendar() {
+  const widget = document.getElementById('calendarWidget');
+  if (!widget) return;
+
+  const sessions     = cachedSessions || [];
+  const sessionDates = {};
+  sessions.forEach(s => { sessionDates[s.date] = s; });
+
+  const year        = calendarDate.getFullYear();
+  const month       = calendarDate.getMonth();
+  const monthName   = new Date(year, month, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+  const firstDay    = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today       = new Date().toISOString().split('T')[0];
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const dayHeaders  = ['L','M','M','G','V','S','D'];
+
+  let html = `
+    <div class="calendar-nav">
+      <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">◀</button>
+      <span class="calendar-month-label">${monthName.toUpperCase()}</span>
+      <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">▶</button>
+    </div>
+    <div class="calendar-grid">
+      ${dayHeaders.map(d => `<div class="calendar-day-header">${d}</div>`).join('')}
+      ${Array(startOffset).fill('<div class="calendar-day empty"></div>').join('')}`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const pad      = String(d).padStart(2,'0');
+    const mPad     = String(month+1).padStart(2,'0');
+    const dateStr  = `${year}-${mPad}-${pad}`;
+    const hasSess  = sessionDates[dateStr];
+    const isToday  = dateStr === today;
+
+    let cls = 'calendar-day';
+    if (hasSess) cls += ' has-session';
+    if (isToday) cls += ' today';
+
+    const onclick = hasSess ? `onclick="scrollToSession('${dateStr}')"` : '';
+    const title   = hasSess ? `title="${hasSess.location}"` : '';
+
+    html += `<div class="${cls}" ${onclick} ${title}>${d}</div>`;
+  }
+
+  html += '</div>';
+  widget.innerHTML = html;
+}
+
+function changeCalendarMonth(dir) {
+  calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + dir, 1);
+  renderCalendar();
+}
+
+function scrollToSession(dateStr) {
+  window.location.href = `sessioni.html?date=${dateStr}`;
+}
+
 // ── SUGGERITORE SQUADRE ──────────────────────
 
 let suggestSelected = new Set();
+
+function clearSuggestSelection() {
+  suggestSelected.clear();
+  buildSuggestPlayers();
+  document.getElementById('suggestResult').innerHTML = '';
+  const btn = document.getElementById('btnSuggest');
+  if (btn) btn.textContent = '🎯 Suggerisci squadre';
+}
 
 function buildSuggestPlayers() {
   const container = document.getElementById('suggestPlayers');
