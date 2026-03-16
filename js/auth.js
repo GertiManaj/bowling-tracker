@@ -1,47 +1,87 @@
 // ============================================
-//  auth.js — Modulo autenticazione condiviso
-//  Includi questo script in tutte le pagine
+//  auth.js — Autenticazione JWT con localStorage
+//  Il token viene salvato nel browser e persiste
+//  tra le pagine per 24 ore senza popup
 // ============================================
 
-const AUTH_API = 'api/auth.php';
+const AUTH_API    = 'api/auth.php';
+const TOKEN_KEY   = 'sz_auth_token';
 
-// Stato globale autenticazione
 window.isLoggedIn = false;
 
-// ── VERIFICA SESSIONE AL CARICAMENTO ─────────
-async function checkAuth() {
+// ── UTILITY TOKEN ────────────────────────────
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function saveToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+function removeToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+// ── VERIFICA TOKEN (lato client, veloce) ─────
+function isTokenValid() {
+  const token = getToken();
+  if (!token) return false;
   try {
-    const res  = await fetch(`${AUTH_API}?action=check`);
-    const data = await res.json();
-    window.isLoggedIn = data.logged_in;
-    applyAuthUI();
-    return data.logged_in;
-  } catch (e) {
-    window.isLoggedIn = false;
-    applyAuthUI();
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return payload.exp > Math.floor(Date.now() / 1000);
+  } catch(e) {
     return false;
   }
 }
 
-// ── APPLICA UI IN BASE ALLO STATO ────────────
+// ── CHECK AUTH ───────────────────────────────
+async function checkAuth() {
+  // Controlla prima lato client (veloce, nessuna chiamata API)
+  if (!isTokenValid()) {
+    removeToken();
+    window.isLoggedIn = false;
+    applyAuthUI();
+    return false;
+  }
+
+  // Verifica anche lato server (sicuro)
+  try {
+    const res  = await fetch(`${AUTH_API}?action=check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: getToken() })
+    });
+    const data = await res.json();
+    window.isLoggedIn = data.logged_in;
+  } catch(e) {
+    // Se il server non risponde, usa la verifica client-side
+    window.isLoggedIn = isTokenValid();
+  }
+
+  applyAuthUI();
+  return window.isLoggedIn;
+}
+
+// ── APPLICA UI ───────────────────────────────
 function applyAuthUI() {
-  // Mostra/nascondi elementi con classe auth-required (solo per loggati)
+  // Elementi visibili solo da loggati
   document.querySelectorAll('.auth-required').forEach(el => {
     el.style.display = window.isLoggedIn ? '' : 'none';
   });
 
-  // Mostra/nascondi elementi con classe auth-hidden (solo per non loggati)
+  // Elementi visibili solo da non loggati
   document.querySelectorAll('.auth-hidden').forEach(el => {
     el.style.display = window.isLoggedIn ? 'none' : '';
   });
 
-  // Aggiorna bottone header
+  // Bottoni header
   const btnLogin  = document.getElementById('btnLogin');
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogin)  btnLogin.style.display  = window.isLoggedIn ? 'none' : '';
   if (btnLogout) btnLogout.style.display = window.isLoggedIn ? '' : 'none';
 
-  // Mostra/nascondi bottoni azione nelle tabelle/card
+  // Bottoni azione nelle card/tabelle
   document.querySelectorAll('.action-btn-wrap').forEach(el => {
     el.style.display = window.isLoggedIn ? '' : 'none';
   });
@@ -54,7 +94,7 @@ async function submitLogin() {
   const errEl    = document.getElementById('loginError');
 
   if (!password) {
-    errEl.textContent = 'Inserisci la password';
+    errEl.textContent   = 'Inserisci la password';
     errEl.style.display = 'block';
     return;
   }
@@ -71,23 +111,27 @@ async function submitLogin() {
     });
     const data = await res.json();
 
-    if (data.success) {
+    if (data.success && data.token) {
+      saveToken(data.token);
       window.isLoggedIn = true;
       closeLoginModal();
       applyAuthUI();
-      // Ricarica i dati della pagina per mostrare i controlli
+
+      // Ricarica i dati della pagina
       if (typeof loadStats       === 'function') loadStats();
       if (typeof loadLeaderboard === 'function') loadLeaderboard();
       if (typeof loadSessions    === 'function') loadSessions();
       if (typeof loadPlayers     === 'function') loadPlayers();
       if (typeof loadAll         === 'function') loadAll();
+      if (typeof loadProfile     === 'function') loadProfile();
+
     } else {
       errEl.textContent   = data.error || 'Password errata';
       errEl.style.display = 'block';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginPassword').focus();
     }
-  } catch (e) {
+  } catch(e) {
     errEl.textContent   = 'Errore di connessione';
     errEl.style.display = 'block';
   }
@@ -97,15 +141,15 @@ async function submitLogin() {
 }
 
 // ── LOGOUT ───────────────────────────────────
-async function logout() {
-  await fetch(`${AUTH_API}?action=logout`, { method: 'POST' });
+function logout() {
+  removeToken();
   window.isLoggedIn = false;
   applyAuthUI();
 }
 
 // ── MODAL LOGIN ──────────────────────────────
 function openLoginModal() {
-  document.getElementById('loginPassword').value  = '';
+  document.getElementById('loginPassword').value      = '';
   document.getElementById('loginError').style.display = 'none';
   document.getElementById('loginModalOverlay').classList.add('open');
   setTimeout(() => document.getElementById('loginPassword').focus(), 100);
@@ -119,12 +163,17 @@ function handleLoginOverlayClick(e) {
   if (e.target === document.getElementById('loginModalOverlay')) closeLoginModal();
 }
 
-// Enter per confermare login
+// Enter per confermare
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('loginModalOverlay')?.classList.contains('open')) {
     submitLogin();
   }
 });
 
-// Avvia controllo auth al caricamento
+// ── INIT ─────────────────────────────────────
+// Controlla subito il token dal localStorage (nessuna chiamata API, istantaneo)
+window.isLoggedIn = isTokenValid();
+applyAuthUI();
+
+// Poi verifica anche lato server in background
 document.addEventListener('DOMContentLoaded', checkAuth);
