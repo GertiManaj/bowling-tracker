@@ -13,6 +13,65 @@
 </head>
 <body>
 
+<!-- ══ SPLASH SCREEN ══ -->
+<div id="splashScreen" style="
+  position:fixed;inset:0;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:99999;
+  transition:opacity 0.5s ease, visibility 0.5s ease;
+">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem">
+    <!-- Logo animato -->
+    <div id="splashPin" style="font-size:4rem;animation:splashWobble 0.6s ease-in-out infinite">🎳</div>
+    <div style="text-align:center">
+      <div style="font-family:'Black Han Sans',sans-serif;font-size:2.5rem;color:var(--neon);text-shadow:0 0 30px rgba(232,255,0,0.6);letter-spacing:0.1em">STRIKE ZONE</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.3em;text-transform:uppercase;margin-top:0.3rem">Bowling Tracker v1.0</div>
+    </div>
+    <!-- Barra progresso -->
+    <div style="width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+      <div id="splashBar" style="height:100%;width:0%;background:var(--neon);box-shadow:0 0 8px var(--neon);border-radius:2px;transition:width 1.2s ease"></div>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.2em" id="splashText">CARICAMENTO...</div>
+  </div>
+</div>
+
+<style>
+@keyframes splashWobble {
+  0%,100% { transform: rotate(-8deg) scale(1); }
+  50%      { transform: rotate(8deg) scale(1.1); }
+}
+</style>
+
+<script>
+// Applica tema subito per evitare flash
+(function() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  if (saved === 'light') document.body.classList.add('light');
+})();
+
+// Gestisci splash screen
+window.addEventListener('DOMContentLoaded', function() {
+  const splash  = document.getElementById('splashScreen');
+  const bar     = document.getElementById('splashBar');
+  const txt     = document.getElementById('splashText');
+
+  // Avvia barra progresso
+  setTimeout(() => { bar.style.width = '60%'; }, 50);
+  setTimeout(() => { bar.style.width = '85%'; txt.textContent = 'QUASI PRONTO...'; }, 600);
+  setTimeout(() => { bar.style.width = '100%'; txt.textContent = 'PRONTO! 🎳'; }, 1000);
+
+  // Nascondi splash dopo 1.5s
+  setTimeout(() => {
+    splash.style.opacity = '0';
+    splash.style.visibility = 'hidden';
+    setTimeout(() => splash.remove(), 500);
+  }, 1500);
+});
+</script>
+
+
 <script>
 // ── TEMA CHIARO/SCURO ──
 function initTheme() {
