@@ -45,14 +45,6 @@ async function saveClassifica() {
   const btn = document.getElementById('btnSaveClassifica');
   if (btn) { btn.disabled=true; btn.textContent='⏳ Generando...'; }
 
-  // Controlla modalità attiva (di sempre o ultima serata)
-  const isLastMode = window.leaderboardMode === 'last';
-  if (isLastMode) {
-    await saveUltimaSerata();
-    if (btn) { btn.disabled=false; btn.textContent='📸 Salva classifica'; }
-    return;
-  }
-
   try {
     const players = (window.cachedPlayers || []).filter(p => parseInt(p.partite) > 0);
     const noGames = (window.cachedPlayers || []).filter(p => parseInt(p.partite) === 0);
