@@ -28,6 +28,7 @@
       <a href="giocatori.html">Giocatori</a>
     </nav>
     <button class="btn-new-session auth-required" onclick="openAddModal()">+ Nuova Partita</button>
+    <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
     <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
     <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
   </div>
@@ -215,5 +216,31 @@
 </div>
 <script src="js/auth.js"></script>
 
+
+<script>
+function shareLink() {
+  const url = 'https://web-production-e43fd.up.railway.app';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      const t = document.getElementById('toast');
+      t.textContent = '✓ Link copiato negli appunti!';
+      t.className = 'toast success show';
+      setTimeout(() => t.className = 'toast', 3000);
+    });
+  } else {
+    // Fallback per browser vecchi
+    const el = document.createElement('textarea');
+    el.value = url;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    const t = document.getElementById('toast');
+    t.textContent = '✓ Link copiato!';
+    t.className = 'toast success show';
+    setTimeout(() => t.className = 'toast', 3000);
+  }
+}
+</script>
 </body>
 </html>
