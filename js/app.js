@@ -302,7 +302,6 @@ async function loadSessions() {
 
     // Sidebar: ultima sessione
     cachedSessions = sessions;
-    window.cachedSessions = cachedSessions;
     if (sessions.length > 0) renderLastSession(sessions[0]);
 
   } catch (e) {
@@ -583,6 +582,158 @@ async function saveSession() {
 
   btn.disabled = false;
   btn.textContent = 'Salva Partita';
+}
+
+
+// ── SUGGERITORE SQUADRE ──────────────────────
+
+let suggestSelected = new Set();
+
+function buildSuggestPlayers() {
+  const container = document.getElementById('suggestPlayers');
+  if (!container || !cachedPlayers.length) return;
+
+  container.innerHTML = cachedPlayers.map(p => {
+    const isSelected = suggestSelected.has(p.id);
+    return `
+      <button
+        onclick="toggleSuggestPlayer(${p.id}, this)"
+        style="
+          font-family:'Barlow Condensed',sans-serif;
+          font-size:0.8rem;font-weight:600;
+          letter-spacing:0.05em;
+          background:${isSelected ? 'rgba(232,255,0,0.12)' : 'none'};
+          border:1px solid ${isSelected ? 'rgba(232,255,0,0.4)' : 'var(--border)'};
+          color:${isSelected ? 'var(--neon)' : 'var(--text-muted)'};
+          padding:0.3rem 0.6rem;border-radius:20px;cursor:pointer;
+          transition:all 0.15s;display:flex;align-items:center;gap:0.3rem
+        "
+      >${p.emoji || '🎳'} ${p.name}</button>`;
+  }).join('');
+}
+
+function toggleSuggestPlayer(id, btn) {
+  if (suggestSelected.has(id)) {
+    suggestSelected.delete(id);
+    btn.style.background   = 'none';
+    btn.style.borderColor  = 'var(--border)';
+    btn.style.color        = 'var(--text-muted)';
+  } else {
+    suggestSelected.add(id);
+    btn.style.background   = 'rgba(232,255,0,0.12)';
+    btn.style.borderColor  = 'rgba(232,255,0,0.4)';
+    btn.style.color        = 'var(--neon)';
+  }
+  // Aggiorna contatore
+  const btn2 = document.getElementById('btnSuggest');
+  if (btn2) btn2.textContent = suggestSelected.size >= 2
+    ? `🎯 Suggerisci squadre (${suggestSelected.size} giocatori)`
+    : '🎯 Suggerisci squadre';
+}
+
+async function suggestTeams() {
+  if (suggestSelected.size < 2) {
+    showToast('Seleziona almeno 2 giocatori', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnSuggest');
+  btn.disabled    = true;
+  btn.textContent = '⏳ Calcolo in corso...';
+
+  try {
+    const res  = await fetch(`${API}/suggest.php`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ player_ids: [...suggestSelected] })
+    });
+    const data = await res.json();
+
+    if (data.error) { showToast(data.error, 'error'); return; }
+
+    window._lastSuggestData = data;
+    renderSuggestResult(data);
+  } catch(e) {
+    showToast('Errore nel calcolo', 'error');
+  }
+
+  btn.disabled    = false;
+  btn.textContent = `🎯 Suggerisci squadre (${suggestSelected.size} giocatori)`;
+}
+
+function renderSuggestResult(data) {
+  const tColors = ['var(--neon)', 'var(--neon2)'];
+  const balanced = data.diff < 20;
+
+  function teamHtml(team, players, score, color, chem) {
+    const chemHtml = chem.length
+      ? chem.map(c => `
+          <div style="font-size:0.68rem;font-family:'Share Tech Mono',monospace;color:var(--text-muted);margin-top:0.2rem">
+            ${c.p1} + ${c.p2}:
+            <span style="color:${c.pct >= 60 ? 'var(--neon)' : c.pct >= 40 ? 'var(--neon3)' : 'var(--neon4)'}">
+              ${c.pct}% win
+            </span>
+          </div>`).join('')
+      : '';
+
+    return `
+      <div style="border:1px solid ${color}44;border-radius:6px;overflow:hidden;flex:1">
+        <div style="background:${color}12;padding:0.5rem 0.8rem;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-family:'Black Han Sans',sans-serif;font-size:0.8rem;color:${color};letter-spacing:0.1em">${team}</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${color}">${score}</span>
+        </div>
+        <div style="padding:0.5rem 0.8rem">
+          ${players.map(p => `
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.2rem">
+              ${p.emoji||'🎳'} ${p.name}
+              <span style="font-size:0.65rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-weight:normal">
+                ${p.media_storica > 0 ? p.media_storica : '—'}
+                ${p.media_recente ? `· forma ${p.media_recente}` : ''}
+              </span>
+            </div>`).join('')}
+          ${chemHtml}
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('suggestResult').innerHTML = `
+    <div style="background:${balanced ? 'rgba(232,255,0,0.05)' : 'rgba(255,107,53,0.05)'};border:1px solid ${balanced ? 'rgba(232,255,0,0.2)' : 'rgba(255,107,53,0.2)'};border-radius:6px;padding:0.5rem 0.8rem;margin-bottom:0.8rem;font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:${balanced ? 'var(--neon)' : 'var(--neon4)'}">
+      ${balanced ? '✅ Squadre equilibrate' : '⚠ Leggero squilibrio'} — differenza media: ${data.diff}
+    </div>
+    <div style="display:flex;gap:0.6rem">
+      ${teamHtml('⚡ Squadra A', data.teamA, data.scoreA, tColors[0], data.teamA_chemistry)}
+      ${teamHtml('🔥 Squadra B', data.teamB, data.scoreB, tColors[1], data.teamB_chemistry)}
+    </div>
+    <button onclick="useSuggestedTeams()" class="btn-primary" style="width:100%;margin-top:0.8rem;font-size:0.78rem;padding:0.5rem">
+      ✓ Usa queste squadre per la nuova partita
+    </button>`;
+}
+
+function useSuggestedTeams() {
+  // Apre il modal nuova partita con le squadre già preimpostate
+  const result = document.getElementById('suggestResult');
+  if (!result) return;
+
+  // Leggi i nomi delle squadre dal risultato
+  const teamA = [...suggestSelected].slice(0, Math.ceil(suggestSelected.size / 2));
+  const teamB = [...suggestSelected].slice(Math.ceil(suggestSelected.size / 2));
+
+  openModal().then(() => {
+    // Pre-seleziona i giocatori nelle righe
+    // Squadra A
+    const rowsA = document.querySelectorAll('#teamARows .player-row');
+    // Svuota e ricrea con i giocatori suggeriti
+    document.getElementById('teamARows').innerHTML = '';
+    document.getElementById('teamBRows').innerHTML = '';
+    const resultData = window._lastSuggestData;
+    if (resultData) {
+      resultData.teamA.forEach(p => addPlayerRow('A', p.id));
+      resultData.teamB.forEach(p => addPlayerRow('B', p.id));
+    } else {
+      addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
+      addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
+    }
+  });
 }
 
 // ── INIT ─────────────────────────────────────
