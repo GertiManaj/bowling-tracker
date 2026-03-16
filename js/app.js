@@ -66,6 +66,7 @@ async function loadLeaderboard() {
     cachedPlayers = await fetch(`${API}/leaderboard.php`).then(r => r.json());
     window.cachedPlayers = cachedPlayers;
     renderLeaderboard();
+    buildSuggestPlayers();
   } catch (e) {
     document.getElementById('leaderboard-body').innerHTML =
       '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.75rem">Errore nel caricamento</div>';
@@ -302,7 +303,10 @@ async function loadSessions() {
 
     // Sidebar: ultima sessione
     cachedSessions = sessions;
+    window.cachedSessions = cachedSessions;
     if (sessions.length > 0) renderLastSession(sessions[0]);
+    renderCalendar();
+    buildSuggestPlayers();
 
   } catch (e) {
     console.error('Errore sessioni:', e);
