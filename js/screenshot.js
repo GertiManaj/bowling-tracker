@@ -54,10 +54,11 @@ async function saveClassifica() {
     const COL_RANK   = 44;
     const COL_AVATAR = 86;
     const COL_NAME   = 100;
-    const COL_MEDIA  = 520;
-    const COL_BAR    = 360;
-    const COL_RECORD = 620;
-    const W = 700, ROW = 58, PAD = 20;
+    const COL_BAR    = 300;  // barra progresso
+    const COL_MEDIA  = 490;
+    const COL_RECORD = 580;
+    const COL_TREND  = 660;
+    const W = 720, ROW = 58, PAD = 20;
     const H = PAD + 75 + all.length * ROW + PAD;
     const { c, ctx } = makeCanvas(W, H);
 
@@ -87,6 +88,7 @@ async function saveClassifica() {
     ctx.textAlign = 'right';
     ctx.fillText('MEDIA', COL_MEDIA, PAD + 67);
     ctx.fillText('RECORD', COL_RECORD, PAD + 67);
+    ctx.fillText('TREND', COL_TREND + 10, PAD + 67);
     ctx.textAlign = 'left';
 
     // Righe giocatori
@@ -134,32 +136,69 @@ async function saveClassifica() {
       // Nome + sottotitolo
       ctx.fillStyle = hasData ? '#e8e8f0' : '#444460';
       ctx.font = hasData ? 'bold 13px sans-serif' : '13px sans-serif';
-      ctx.fillText(p.name, COL_NAME, yCenter);
+      ctx.fillText(p.name, COL_NAME, yCenter - 4);
       ctx.fillStyle = '#444460';
       ctx.font = '10px monospace';
-      ctx.fillText(`${p.partite} serate  ·  ${p.game_totali||0} game`, COL_NAME, yCenter + 14);
+      ctx.fillText(`${p.partite} serate · ${p.game_totali||0} game`, COL_NAME, yCenter + 10);
 
-      // Barra media (piccola, sotto il nome)
+      // Barra media — nella colonna BAR a destra del nome
       if (hasData) {
         const maxM = Math.max(...players.map(x => parseFloat(x.media)||0));
         const pct  = maxM > 0 ? (parseFloat(p.media)||0) / maxM : 0;
-        const barW = 100;
+        const barW = 130;
         ctx.fillStyle = '#252535';
-        ctx.fillRect(COL_NAME, yCenter + 20, barW, 3);
+        ctx.fillRect(COL_BAR, yCenter - 2, barW, 5);
         ctx.fillStyle = color;
-        ctx.fillRect(COL_NAME, yCenter + 20, barW * pct, 3);
+        ctx.fillRect(COL_BAR, yCenter - 2, barW * pct, 5);
+        // Glow
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 4;
+        ctx.fillRect(COL_BAR, yCenter - 2, barW * pct, 5);
+        ctx.shadowBlur = 0;
       }
 
       // Media — colonna destra
       ctx.fillStyle = hasData ? color : '#2a2a3a';
-      ctx.font = hasData ? 'bold 15px monospace' : '13px monospace';
+      ctx.font = hasData ? 'bold 14px monospace' : '13px monospace';
       ctx.textAlign = 'right';
       ctx.fillText(hasData ? String(p.media) : '—', COL_MEDIA, yCenter + 5);
 
       // Record
       ctx.fillStyle = hasData ? '#00f5ff' : '#2a2a3a';
-      ctx.font = '13px monospace';
+      ctx.font = '12px monospace';
       ctx.fillText(hasData ? String(p.record) : '—', COL_RECORD, yCenter + 5);
+
+      // Trend sparkline
+      if (hasData && p.trend && p.trend.length > 0) {
+        const trend  = p.trend;
+        const maxT   = Math.max(...trend);
+        const minT   = Math.min(...trend);
+        const range  = maxT - minT || 1;
+        const sparkW = 50;
+        const sparkH = 20;
+        const barSparkW = sparkW / trend.length - 1;
+        const startX = COL_TREND - sparkW + 10;
+        const startY = yCenter - sparkH/2;
+
+        trend.forEach((v, ti) => {
+          const h    = Math.max(2, ((v - minT) / range) * sparkH);
+          const bx   = startX + ti * (barSparkW + 1);
+          const by   = startY + sparkH - h;
+          const isLast = ti === trend.length - 1;
+          ctx.fillStyle = isLast ? color : color + '55';
+          if (isLast) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur  = 4;
+          }
+          ctx.fillRect(bx, by, barSparkW, h);
+          ctx.shadowBlur = 0;
+        });
+      } else if (hasData) {
+        ctx.fillStyle = '#444460';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText('—', COL_TREND + 10, yCenter + 4);
+      }
 
       ctx.textAlign = 'left';
     });
