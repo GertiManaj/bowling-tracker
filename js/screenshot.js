@@ -50,8 +50,15 @@ async function saveClassifica() {
     const noGames = (window.cachedPlayers || []).filter(p => parseInt(p.partite) === 0);
     const all     = [...players, ...noGames];
 
-    const W = 700, ROW = 52, PAD = 20;
-    const H = PAD + 60 + all.length * ROW + PAD;
+    // Layout colonne
+    const COL_RANK   = 44;
+    const COL_AVATAR = 86;
+    const COL_NAME   = 100;
+    const COL_MEDIA  = 520;
+    const COL_BAR    = 360;
+    const COL_RECORD = 620;
+    const W = 700, ROW = 58, PAD = 20;
+    const H = PAD + 75 + all.length * ROW + PAD;
     const { c, ctx } = makeCanvas(W, H);
 
     // Sfondo
@@ -61,85 +68,98 @@ async function saveClassifica() {
     // Titolo
     ctx.fillStyle = '#e8ff00';
     ctx.font = 'bold 18px monospace';
-    ctx.fillText('🎳 STRIKE ZONE — CLASSIFICA', PAD, PAD + 22);
-    ctx.fillStyle = '#666680';
+    ctx.fillText('🎳 STRIKE ZONE — CLASSIFICA', PAD, PAD + 24);
+    ctx.fillStyle = '#555570';
     ctx.font = '11px monospace';
-    ctx.fillText(new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase(), PAD, PAD + 40);
+    ctx.fillText(new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase(), PAD, PAD + 42);
 
     // Header colonne
-    ctx.fillStyle = '#2a2a44';
-    ctx.fillRect(0, PAD + 48, W, 20);
-    ctx.fillStyle = '#666680';
-    ctx.font = '9px monospace';
-    ctx.fillText('GIOCATORE', 96, PAD + 62);
+    ctx.fillStyle = '#18182a';
+    ctx.fillRect(0, PAD + 50, W, 26);
+    ctx.strokeStyle = '#2a2a44';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, PAD+76); ctx.lineTo(W, PAD+76); ctx.stroke();
+
+    ctx.fillStyle = '#555570';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('#', COL_RANK - 16, PAD + 67);
+    ctx.fillText('GIOCATORE', COL_NAME, PAD + 67);
     ctx.textAlign = 'right';
-    ctx.fillText('MEDIA', 490, PAD + 62);
-    ctx.fillText('RECORD', 590, PAD + 62);
+    ctx.fillText('MEDIA', COL_MEDIA, PAD + 67);
+    ctx.fillText('RECORD', COL_RECORD, PAD + 67);
     ctx.textAlign = 'left';
 
     // Righe giocatori
     all.forEach((p, i) => {
-      const y     = PAD + 72 + i * ROW;
-      const color = COLORS[i % COLORS.length];
+      const y       = PAD + 78 + i * ROW;
+      const yCenter = y + ROW / 2;
+      const color   = COLORS[i % COLORS.length];
       const hasData = parseInt(p.partite) > 0;
 
       // Sfondo riga alternato
-      if (i % 2 === 0) {
-        ctx.fillStyle = '#11111a';
-        ctx.fillRect(0, y - 16, W, ROW);
-      }
+      ctx.fillStyle = i % 2 === 0 ? '#11111a' : '#0d0d16';
+      ctx.fillRect(0, y, W, ROW);
+
+      // Separatore
+      ctx.strokeStyle = '#1e1e30';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(0, y + ROW); ctx.lineTo(W, y + ROW); ctx.stroke();
 
       // Rank
       if (i < 3 && hasData) {
-        ctx.font = '20px serif';
-        ctx.fillText(MEDALS[i], PAD, y + 6);
+        ctx.font = '18px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(MEDALS[i], COL_RANK - 12, yCenter + 6);
       } else {
         ctx.fillStyle = '#444460';
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText(hasData ? String(i+1) : '—', PAD + 4, y + 5);
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(hasData ? String(i+1) : '—', COL_RANK - 12, yCenter + 4);
       }
+      ctx.textAlign = 'left';
 
       // Avatar circle
       ctx.beginPath();
-      ctx.arc(70, y - 2, 16, 0, Math.PI * 2);
-      ctx.fillStyle = hasData ? color + '22' : '#1a1a2a';
+      ctx.arc(COL_AVATAR - 10, yCenter, 17, 0, Math.PI * 2);
+      ctx.fillStyle = hasData ? color + '18' : '#1a1a2a';
       ctx.fill();
-      ctx.strokeStyle = hasData ? color + '88' : '#2a2a44';
+      ctx.strokeStyle = hasData ? color + '66' : '#2a2a44';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.font = '16px serif';
       ctx.textAlign = 'center';
-      ctx.fillText(p.emoji || '🎳', 70, y + 4);
+      ctx.fillText(p.emoji || '🎳', COL_AVATAR - 10, yCenter + 5);
       ctx.textAlign = 'left';
 
-      // Nome
+      // Nome + sottotitolo
       ctx.fillStyle = hasData ? '#e8e8f0' : '#444460';
-      ctx.font = hasData ? 'bold 14px sans-serif' : '14px sans-serif';
-      ctx.fillText(p.name, 96, y + 2);
+      ctx.font = hasData ? 'bold 13px sans-serif' : '13px sans-serif';
+      ctx.fillText(p.name, COL_NAME, yCenter);
       ctx.fillStyle = '#444460';
       ctx.font = '10px monospace';
-      ctx.fillText(`${p.partite} serate · ${p.game_totali||0} game`, 96, y + 16);
+      ctx.fillText(`${p.partite} serate  ·  ${p.game_totali||0} game`, COL_NAME, yCenter + 14);
 
-      // Barra media
+      // Barra media (piccola, sotto il nome)
       if (hasData) {
         const maxM = Math.max(...players.map(x => parseFloat(x.media)||0));
         const pct  = maxM > 0 ? (parseFloat(p.media)||0) / maxM : 0;
-        ctx.fillStyle = '#2a2a44';
-        ctx.fillRect(340, y - 4, 120, 4);
+        const barW = 100;
+        ctx.fillStyle = '#252535';
+        ctx.fillRect(COL_NAME, yCenter + 20, barW, 3);
         ctx.fillStyle = color;
-        ctx.fillRect(340, y - 4, 120 * pct, 4);
+        ctx.fillRect(COL_NAME, yCenter + 20, barW * pct, 3);
       }
 
-      // Media
-      ctx.fillStyle = hasData ? color : '#333350';
-      ctx.font = 'bold 15px monospace';
+      // Media — colonna destra
+      ctx.fillStyle = hasData ? color : '#2a2a3a';
+      ctx.font = hasData ? 'bold 15px monospace' : '13px monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(hasData ? String(p.media) : '—', 490, y + 5);
+      ctx.fillText(hasData ? String(p.media) : '—', COL_MEDIA, yCenter + 5);
 
       // Record
-      ctx.fillStyle = hasData ? '#00f5ff' : '#333350';
+      ctx.fillStyle = hasData ? '#00f5ff' : '#2a2a3a';
       ctx.font = '13px monospace';
-      ctx.fillText(hasData ? String(p.record) : '—', 590, y + 5);
+      ctx.fillText(hasData ? String(p.record) : '—', COL_RECORD, yCenter + 5);
 
       ctx.textAlign = 'left';
     });
