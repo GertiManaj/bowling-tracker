@@ -51,8 +51,8 @@ async function loadStats() {
 // ── CLASSIFICA GENERALE ──────────────────────
 
 let leaderboardMode = 'all'; // 'all' | 'last'
-window.cachedPlayers = [];
-lwindow.cachedSessions = [];
+let cachedPlayers   = [];
+let cachedSessions  = [];
 
 function setLeaderboardMode(mode, btn) {
   leaderboardMode = mode;
@@ -64,6 +64,7 @@ function setLeaderboardMode(mode, btn) {
 async function loadLeaderboard() {
   try {
     cachedPlayers = await fetch(`${API}/leaderboard.php`).then(r => r.json());
+    window.cachedPlayers = cachedPlayers;
     renderLeaderboard();
   } catch (e) {
     document.getElementById('leaderboard-body').innerHTML =
@@ -302,7 +303,6 @@ async function loadSessions() {
     // Sidebar: ultima sessione
     cachedSessions = sessions;
     if (sessions.length > 0) renderLastSession(sessions[0]);
-    renderCalendar();
 
   } catch (e) {
     console.error('Errore sessioni:', e);
@@ -424,75 +424,6 @@ async function loadHof() {
   } catch (e) {
     console.error('Errore HoF:', e);
   }
-}
-
-
-// ── CALENDARIO ──────────────────────────────
-
-let calendarDate = new Date();
-
-function renderCalendar() {
-  const sessions  = cachedSessions || [];
-  const sessionDates = {};
-  sessions.forEach(s => { sessionDates[s.date] = s; });
-
-  const year  = calendarDate.getFullYear();
-  const month = calendarDate.getMonth();
-
-  const monthName = new Date(year, month, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-  const firstDay  = new Date(year, month, 1).getDay(); // 0=dom
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split('T')[0];
-
-  // Lunedì come primo giorno
-  const startOffset = (firstDay === 0 ? 6 : firstDay - 1);
-
-  const dayHeaders = ['L','M','M','G','V','S','D'];
-
-  let html = `
-    <div class="calendar-nav">
-      <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">◀</button>
-      <span class="calendar-month-label">${monthName.toUpperCase()}</span>
-      <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">▶</button>
-    </div>
-    <div class="calendar-grid">
-      ${dayHeaders.map(d => `<div class="calendar-day-header">${d}</div>`).join('')}
-      ${Array(startOffset).fill('<div class="calendar-day empty"></div>').join('')}`;
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const pad       = String(d).padStart(2, '0');
-    const monthPad  = String(month + 1).padStart(2, '0');
-    const dateStr   = `${year}-${monthPad}-${pad}`;
-    const hasSession = sessionDates[dateStr];
-    const isToday   = dateStr === today;
-
-    let cls = 'calendar-day';
-    if (hasSession) cls += ' has-session';
-    if (isToday)    cls += ' today';
-
-    const onclick = hasSession
-      ? `onclick="scrollToSession('${dateStr}')"`
-      : '';
-
-    const title = hasSession
-      ? `title="${hasSession.location}"`
-      : '';
-
-    html += `<div class="${cls}" ${onclick} ${title}>${d}</div>`;
-  }
-
-  html += '</div>';
-  document.getElementById('calendarWidget').innerHTML = html;
-}
-
-function changeCalendarMonth(dir) {
-  calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + dir, 1);
-  renderCalendar();
-}
-
-function scrollToSession(dateStr) {
-  // Vai alla pagina sessioni con la data evidenziata
-  window.location.href = `sessioni.html?date=${dateStr}`;
 }
 
 // ── MODAL: NUOVA PARTITA ─────────────────────
@@ -660,5 +591,4 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLeaderboard();
   loadSessions();
   loadHof();
-  renderCalendar();
 });
