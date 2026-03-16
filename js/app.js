@@ -80,8 +80,10 @@ function renderLeaderboard() {
 }
 
 function renderAllTimeLeaderboard() {
-  const players = cachedPlayers.filter(p => parseInt(p.partite) > 0);
-  if (!players.length) {
+  // Separa chi ha giocato da chi non ha ancora giocato
+  const players    = cachedPlayers.filter(p => parseInt(p.partite) > 0);
+  const noGames    = cachedPlayers.filter(p => parseInt(p.partite) === 0);
+  if (!players.length && !noGames.length) {
     document.getElementById('leaderboard-body').innerHTML =
       '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna partita ancora 🎳</div>';
     return;
@@ -97,7 +99,7 @@ function renderAllTimeLeaderboard() {
     <div style="text-align:center">Trend</div>`;
   document.getElementById('lb-header').style.gridTemplateColumns = '48px 1fr 100px 80px 80px 80px';
 
-  const maxM    = Math.max(...players.map(p => parseFloat(p.media) || 0));
+  const maxM    = players.length ? Math.max(...players.map(p => parseFloat(p.media) || 0)) : 1;
   const medals  = ['🥇','🥈','🥉'];
   const mColors = ['var(--gold)','var(--silver)','var(--bronze)'];
   const bColors = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
@@ -146,7 +148,27 @@ function renderAllTimeLeaderboard() {
       </div>`;
   });
 
-  document.getElementById('leaderboard-body').innerHTML = html;
+  // Aggiungi giocatori senza partite in fondo
+  noGames.forEach(p => {
+    html += `
+      <div class="leaderboard-row" style="grid-template-columns:48px 1fr 100px 80px 80px 80px;opacity:0.4">
+        <div class="rank-other">—</div>
+        <div class="player-info">
+          <div class="avatar" style="border-color:var(--border)">${p.emoji||'🎳'}</div>
+          <div>
+            <div class="player-name">${p.name}</div>
+            <div class="player-tag">0 serate · 0 game</div>
+          </div>
+        </div>
+        <div class="stat-cell">—</div>
+        <div class="stat-cell col-partite">0</div>
+        <div class="stat-cell">—</div>
+        <div class="stat-cell">—</div>
+      </div>`;
+  });
+
+  document.getElementById('leaderboard-body').innerHTML = html ||
+    '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna partita ancora 🎳</div>';
   setTimeout(() => {
     document.querySelectorAll('.mini-bar-fill').forEach(el => { el.style.width = el.dataset.w; });
   }, 100);
