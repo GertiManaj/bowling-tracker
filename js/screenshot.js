@@ -67,10 +67,35 @@ async function saveClassifica() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
 
   try {
+    await loadHtml2Canvas();
+
     const el = document.querySelector('.leaderboard-table');
     if (!el) throw new Error('Elemento non trovato');
 
-    const blob = await captureElement(el);
+    // Forza colori espliciti prima della cattura
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#11111a',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+      onclone: (doc, clone) => {
+        // Sostituisci CSS variables con valori reali
+        clone.querySelectorAll('*').forEach(node => {
+          const style = node.style;
+          const computed = window.getComputedStyle(node);
+          ['color','background-color','border-color'].forEach(prop => {
+            const val = computed.getPropertyValue(prop);
+            if (val) node.style[prop] = val;
+          });
+        });
+      }
+    });
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     const date = new Date().toLocaleDateString('it-IT').replace(/\//g,'-');
     await shareImage(blob, `classifica-${date}.png`, 'Classifica Strike Zone');
 
