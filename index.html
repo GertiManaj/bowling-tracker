@@ -78,9 +78,12 @@
   <div>
 
     <!-- Classifica generale -->
-    <div class="section-title">
-      <span class="accent"></span>
-      Classifica Generale
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div class="section-title" style="margin-bottom:0;flex:1"><span class="accent"></span>Classifica</div>
+      <div style="display:flex;gap:0.3rem">
+        <button class="lb-toggle-btn active" onclick="setLeaderboardMode('all',this)" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:rgba(232,255,0,0.08);border:1px solid rgba(232,255,0,0.4);color:var(--neon);padding:0.4rem 0.9rem;border-radius:4px;cursor:pointer">Di sempre</button>
+        <button class="lb-toggle-btn" onclick="setLeaderboardMode('last',this)" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.4rem 0.9rem;border-radius:4px;cursor:pointer">Ultima serata</button>
+      </div>
     </div>
 
     <div class="leaderboard-table">
