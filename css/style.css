@@ -312,3 +312,15 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem 2rem; text-align: 
   padding: 0.45rem 0.9rem;
   letter-spacing: 0.08em;
 }
+
+/* ── LEADERBOARD TOGGLE ── */
+.lb-toggle-btn.active {
+  background: rgba(232,255,0,0.08) !important;
+  border-color: rgba(232,255,0,0.4) !important;
+  color: var(--neon) !important;
+}
+
+.lb-toggle-btn:not(.active):hover {
+  border-color: var(--text-muted) !important;
+  color: var(--text) !important;
+}

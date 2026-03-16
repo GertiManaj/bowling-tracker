@@ -50,79 +50,194 @@ async function loadStats() {
 
 // ── CLASSIFICA GENERALE ──────────────────────
 
+let leaderboardMode = 'all'; // 'all' | 'last'
+let cachedPlayers   = [];
+let cachedSessions  = [];
+
+function setLeaderboardMode(mode, btn) {
+  leaderboardMode = mode;
+  document.querySelectorAll('.lb-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLeaderboard();
+}
+
 async function loadLeaderboard() {
   try {
-    const players = await fetch(`${API}/leaderboard.php`).then(r => r.json());
-    const maxM    = Math.max(...players.map(p => parseFloat(p.media) || 0));
-
-    const medals  = ['🥇', '🥈', '🥉'];
-    const mColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)'];
-    const bColors = ['var(--neon)', 'var(--neon3)', 'var(--neon4)', 'var(--neon2)'];
-
-    let html = '';
-
-    players.forEach((p, i) => {
-      const bc    = bColors[i % bColors.length];
-      const pct   = maxM > 0 ? Math.round(parseFloat(p.media) / maxM * 100) : 0;
-      const delay = (i * 0.07).toFixed(2);
-
-      // Rank (medaglia o numero)
-      const rankEl = i < 3
-        ? `<div class="rank" style="color:${mColors[i]};text-shadow:0 0 10px ${mColors[i]}88">${medals[i]}</div>`
-        : `<div class="rank-other">${i + 1}</div>`;
-
-      // Sparkline dal trend
-      const trend = p.trend || [];
-      let spark = '';
-      if (trend.length) {
-        const mx = Math.max(...trend);
-        trend.forEach((v, ti) => {
-          const h    = mx > 0 ? Math.round(v / mx * 100) : 50;
-          const last = ti === trend.length - 1;
-          spark += `<div class="sparkline-bar${last ? ' last' : ''}"
-            style="height:${h}%;background:${bc};${last ? 'opacity:1;box-shadow:0 0 6px ' + bc : ''}"></div>`;
-        });
-      } else {
-        spark = '<span style="color:var(--text-muted);font-size:0.65rem">—</span>';
-      }
-
-      const nameColor = i === 0 ? 'var(--gold)' : i === 1 ? 'var(--silver)' : i === 2 ? 'var(--bronze)' : 'var(--text)';
-
-      html += `
-        <div class="leaderboard-row" style="animation-delay:${delay}s">
-          ${rankEl}
-          <div class="player-info">
-            <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
-            <div>
-              <div class="player-name">${p.name}</div>
-              <div class="player-tag">${p.nickname ? p.nickname.toUpperCase() + ' · ' : ''}${p.partite} partite</div>
-            </div>
-          </div>
-          <div class="stat-cell" style="color:${nameColor}">
-            <strong>${p.media ?? '—'}</strong>
-            <div class="mini-bar-bg">
-              <div class="mini-bar-fill" style="width:0%;background:${bc};box-shadow:0 0 6px ${bc}" data-w="${pct}%"></div>
-            </div>
-          </div>
-          <div class="stat-cell col-partite">${p.partite}</div>
-          <div class="stat-cell best">${p.record ?? '—'}</div>
-          <div class="stat-cell"><div class="sparkline">${spark}</div></div>
-        </div>`;
-    });
-
-    document.getElementById('leaderboard-body').innerHTML = html ||
-      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessun giocatore</div>';
-
-    // Anima le barre dopo il render
-    setTimeout(() => {
-      document.querySelectorAll('.mini-bar-fill').forEach(el => { el.style.width = el.dataset.w; });
-    }, 100);
-
+    cachedPlayers = await fetch(`${API}/leaderboard.php`).then(r => r.json());
+    renderLeaderboard();
   } catch (e) {
     document.getElementById('leaderboard-body').innerHTML =
       '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.75rem">Errore nel caricamento</div>';
-    console.error('Errore leaderboard:', e);
   }
+}
+
+function renderLeaderboard() {
+  if (leaderboardMode === 'last') {
+    renderLastSessionLeaderboard();
+  } else {
+    renderAllTimeLeaderboard();
+  }
+}
+
+function renderAllTimeLeaderboard() {
+  const players = cachedPlayers.filter(p => parseInt(p.partite) > 0);
+  if (!players.length) {
+    document.getElementById('leaderboard-body').innerHTML =
+      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna partita ancora 🎳</div>';
+    return;
+  }
+
+  // Aggiorna header
+  document.getElementById('lb-header').innerHTML = `
+    <div>#</div>
+    <div>Giocatore</div>
+    <div style="text-align:center">Media</div>
+    <div style="text-align:center" class="col-partite">Partite</div>
+    <div style="text-align:center">Record</div>
+    <div style="text-align:center">Trend</div>`;
+  document.getElementById('lb-header').style.gridTemplateColumns = '48px 1fr 100px 80px 80px 80px';
+
+  const maxM    = Math.max(...players.map(p => parseFloat(p.media) || 0));
+  const medals  = ['🥇','🥈','🥉'];
+  const mColors = ['var(--gold)','var(--silver)','var(--bronze)'];
+  const bColors = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
+
+  let html = '';
+  players.forEach((p, i) => {
+    const bc    = bColors[i % bColors.length];
+    const pct   = maxM > 0 ? Math.round(parseFloat(p.media) / maxM * 100) : 0;
+    const delay = (i * 0.07).toFixed(2);
+    const rankEl = i < 3
+      ? `<div class="rank" style="color:${mColors[i]};text-shadow:0 0 10px ${mColors[i]}88">${medals[i]}</div>`
+      : `<div class="rank-other">${i+1}</div>`;
+
+    const trend = p.trend || [];
+    let spark = '';
+    if (trend.length) {
+      const mx = Math.max(...trend);
+      trend.forEach((v, ti) => {
+        const h = mx > 0 ? Math.round(v/mx*100) : 50;
+        const last = ti === trend.length-1;
+        spark += `<div class="sparkline-bar${last?' last':''}" style="height:${h}%;background:${bc};${last?'opacity:1;box-shadow:0 0 6px '+bc:''}"></div>`;
+      });
+    } else spark = '<span style="color:var(--text-muted);font-size:0.65rem">—</span>';
+
+    const nc = i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text)';
+
+    html += `
+      <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:48px 1fr 100px 80px 80px 80px">
+        ${rankEl}
+        <div class="player-info">
+          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
+          <div>
+            <div class="player-name">${p.name}</div>
+            <div class="player-tag">${p.partite} serate · ${p.game_totali||0} game</div>
+          </div>
+        </div>
+        <div class="stat-cell" style="color:${nc}">
+          <strong>${p.media??'—'}</strong>
+          <div class="mini-bar-bg">
+            <div class="mini-bar-fill" style="width:0%;background:${bc};box-shadow:0 0 6px ${bc}" data-w="${pct}%"></div>
+          </div>
+        </div>
+        <div class="stat-cell col-partite">${p.partite}</div>
+        <div class="stat-cell best">${p.record??'—'}</div>
+        <div class="stat-cell"><div class="sparkline">${spark}</div></div>
+      </div>`;
+  });
+
+  document.getElementById('leaderboard-body').innerHTML = html;
+  setTimeout(() => {
+    document.querySelectorAll('.mini-bar-fill').forEach(el => { el.style.width = el.dataset.w; });
+  }, 100);
+}
+
+function renderLastSessionLeaderboard() {
+  // Usa i dati dell'ultima sessione già caricata
+  const sessions = cachedSessions;
+  if (!sessions.length) {
+    document.getElementById('leaderboard-body').innerHTML =
+      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna sessione</div>';
+    return;
+  }
+
+  const lastSession = sessions[0];
+  const scores      = lastSession.scores || [];
+  const teams       = lastSession.teams  || [];
+  const numGames    = scores.length ? Math.max(...scores.map(s => s.game_number||1)) : 1;
+
+  // Raggruppa per giocatore e somma i game
+  const byPlayer = {};
+  scores.forEach(sc => {
+    if (!byPlayer[sc.player_name]) {
+      // Trova la squadra
+      byPlayer[sc.player_name] = {
+        name: sc.player_name, emoji: sc.emoji,
+        team: sc.team_name, total: 0, games: 0
+      };
+    }
+    byPlayer[sc.player_name].total += parseInt(sc.score)||0;
+    byPlayer[sc.player_name].games++;
+  });
+
+  // Trova il team vincitore
+  const teamTotals = {};
+  teams.forEach(t => { teamTotals[t.name] = 0; });
+  scores.forEach(sc => { if (teamTotals[sc.team_name] !== undefined) teamTotals[sc.team_name] += parseInt(sc.score)||0; });
+  const maxTeamTotal = Math.max(...Object.values(teamTotals));
+  const winningTeam  = Object.keys(teamTotals).find(t => teamTotals[t] === maxTeamTotal);
+
+  // Ordina per totale decrescente
+  const sorted = Object.values(byPlayer).sort((a,b) => b.total - a.total);
+  const maxTotal = sorted.length ? sorted[0].total : 0;
+
+  // Aggiorna header
+  document.getElementById('lb-header').innerHTML = `
+    <div>#</div>
+    <div>Giocatore</div>
+    <div style="text-align:center">Totale</div>
+    <div style="text-align:center">Media game</div>
+    <div style="text-align:center" class="col-partite">Squadra</div>
+    <div style="text-align:center">Risultato</div>`;
+  document.getElementById('lb-header').style.gridTemplateColumns = '48px 1fr 90px 90px 100px 90px';
+
+  const bColors = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
+  const medals  = ['🥇','🥈','🥉'];
+
+  let html = '';
+  sorted.forEach((p, i) => {
+    const bc      = bColors[i % bColors.length];
+    const delay   = (i * 0.07).toFixed(2);
+    const rankEl  = i < 3
+      ? `<div class="rank" style="color:${['var(--gold)','var(--silver)','var(--bronze)'][i]}">${medals[i]}</div>`
+      : `<div class="rank-other">${i+1}</div>`;
+    const mediaGame = p.games > 0 ? (p.total / p.games).toFixed(1) : '—';
+    const isWin     = p.team === winningTeam;
+    const teamColor = isWin ? 'var(--neon)' : 'var(--neon2)';
+
+    html += `
+      <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:48px 1fr 90px 90px 100px 90px">
+        ${rankEl}
+        <div class="player-info">
+          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
+          <div>
+            <div class="player-name">${p.name}</div>
+            <div class="player-tag">${numGames} game giocati</div>
+          </div>
+        </div>
+        <div class="stat-cell" style="color:${i===0?'var(--gold)':'var(--text)'}">
+          <strong>${p.total}</strong>
+        </div>
+        <div class="stat-cell" style="color:var(--neon3)">${mediaGame}</div>
+        <div class="stat-cell col-partite" style="font-size:0.75rem;color:${teamColor}">${p.team||'—'}</div>
+        <div class="stat-cell">
+          <span class="team-tag ${isWin?'win':'lose'}" style="font-size:0.65rem">${isWin?'WIN':'LOSE'}</span>
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('leaderboard-body').innerHTML = html ||
+    '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessun dato</div>';
 }
 
 // ── SESSIONI RECENTI ─────────────────────────
@@ -156,6 +271,7 @@ async function loadSessions() {
       '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna sessione ancora — inizia a giocare! 🎳</div>';
 
     // Sidebar: ultima sessione
+    cachedSessions = sessions;
     if (sessions.length > 0) renderLastSession(sessions[0]);
 
   } catch (e) {
