@@ -413,6 +413,22 @@ document.addEventListener('keydown', e => {
 
 // Init
 loadWelcomeStats();
+
+// Se c'è già un token salvato, mostra opzione "continua come admin"
+const existingToken = localStorage.getItem(TOKEN_KEY);
+if (existingToken) {
+  // Aggiungi bottone "Continua come admin" sopra gli altri
+  const choiceBtns = document.getElementById('choiceButtons');
+  const continueBtn = document.createElement('button');
+  continueBtn.className = 'btn-admin';
+  continueBtn.style.background = 'none';
+  continueBtn.style.border = '1px solid rgba(232,255,0,0.4)';
+  continueBtn.style.color = 'var(--neon)';
+  continueBtn.style.boxShadow = 'none';
+  continueBtn.innerHTML = '⚡ Continua come amministratore';
+  continueBtn.onclick = function() { window.location.href = 'index.html'; };
+  choiceBtns.insertBefore(continueBtn, choiceBtns.firstChild);
+}
 </script>
 
 <script>

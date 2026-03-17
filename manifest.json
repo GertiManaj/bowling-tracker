@@ -1,8 +1,8 @@
 {
-  "name": "Strike Zone — Bowling Tracker",
+  "name": "Strike Zone \u2014 Bowling Tracker",
   "short_name": "Strike Zone",
   "description": "Tracker per le serate di bowling con classifica, statistiche e molto altro",
-  "start_url": "/index.html",
+  "start_url": "/welcome.html",
   "display": "standalone",
   "background_color": "#0a0a0f",
   "theme_color": "#e8ff00",
@@ -22,5 +22,8 @@
     }
   ],
   "screenshots": [],
-  "categories": ["sports", "utilities"]
+  "categories": [
+    "sports",
+    "utilities"
+  ]
 }
