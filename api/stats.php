@@ -16,18 +16,13 @@ elseif ($from)     { $dateWhere = 'WHERE se.date >= ?';            $dateParams =
 elseif ($to)       { $dateWhere = 'WHERE se.date <= ?';            $dateParams = [$to]; }
 
 // ── TOTALI ───────────────────────────────────
-// Usa totali per sessione (somma game) per record e media
 $q = $pdo->prepare("
     SELECT
-        MAX(st.totale)           AS record_assoluto,
-        ROUND(AVG(st.totale),1)  AS media_gruppo
-    FROM (
-        SELECT player_id, session_id, SUM(score) AS totale
-        FROM scores sc
-        JOIN sessions se ON sc.session_id = se.id
-        $dateWhere
-        GROUP BY player_id, session_id
-    ) st
+        MAX(sc.score)            AS record_assoluto,
+        ROUND(AVG(sc.score),1)   AS media_gruppo
+    FROM scores sc
+    JOIN sessions se ON sc.session_id = se.id
+    $dateWhere
 ");
 $q->execute($dateParams);
 $totals = $q->fetch();
@@ -36,19 +31,14 @@ $qSess = $pdo->prepare("SELECT COUNT(*) FROM sessions se " . ($dateWhere ?: ''))
 $qSess->execute($dateParams);
 $totals['totale_sessioni'] = $qSess->fetchColumn();
 
-// Record holder — basato sul totale della serata
+// Record holder — basato sul singolo game
 $qRec = $pdo->prepare("
-    SELECT p.name, p.emoji, st.totale AS score, se.date
-    FROM (
-        SELECT player_id, session_id, SUM(score) AS totale
-        FROM scores sc2
-        JOIN sessions se2 ON sc2.session_id = se2.id
-        $dateWhere
-        GROUP BY player_id, session_id
-    ) st
-    JOIN players  p  ON st.player_id  = p.id
-    JOIN sessions se ON st.session_id = se.id
-    ORDER BY st.totale DESC LIMIT 1
+    SELECT p.name, p.emoji, sc.score, se.date
+    FROM scores sc
+    JOIN players  p  ON sc.player_id  = p.id
+    JOIN sessions se ON sc.session_id = se.id
+    $dateWhere
+    ORDER BY sc.score DESC LIMIT 1
 ");
 $qRec->execute($dateParams);
 $recordHolder = $qRec->fetch();
@@ -217,12 +207,92 @@ $winsBreakdown = $qWins->fetchAll();
 
 $lastSession = $pdo->query('SELECT date, location FROM sessions ORDER BY date DESC LIMIT 1')->fetch();
 
+// ── PIÙ VITTORIE ─────────────────────────────
+$qMostWins = $pdo->prepare("
+    SELECT p.id, p.name, p.emoji,
+        COUNT(DISTINCT sc.session_id) AS vittorie
+    FROM scores sc
+    JOIN players p ON sc.player_id = p.id
+    JOIN sessions se ON sc.session_id = se.id
+    WHERE sc.team_id IS NOT NULL
+    AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id) = (
+        SELECT MAX(team_tot) FROM (
+            SELECT SUM(s3.score) AS team_tot FROM scores s3
+            WHERE s3.session_id = sc.session_id AND s3.team_id IS NOT NULL
+            GROUP BY s3.team_id
+        ) mx
+    )
+    $dateWhere
+    GROUP BY p.id
+    ORDER BY vittorie DESC
+    LIMIT 1
+");
+$qMostWins->execute($dateParams);
+$mostWins = $qMostWins->fetch() ?: null;
+
+// ── PIÙ MIGLIORATO ───────────────────────────
+// Confronta media prima metà sessioni vs seconda metà (min 4 sessioni)
+$qMostImproved = $pdo->prepare("
+    SELECT p.id, p.name, p.emoji,
+        ROUND(AVG(sc.score), 1) AS media_totale,
+        COUNT(DISTINCT sc.session_id) AS serate
+    FROM scores sc
+    JOIN players p ON sc.player_id = p.id
+    JOIN sessions se ON sc.session_id = se.id
+    $dateWhere
+    GROUP BY p.id
+    HAVING serate >= 2
+    ORDER BY media_totale DESC
+");
+$qMostImproved->execute($dateParams);
+$allForImproved = $qMostImproved->fetchAll();
+
+$mostImproved = null;
+$bestImprovement = 0;
+
+foreach ($allForImproved as $pl) {
+    // Prende le sessioni ordinate per data
+    $qSess = $pdo->prepare("
+        SELECT se.id, AVG(sc.score) AS media_sess
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        WHERE sc.player_id = ?
+        GROUP BY se.id
+        ORDER BY se.date ASC
+    ");
+    $qSess->execute([$pl['id']]);
+    $sessions = $qSess->fetchAll();
+    if (count($sessions) < 2) continue;
+
+    // Prima metà vs seconda metà
+    $half     = intdiv(count($sessions), 2);
+    $firstHalf  = array_slice($sessions, 0, $half);
+    $secondHalf = array_slice($sessions, $half);
+
+    $avgFirst  = array_sum(array_column($firstHalf,  'media_sess')) / count($firstHalf);
+    $avgSecond = array_sum(array_column($secondHalf, 'media_sess')) / count($secondHalf);
+    $improvement = round($avgSecond - $avgFirst, 1);
+
+    if ($improvement > $bestImprovement) {
+        $bestImprovement = $improvement;
+        $mostImproved = [
+            'id'            => $pl['id'],
+            'name'          => $pl['name'],
+            'emoji'         => $pl['emoji'],
+            'miglioramento' => $improvement,
+            'serate'        => $pl['serate'],
+        ];
+    }
+}
+
 echo json_encode([
     'totale_sessioni' => (int)$totals['totale_sessioni'],
     'record_assoluto' => (int)($totals['record_assoluto'] ?? 0),
     'media_gruppo'    => (float)($totals['media_gruppo']  ?? 0),
     'ultima_sessione' => $lastSession,
     'record_holder'   => $recordHolder ?: null,
+    'most_wins'       => $mostWins,
+    'most_improved'   => $mostImproved,
     'leaderboard'     => $leaderboard,
     'trend'           => array_values($trend),
     'distribution'    => $distribution,
