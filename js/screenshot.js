@@ -53,172 +53,59 @@ async function saveClassifica() {
   if (btn) { btn.disabled=true; btn.textContent='⏳ Generando...'; }
 
   try {
-    const players = (window.cachedPlayers || []).filter(p => parseInt(p.partite) > 0);
-    const noGames = (window.cachedPlayers || []).filter(p => parseInt(p.partite) === 0);
-    const all     = [...players, ...noGames];
+    // Carica html2canvas se non ancora caricato
+    if (typeof html2canvas === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
 
-    // Layout colonne
-    const COL_RANK   = 44;
-    const COL_AVATAR = 86;
-    const COL_NAME   = 100;
-    const COL_BAR    = 300;  // barra progresso
-    const COL_MEDIA  = 490;
-    const COL_RECORD = 580;
-    const COL_TREND  = 660;
-    const W = 720, ROW = 58, PAD = 20;
-    const H = PAD + 75 + all.length * ROW + PAD;
-    const { c, ctx } = makeCanvas(W, H);
+    const table = document.querySelector('.leaderboard-table');
+    if (!table) { showToast('Classifica non trovata', 'error'); return; }
 
-    // Sfondo
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, W, H);
+    // Crea un wrapper temporaneo con sfondo e padding
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+      position:fixed; top:-9999px; left:-9999px;
+      background:#0a0a0f;
+      padding:20px;
+      border-radius:12px;
+      width:${table.offsetWidth + 40}px;
+      font-family:'Barlow Condensed',sans-serif;
+    `;
 
     // Titolo
-    ctx.fillStyle = '#e8ff00';
-    ctx.font = 'bold 18px monospace';
-    ctx.fillText('🎳 STRIKE ZONE — CLASSIFICA', PAD, PAD + 24);
-    ctx.fillStyle = '#555570';
-    ctx.font = '11px monospace';
-    ctx.fillText(new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase(), PAD, PAD + 42);
+    const title = document.createElement('div');
+    title.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px';
+    title.innerHTML = `
+      <div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:22px;color:#e8ff00;text-shadow:0 0 20px rgba(232,255,0,0.5);letter-spacing:0.05em">🎳 STRIKE ZONE</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#666680;letter-spacing:0.2em;text-transform:uppercase;margin-top:2px">Classifica · ${new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase()}</div>
+      </div>
+      <div style="font-size:28px">🏆</div>`;
 
-    // Header colonne
-    ctx.fillStyle = '#18182a';
-    ctx.fillRect(0, PAD + 50, W, 26);
-    ctx.strokeStyle = '#2a2a44';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, PAD+76); ctx.lineTo(W, PAD+76); ctx.stroke();
+    // Clona la tabella
+    const clone = table.cloneNode(true);
+    clone.style.margin = '0';
 
-    ctx.fillStyle = '#555570';
-    ctx.font = 'bold 9px monospace';
-    ctx.fillText('#', COL_RANK - 16, PAD + 67);
-    ctx.fillText('GIOCATORE', COL_NAME, PAD + 67);
-    ctx.textAlign = 'right';
-    ctx.fillText('MEDIA', COL_MEDIA, PAD + 67);
-    ctx.fillText('RECORD', COL_RECORD, PAD + 67);
-    ctx.fillText('TREND', COL_TREND + 10, PAD + 67);
-    ctx.textAlign = 'left';
+    wrapper.appendChild(title);
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
 
-    // Righe giocatori
-    all.forEach((p, i) => {
-      const y       = PAD + 78 + i * ROW;
-      const yCenter = y + ROW / 2;
-      const color   = COLORS[i % COLORS.length];
-      const hasData = parseInt(p.partite) > 0;
-
-      // Sfondo riga alternato
-      ctx.fillStyle = i % 2 === 0 ? '#11111a' : '#0d0d16';
-      ctx.fillRect(0, y, W, ROW);
-
-      // Separatore
-      ctx.strokeStyle = '#1e1e30';
-      ctx.lineWidth = 0.5;
-      ctx.beginPath(); ctx.moveTo(0, y + ROW); ctx.lineTo(W, y + ROW); ctx.stroke();
-
-      // Rank
-      if (i < 3 && hasData) {
-        ctx.font = '18px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(MEDALS[i], COL_RANK - 12, yCenter + 6);
-      } else {
-        ctx.fillStyle = '#444460';
-        ctx.font = 'bold 11px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(hasData ? String(i+1) : '—', COL_RANK - 12, yCenter + 4);
-      }
-      ctx.textAlign = 'left';
-
-      // Avatar circle
-      ctx.beginPath();
-      ctx.arc(COL_AVATAR - 10, yCenter, 17, 0, Math.PI * 2);
-      ctx.fillStyle = hasData ? color + '18' : '#1a1a2a';
-      ctx.fill();
-      ctx.strokeStyle = hasData ? color + '66' : '#2a2a44';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.font = '16px serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.emoji || '🎳', COL_AVATAR - 10, yCenter + 5);
-      ctx.textAlign = 'left';
-
-      // Nome + sottotitolo
-      ctx.fillStyle = hasData ? '#e8e8f0' : '#444460';
-      ctx.font = hasData ? 'bold 13px sans-serif' : '13px sans-serif';
-      ctx.fillText(p.name, COL_NAME, yCenter - 4);
-      ctx.fillStyle = '#444460';
-      ctx.font = '10px monospace';
-      ctx.fillText(`${p.partite} serate · ${p.game_totali||0} game`, COL_NAME, yCenter + 10);
-
-      // Barra media — nella colonna BAR a destra del nome
-      if (hasData) {
-        const maxM = Math.max(...players.map(x => parseFloat(x.media)||0));
-        const pct  = maxM > 0 ? (parseFloat(p.media)||0) / maxM : 0;
-        const barW = 130;
-        ctx.fillStyle = '#252535';
-        ctx.fillRect(COL_BAR, yCenter - 2, barW, 5);
-        ctx.fillStyle = color;
-        ctx.fillRect(COL_BAR, yCenter - 2, barW * pct, 5);
-        // Glow
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 4;
-        ctx.fillRect(COL_BAR, yCenter - 2, barW * pct, 5);
-        ctx.shadowBlur = 0;
-      }
-
-      // Media — colonna destra
-      ctx.fillStyle = hasData ? color : '#2a2a3a';
-      ctx.font = hasData ? 'bold 14px monospace' : '13px monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(hasData ? String(p.media) : '—', COL_MEDIA, yCenter + 5);
-
-      // Record
-      ctx.fillStyle = hasData ? '#00f5ff' : '#2a2a3a';
-      ctx.font = '12px monospace';
-      ctx.fillText(hasData ? String(p.record) : '—', COL_RECORD, yCenter + 5);
-
-      // Trend sparkline
-      if (hasData && p.trend && p.trend.length > 0) {
-        const trend  = p.trend;
-        const maxT   = Math.max(...trend);
-        const minT   = Math.min(...trend);
-        const range  = maxT - minT || 1;
-        const sparkW = 50;
-        const sparkH = 20;
-        const barSparkW = sparkW / trend.length - 1;
-        const startX = COL_TREND - sparkW + 10;
-        const startY = yCenter - sparkH/2;
-
-        trend.forEach((v, ti) => {
-          const h    = Math.max(2, ((v - minT) / range) * sparkH);
-          const bx   = startX + ti * (barSparkW + 1);
-          const by   = startY + sparkH - h;
-          const isLast = ti === trend.length - 1;
-          ctx.fillStyle = isLast ? color : color + '55';
-          if (isLast) {
-            ctx.shadowColor = color;
-            ctx.shadowBlur  = 4;
-          }
-          ctx.fillRect(bx, by, barSparkW, h);
-          ctx.shadowBlur = 0;
-        });
-      } else if (hasData) {
-        ctx.fillStyle = '#444460';
-        ctx.font = '11px monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText('—', COL_TREND + 10, yCenter + 4);
-      }
-
-      ctx.textAlign = 'left';
+    // Cattura con html2canvas
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: '#0a0a0f',
+      scale: 2,
+      useCORS: true,
+      logging: false,
     });
 
-    // Footer
-    ctx.fillStyle = '#111120';
-    ctx.fillRect(0, H - 24, W, 24);
-    ctx.fillStyle = '#444460';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('web-production-e43fd.up.railway.app', W/2, H - 8);
+    document.body.removeChild(wrapper);
 
-    const blob = await blobFromCanvas(c);
+    const blob = await blobFromCanvas(canvas);
     const date = new Date().toLocaleDateString('it-IT').replace(/\//g,'-');
     await shareOrDownload(blob, `classifica-${date}.png`, 'Classifica Strike Zone');
     showToast('Foto classifica pronta!');
@@ -227,9 +114,8 @@ async function saveClassifica() {
     console.error(e);
     showToast('Errore nella generazione', 'error');
   }
-  if (btn) { btn.disabled=false; btn.textContent='📸 Salva classifica'; }
+  if (btn) { btn.disabled=false; btn.textContent='📸 Salva foto'; }
 }
-
 // ── CLASSIFICA ULTIMA SERATA ────────────────────
 async function saveClassificaUltimaSerata() {
   const btn = document.getElementById('btnSaveClassifica');
