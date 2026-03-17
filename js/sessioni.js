@@ -509,4 +509,4 @@ document.addEventListener('keydown', e => {
 
 // ── INIT ─────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', loadAll);
+document.addEventListener('DOMContentLoaded', loadAll); 

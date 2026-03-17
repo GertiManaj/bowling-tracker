@@ -849,9 +849,11 @@ function scrollToSession(dateStr) {
 // ── SUGGERITORE SQUADRE ──────────────────────
 
 let suggestSelected = new Set();
+let suggestLivelli  = {}; // { player_id: score_stimato } per nuovi giocatori
 
 function clearSuggestSelection() {
   suggestSelected.clear();
+  suggestLivelli = {};
   buildSuggestPlayers();
   document.getElementById('suggestResult').innerHTML = '';
   const btn = document.getElementById('btnSuggest');
@@ -864,41 +866,59 @@ function buildSuggestPlayers() {
 
   container.innerHTML = cachedPlayers.map(p => {
     const isSelected = suggestSelected.has(p.id);
+    const nPartite   = parseInt(p.partite) || 0;
+    const isNew      = nPartite === 0;
+    const badge      = nPartite > 0
+      ? `<span style="font-size:0.6rem;opacity:0.6">(${nPartite})</span>`
+      : `<span style="font-size:0.6rem;background:var(--neon3);color:#000;border-radius:3px;padding:0 3px">🆕</span>`;
+
     return `
-      <button
-        onclick="toggleSuggestPlayer(${p.id}, this)"
-        style="
-          font-family:'Barlow Condensed',sans-serif;
-          font-size:0.8rem;font-weight:600;
+      <div style="display:flex;flex-direction:column;gap:0.2rem">
+        <button onclick="toggleSuggestPlayer(${p.id}, this)" style="
+          font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;
           letter-spacing:0.05em;
           background:${isSelected ? 'rgba(232,255,0,0.12)' : 'none'};
           border:1px solid ${isSelected ? 'rgba(232,255,0,0.4)' : 'var(--border)'};
           color:${isSelected ? 'var(--neon)' : 'var(--text-muted)'};
           padding:0.3rem 0.6rem;border-radius:20px;cursor:pointer;
           transition:all 0.15s;display:flex;align-items:center;gap:0.3rem
-        "
-      >${p.emoji || '🎳'} ${p.name}</button>`;
+        ">${p.emoji || '🎳'} ${p.name} ${badge}</button>
+        ${isNew && isSelected ? `
+          <select onchange="setLivello(${p.id}, this.value)" style="
+            font-family:'Share Tech Mono',monospace;font-size:0.65rem;
+            background:var(--surface2);border:1px solid var(--neon3);
+            color:var(--neon3);border-radius:4px;padding:0.2rem 0.4rem;
+            cursor:pointer;letter-spacing:0.05em;
+          ">
+            <option value="">— Livello —</option>
+            <option value="80"  ${suggestLivelli[p.id] == 80  ? 'selected' : ''}>🟢 Principiante (~80)</option>
+            <option value="130" ${suggestLivelli[p.id] == 130 ? 'selected' : ''}>🟡 Medio (~130)</option>
+            <option value="180" ${suggestLivelli[p.id] == 180 ? 'selected' : ''}>🔴 Esperto (~180)</option>
+          </select>` : ''}
+      </div>`;
   }).join('');
 }
+
+function setLivello(id, val) {
+  if (val) suggestLivelli[id] = parseInt(val);
+  else delete suggestLivelli[id];
+}
+
 
 function toggleSuggestPlayer(id, btn) {
   if (suggestSelected.has(id)) {
     suggestSelected.delete(id);
-    btn.style.background   = 'none';
-    btn.style.borderColor  = 'var(--border)';
-    btn.style.color        = 'var(--text-muted)';
+    delete suggestLivelli[id];
   } else {
     suggestSelected.add(id);
-    btn.style.background   = 'rgba(232,255,0,0.12)';
-    btn.style.borderColor  = 'rgba(232,255,0,0.4)';
-    btn.style.color        = 'var(--neon)';
   }
-  // Aggiorna contatore
+  buildSuggestPlayers();
   const btn2 = document.getElementById('btnSuggest');
   if (btn2) btn2.textContent = suggestSelected.size >= 2
     ? `🎯 Suggerisci squadre (${suggestSelected.size} giocatori)`
     : '🎯 Suggerisci squadre';
 }
+
 
 async function suggestTeams() {
   if (suggestSelected.size < 2) {
@@ -914,7 +934,7 @@ async function suggestTeams() {
     const res  = await fetch(`${API}/suggest.php`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ player_ids: [...suggestSelected] })
+      body:    JSON.stringify({ player_ids: [...suggestSelected], livelli: suggestLivelli })
     });
     const data = await res.json();
 
@@ -956,7 +976,7 @@ function renderSuggestResult(data) {
             <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.2rem">
               ${p.emoji||'🎳'} ${p.name}
               <span style="font-size:0.65rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-weight:normal">
-                ${p.media_storica > 0 ? p.media_storica : '—'}
+                ${p.livello_manuale ? `<span style="color:var(--neon3)">livello stimato: ${p.livello_manuale}</span>` : p.media_storica > 0 ? `media: ${p.media_storica}` : '—'}
                 ${p.media_recente ? `· forma ${p.media_recente}` : ''}
               </span>
             </div>`).join('')}

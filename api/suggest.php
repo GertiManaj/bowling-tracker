@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data       = json_decode(file_get_contents('php://input'), true);
 $playerIds  = array_map('intval', $data['player_ids'] ?? []);
+$livelli    = $data['livelli'] ?? []; // [player_id => score_stimato] per nuovi giocatori
 
 if (count($playerIds) < 2) {
     http_response_code(400);
@@ -25,10 +26,11 @@ if (count($playerIds) < 2) {
 // ── DATI GIOCATORI ───────────────────────────
 $placeholders = implode(',', array_fill(0, count($playerIds), '?'));
 
-// Media storica per sessione
+// Media storica per sessione + conteggio partite
 $qMedia = $pdo->prepare("
     SELECT p.id, p.name, p.emoji,
-        COALESCE(ROUND(AVG(st.totale), 1), 0) AS media_storica
+        COALESCE(ROUND(AVG(st.totale), 1), 0) AS media_storica,
+        COUNT(DISTINCT st.session_id) AS num_partite
     FROM players p
     LEFT JOIN (
         SELECT player_id, session_id, SUM(score) AS totale
@@ -93,20 +95,34 @@ foreach ($chemRows as $c) {
 
 // ── CALCOLO PUNTEGGIO GIOCATORE ──────────────
 // Score = 60% media storica + 40% forma recente
+// Per nuovi giocatori usa il livello manuale se fornito
 $playerScores = [];
 foreach ($players as $p) {
-    $storica = (float)$p['media_storica'];
-    $recente = (float)($formaMap[$p['id']] ?? $storica);
-    $score   = $storica > 0
+    $pid      = $p['id'];
+    $storica  = (float)$p['media_storica'];
+    $nPartite = (int)$p['num_partite'];
+    $recente  = (float)($formaMap[$pid] ?? $storica);
+
+    // Se il giocatore non ha partite e ha un livello manuale, usalo
+    $livelloManuale = isset($livelli[$pid]) ? (float)$livelli[$pid] : null;
+    if ($nPartite === 0 && $livelloManuale !== null) {
+        $storica = $livelloManuale;
+        $recente = $livelloManuale;
+    }
+
+    $score = $storica > 0
         ? round($storica * 0.6 + $recente * 0.4, 1)
         : 0;
-    $playerScores[$p['id']] = [
-        'id'             => $p['id'],
-        'name'           => $p['name'],
-        'emoji'          => $p['emoji'],
-        'media_storica'  => $storica,
-        'media_recente'  => $recente > 0 ? $recente : null,
-        'score'          => $score,
+
+    $playerScores[$pid] = [
+        'id'              => $pid,
+        'name'            => $p['name'],
+        'emoji'           => $p['emoji'],
+        'media_storica'   => $nPartite > 0 ? $storica : null,
+        'media_recente'   => $recente > 0 && $nPartite > 0 ? $recente : null,
+        'score'           => $score,
+        'num_partite'     => $nPartite,
+        'livello_manuale' => $nPartite === 0 ? $livelloManuale : null,
     ];
 }
 
