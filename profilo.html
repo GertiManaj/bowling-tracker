@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#e8ff00"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Strike Zone"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
   <title>🎳 Strike Zone — Profilo</title>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
@@ -114,6 +120,15 @@ function toggleTheme(){const l=document.body.classList.contains('light');const t
 function initTheme(){const s=localStorage.getItem('theme')||'dark';if(s==='light'){document.body.classList.add('light');const b=document.getElementById('themeToggle');if(b)b.textContent='🌙';}}
 function shareLink(){const url=window.location.href;if(navigator.clipboard){navigator.clipboard.writeText(url).then(()=>{const t=document.getElementById('toast');t.textContent='✓ Link copiato!';t.className='toast success show';setTimeout(()=>t.className='toast',3000);});}}
 initTheme();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(function(reg) { console.log('SW registrato'); })
+      .catch(function(err) { console.log('SW errore:', err); });
+  });
+}
 </script>
 </body>
 </html>
