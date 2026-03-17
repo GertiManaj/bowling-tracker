@@ -121,7 +121,7 @@ function getLbValue(p, field) {
     return serate > 0 ? Math.round(vitt / serate * 100) : 0;
   }
   if (field === 'top_scorer') return parseInt(p.volte_top_scorer) || 0;
-  if (field === 'forma')      return parseFloat(p.media_recente) || 0;
+  if (field === 'forma')      return (p.ultimi_risultati || []).filter(r => r === 'V').length;
   return 0;
 }
 
@@ -189,16 +189,24 @@ function renderAllTimeLeaderboard() {
     const vittorie = parseInt(p.vittorie_squadra) || 0;
     const winPct  = serate > 0 ? Math.round(vittorie / serate * 100) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
-    const forma   = p.media_recente ? parseFloat(p.media_recente) : null;
+    // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
 
-    // Badge forma
-    let formaBadge = '<span style="color:var(--text-muted);font-size:0.75rem">—</span>';
-    if (forma !== null) {
-      const diff = forma - mediaVal;
-      if (diff > 2)       formaBadge = `<span style="color:var(--neon);font-size:0.75rem">▲ ${forma}</span>`;
-      else if (diff < -2) formaBadge = `<span style="color:var(--neon2);font-size:0.75rem">▼ ${forma}</span>`;
-      else                formaBadge = `<span style="color:var(--text-muted);font-size:0.75rem">→ ${forma}</span>`;
+    // Badge forma — ultimi 5 risultati come pallini V/P/N
+    const risultati = p.ultimi_risultati || [];
+    let formaBadge = '';
+    if (!risultati.length) {
+      formaBadge = '<span style="color:var(--text-muted);font-size:0.7rem;font-family:\'Share Tech Mono\',monospace">—</span>';
+    } else {
+      const dots = risultati.map(r => {
+        if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#000;font-size:0.55rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">V</span>';
+        if (r === 'P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.55rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">P</span>';
+        return '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#555570;color:#fff;font-size:0.55rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">N</span>';
+      }).join('');
+      // Pallini grigi per le partite mancanti
+      const missing = 5 - risultati.length;
+      const emptyDots = Array(missing).fill('<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>').join('');
+      formaBadge = `<div style="display:flex;gap:2px;justify-content:center">${emptyDots}${dots}</div>`;
     }
 
     // Highlight colonna attiva
@@ -250,6 +258,24 @@ function renderAllTimeLeaderboard() {
         <div class="stat-cell">—</div>
       </div>`;
   });
+
+  // Aggiungi leggenda forma
+  html += `
+    <div style="padding:0.6rem 1.2rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;color:var(--text-muted);text-transform:uppercase">Forma (ultimi 5):</span>
+      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.68rem;color:var(--text-muted)">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span> Vittoria
+      </span>
+      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.68rem;color:var(--text-muted)">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span> Sconfitta
+      </span>
+      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.68rem;color:var(--text-muted)">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span> Pareggio
+      </span>
+      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.68rem;color:var(--text-muted)">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span> Nessun dato
+      </span>
+    </div>`;
 
   document.getElementById('leaderboard-body').innerHTML = html ||
     '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna partita ancora 🎳</div>';

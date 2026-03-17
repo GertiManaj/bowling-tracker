@@ -7,7 +7,7 @@ require_once 'db.php';
 
 $pdo = getDB();
 
-// Classifica completa con tutti i campi necessari
+// Classifica completa
 $stmt = $pdo->query('
     SELECT
         p.id,
@@ -82,19 +82,69 @@ foreach ($players as &$player) {
     $qTop->execute([$id]);
     $player['volte_top_scorer'] = (int)$qTop->fetchColumn();
 
-    // ── FORMA RECENTE: media ultimi 5 game ──
-    $qForma = $pdo->prepare('
-        SELECT ROUND(AVG(score), 1) AS media_recente
-        FROM (
-            SELECT score
-            FROM scores
-            WHERE player_id = ?
-            ORDER BY id DESC
-            LIMIT 5
-        ) ultimi
+    // ── ULTIMI 5 RISULTATI (V/P/N) ──
+    $qSess = $pdo->prepare('
+        SELECT DISTINCT sc.session_id
+        FROM scores sc
+        WHERE sc.player_id = ?
+        AND sc.team_id IS NOT NULL
+        ORDER BY sc.session_id DESC
+        LIMIT 5
     ');
-    $qForma->execute([$id]);
-    $player['media_recente'] = $qForma->fetchColumn();
+    $qSess->execute([$id]);
+    $lastSessions = $qSess->fetchAll(PDO::FETCH_COLUMN);
+
+    $risultati = [];
+    foreach ($lastSessions as $sessId) {
+        // Totale squadra del giocatore in questa sessione
+        $qMyTeam = $pdo->prepare('
+            SELECT sc.team_id, SUM(sc.score) AS tot
+            FROM scores sc
+            WHERE sc.session_id = ? AND sc.player_id = ?
+            GROUP BY sc.team_id
+        ');
+        $qMyTeam->execute([$sessId, $id]);
+        $myTeam = $qMyTeam->fetch();
+        if (!$myTeam) continue;
+
+        // Massimo totale squadra nella sessione
+        $qMaxTeam = $pdo->prepare('
+            SELECT MAX(team_tot) FROM (
+                SELECT SUM(score) AS team_tot
+                FROM scores
+                WHERE session_id = ? AND team_id IS NOT NULL
+                GROUP BY team_id
+            ) t
+        ');
+        $qMaxTeam->execute([$sessId]);
+        $maxTeam = (int)$qMaxTeam->fetchColumn();
+
+        $myTot = (int)$myTeam['tot'];
+
+        // Conta quante squadre hanno lo stesso massimo (pareggio)
+        $qCountWinners = $pdo->prepare('
+            SELECT COUNT(*) FROM (
+                SELECT SUM(score) AS team_tot
+                FROM scores
+                WHERE session_id = ? AND team_id IS NOT NULL
+                GROUP BY team_id
+                HAVING SUM(score) = ?
+            ) w
+        ');
+        $qCountWinners->execute([$sessId, $maxTeam]);
+        $countWinners = (int)$qCountWinners->fetchColumn();
+
+        if ($myTot === $maxTeam && $countWinners > 1) {
+            $risultati[] = 'N';
+        } elseif ($myTot === $maxTeam) {
+            $risultati[] = 'V';
+        } else {
+            $risultati[] = 'P';
+        }
+    }
+
+    // Dal più vecchio al più recente
+    $player['ultimi_risultati'] = array_reverse($risultati);
 }
 
 echo json_encode(array_values($players));
