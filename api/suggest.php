@@ -26,52 +26,39 @@ if (count($playerIds) < 2) {
 // ── DATI GIOCATORI ───────────────────────────
 $placeholders = implode(',', array_fill(0, count($playerIds), '?'));
 
-// Media storica per sessione + conteggio partite
+// Media storica per singolo game + conteggio partite
 $qMedia = $pdo->prepare("
     SELECT p.id, p.name, p.emoji,
-        COALESCE(ROUND(AVG(st.totale), 1), 0) AS media_storica,
-        COUNT(DISTINCT st.session_id) AS num_partite
+        COALESCE(ROUND(AVG(sc.score), 1), 0) AS media_storica,
+        COUNT(DISTINCT sc.session_id) AS num_partite
     FROM players p
-    LEFT JOIN (
-        SELECT player_id, session_id, SUM(score) AS totale
-        FROM scores GROUP BY player_id, session_id
-    ) st ON st.player_id = p.id
+    LEFT JOIN scores sc ON sc.player_id = p.id
     WHERE p.id IN ($placeholders)
     GROUP BY p.id
 ");
 $qMedia->execute($playerIds);
 $players = $qMedia->fetchAll();
 
-// Forma recente (ultimi 3 mesi)
+// Forma recente (ultimi 3 mesi) - media singolo game
 $threeMonths = date('Y-m-d', strtotime('-3 months'));
 $qForma = $pdo->prepare("
     SELECT p.id,
-        COALESCE(ROUND(AVG(st.totale), 1), 0) AS media_recente
+        COALESCE(ROUND(AVG(sc.score), 1), 0) AS media_recente
     FROM players p
-    LEFT JOIN (
-        SELECT sc.player_id, sc.session_id, SUM(sc.score) AS totale
-        FROM scores sc
-        JOIN sessions se ON sc.session_id = se.id
-        WHERE se.date >= ?
-        GROUP BY sc.player_id, sc.session_id
-    ) st ON st.player_id = p.id
+    LEFT JOIN scores sc ON sc.player_id = p.id
+    LEFT JOIN sessions se ON sc.session_id = se.id
     WHERE p.id IN ($placeholders)
+    AND (se.date >= ? OR se.date IS NULL)
     GROUP BY p.id
 ");
 $qForma->execute(array_merge([$threeMonths], $playerIds));
 $formaRows = $qForma->fetchAll();
 $formaMap  = array_column($formaRows, 'media_recente', 'id');
 
-// Chimica: % vittorie per ogni coppia
+// Chimica: % vittorie per ogni coppia (basata su sessioni distinte)
 $qChem = $pdo->prepare("
     SELECT a.player_id AS p1, b.player_id AS p2,
-        COUNT(DISTINCT a.session_id) AS partite_insieme,
-        SUM(CASE WHEN (
-            SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = a.team_id
-        ) = (
-            SELECT MAX(tot) FROM (SELECT SUM(s3.score) AS tot FROM scores s3
-                WHERE s3.session_id = a.session_id GROUP BY s3.team_id) mx
-        ) THEN 1 ELSE 0 END) AS vittorie_insieme
+        COUNT(DISTINCT a.session_id) AS partite_insieme
     FROM scores a
     JOIN scores b ON a.session_id = b.session_id
         AND a.team_id = b.team_id
@@ -83,14 +70,37 @@ $qChem = $pdo->prepare("
 $qChem->execute(array_merge($playerIds, $playerIds));
 $chemRows = $qChem->fetchAll();
 
-// Mappa chimica: [p1_id][p2_id] = win_pct
+// Per ogni coppia, calcola vittorie contando sessioni uniche
 $chemMap = [];
 foreach ($chemRows as $c) {
-    $pct = $c['partite_insieme'] > 0
-        ? round($c['vittorie_insieme'] / $c['partite_insieme'] * 100)
-        : 50;
-    $chemMap[$c['p1']][$c['p2']] = $pct;
-    $chemMap[$c['p2']][$c['p1']] = $pct;
+    $p1 = $c['p1']; $p2 = $c['p2'];
+    $totSess = (int)$c['partite_insieme'];
+
+    // Conta sessioni vinte insieme
+    $qWin = $pdo->prepare("
+        SELECT COUNT(DISTINCT a.session_id) AS vinte
+        FROM scores a
+        JOIN scores b ON a.session_id = b.session_id
+            AND a.team_id = b.team_id
+            AND b.player_id = ?
+        WHERE a.player_id = ?
+        AND (
+            SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = a.team_id
+        ) = (
+            SELECT MAX(team_tot) FROM (
+                SELECT SUM(s3.score) AS team_tot FROM scores s3
+                WHERE s3.session_id = a.session_id
+                AND s3.team_id IS NOT NULL
+                GROUP BY s3.team_id
+            ) mx
+        )
+    ");
+    $qWin->execute([$p2, $p1]);
+    $vinte = (int)$qWin->fetchColumn();
+
+    $pct = $totSess > 0 ? round($vinte / $totSess * 100) : 50;
+    $chemMap[$p1][$p2] = $pct;
+    $chemMap[$p2][$p1] = $pct;
 }
 
 // ── CALCOLO PUNTEGGIO GIOCATORE ──────────────
