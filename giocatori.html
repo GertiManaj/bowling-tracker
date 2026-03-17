@@ -101,13 +101,13 @@ initTheme();
 <header>
   <div class="header-glow"></div>
   <div class="header-inner">
-    <a href="index.html" class="logo" style="text-decoration:none">
+    <div class="logo">
       <div class="logo-pin">🎳</div>
       <div class="logo-text">
         <span class="logo-title">STRIKE ZONE</span>
         <span class="logo-sub">Bowling Tracker v1.0</span>
       </div>
-    </a>
+    </div>
     <nav>
       <a href="index.html">Dashboard</a>
       <a href="sessioni.html">Sessioni</a>
@@ -265,7 +265,7 @@ initTheme();
       </p>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="new-password" name="new-password"/>
+        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="off" style="-webkit-text-security:disc"/>
       </div>
       <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
     </div>
