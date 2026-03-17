@@ -1,9 +1,0 @@
-{
-  "name": "strikezone/bowling-tracker",
-  "require": {
-    "php": ">=8.1",
-    "ext-pdo": "*",
-    "ext-pdo_mysql": "*",
-    "ext-mbstring": "*"
-  }
-}

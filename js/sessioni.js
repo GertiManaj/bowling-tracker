@@ -25,7 +25,7 @@ function formatDate(d) {
   }).toUpperCase();
 }
 
-function formatDay(d)   {
+function formatDay(d) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('it-IT', { day: '2-digit' });
 }
@@ -53,14 +53,13 @@ async function loadAll() {
 }
 
 function updateHeroBar() {
-  // Stats dai dati già caricati (evita una chiamata extra)
   const allScores = allSessions.flatMap(s => s.scores || []);
   const total     = allSessions.length;
   const media     = allScores.length
     ? (allScores.reduce((s, x) => s + parseInt(x.score), 0) / allScores.length).toFixed(1)
     : '—';
-  const best      = allScores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
-  const ultima    = allSessions[0];
+  const best   = allScores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
+  const ultima = allSessions[0];
 
   document.getElementById('stat-totali').textContent = total || '—';
   document.getElementById('stat-media').textContent  = media;
@@ -94,7 +93,6 @@ function renderSessions() {
     return matchQ && matchF && matchT;
   });
 
-  // Contatore
   document.getElementById('resultsCount').textContent =
     filtered.length === allSessions.length
       ? `${allSessions.length} sessioni`
@@ -120,31 +118,32 @@ function renderSessions() {
     const byTeam = {};
     teams.forEach(t => { byTeam[t.name] = { name: t.name, total: 0, players: [] }; });
     scores.forEach(sc => {
-      if (byTeam[sc.team_name]) {
+      if (sc.team_name && byTeam[sc.team_name]) {
         byTeam[sc.team_name].total += parseInt(sc.score) || 0;
         byTeam[sc.team_name].players.push(sc);
       }
     });
 
+    // Giocatori singoli
+    const soloScores = scores.filter(sc => !sc.team_name);
+
     const teamList = Object.values(byTeam);
-    const maxTotal = Math.max(...teamList.map(t => t.total));
+    const maxTotal = teamList.length ? Math.max(...teamList.map(t => t.total)) : 0;
     const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
-    const maxScore = Math.max(...scores.map(x => parseInt(x.score) || 0));
 
     const teamsHtml = teamList.map((t, ti) => {
       const win   = t.total === maxTotal && maxTotal > 0;
       const color = tColors[ti % tColors.length];
-      // Raggruppa per giocatore e mostra game separati
       const byPlayer = {};
       t.players.forEach(p => {
         if (!byPlayer[p.player_name]) byPlayer[p.player_name] = { ...p, games: [] };
         byPlayer[p.player_name].games.push({ game: p.game_number || 1, score: p.score });
       });
-      // Calcola totale per giocatore
       Object.values(byPlayer).forEach(p => {
         p.total = p.games.reduce((s, g) => s + parseInt(g.score), 0);
       });
-      const maxPlayerScore = Math.max(...Object.values(byPlayer).map(p => p.total));
+      const maxPlayerScore = Object.values(byPlayer).length
+        ? Math.max(...Object.values(byPlayer).map(p => p.total)) : 0;
 
       const rows = Object.values(byPlayer).map(p => {
         const gamesHtml = p.games.length > 1
@@ -176,35 +175,66 @@ function renderSessions() {
         </div>`;
     }).join('');
 
-    const notesHtml = s.notes
-      ? `<div class="session-notes">📝 ${s.notes}</div>`
-      : '';
+    // Sezione giocatori singoli
+    let soloHtml = '';
+    if (soloScores.length) {
+      const byPlayer = {};
+      soloScores.forEach(sc => {
+        if (!byPlayer[sc.player_name]) byPlayer[sc.player_name] = { ...sc, games: [], total: 0 };
+        byPlayer[sc.player_name].games.push({ game: sc.game_number || 1, score: sc.score });
+        byPlayer[sc.player_name].total += parseInt(sc.score) || 0;
+      });
+
+      const soloRows = Object.values(byPlayer).map(p => {
+        const gamesHtml = p.games.length > 1
+          ? p.games.sort((a,b) => a.game - b.game).map(g =>
+              `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
+            ).join(' ')
+          : '';
+        return `
+          <div class="detail-player-row">
+            <span>${p.emoji || '🎳'} ${p.player_name}</span>
+            <div style="display:flex;align-items:center;gap:0.4rem;font-family:'Share Tech Mono',monospace;font-size:0.8rem">
+              ${gamesHtml ? `<span style="font-size:0.7rem;color:var(--text-muted)">${gamesHtml}</span>` : ''}
+              <span class="detail-player-score" style="color:var(--neon3)">${p.total}</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      soloHtml = `
+        <div class="detail-team" style="border-color:var(--neon3)44">
+          <div class="detail-team-header" style="background:rgba(0,245,255,0.05)">
+            <span class="detail-team-name" style="color:var(--neon3)">👤 Singoli</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Fuori sfida</span>
+          </div>
+          <div class="detail-team-players">${soloRows}</div>
+        </div>`;
+    }
+
+    const notesHtml = s.notes ? `<div class="session-notes">📝 ${s.notes}</div>` : '';
 
     return `
       <div class="session-card" id="card-${s.id}" style="animation-delay:${delay}s">
         <div class="session-card-header" onclick="toggleCard(${s.id})">
-
           <div class="session-card-date">
             <div class="session-date-day">${formatDay(s.date)}</div>
             <div class="session-date-month">${formatMonth(s.date)}</div>
           </div>
-
           <div class="session-card-info">
             <div class="session-location">${s.location}</div>
             <div class="session-players">${players.join(' · ') || '—'}</div>
           </div>
-
           <div class="session-card-winner">
             <div class="winner-label">Top score</div>
             <div class="winner-name">${best.player_name || '—'}</div>
             <div class="winner-score">${best.score || '—'} pts</div>
           </div>
-
           <div class="session-card-toggle">▼</div>
         </div>
-
         <div class="session-card-detail">
-          ${teamList.length ? `<div class="detail-teams">${teamsHtml}</div>` : '<div style="color:var(--text-muted);font-size:0.8rem">Nessun punteggio registrato</div>'}
+          ${teamList.length || soloScores.length
+            ? `<div class="detail-teams">${teamsHtml}${soloHtml}</div>`
+            : '<div style="color:var(--text-muted);font-size:0.8rem">Nessun punteggio registrato</div>'}
           ${notesHtml}
           <div class="detail-actions action-btn-wrap">
             <button class="detail-action-btn edit"   onclick="openEditModal(${s.id})">✏ Modifica</button>
@@ -216,8 +246,7 @@ function renderSessions() {
 }
 
 function toggleCard(id) {
-  const card = document.getElementById(`card-${id}`);
-  card.classList.toggle('open');
+  document.getElementById(`card-${id}`).classList.toggle('open');
 }
 
 function filterSessions() { renderSessions(); }
@@ -241,6 +270,7 @@ function openAddModal() {
   document.getElementById('teamBName').value           = '';
   document.getElementById('teamARows').innerHTML       = '';
   document.getElementById('teamBRows').innerHTML       = '';
+  document.getElementById('soloRows').innerHTML        = '';
   document.getElementById('totalA').textContent        = 'Totale: 0';
   document.getElementById('totalB').textContent        = 'Totale: 0';
   document.getElementById('btnSave').textContent       = 'Salva';
@@ -264,46 +294,38 @@ function openEditModal(id) {
   document.getElementById('sessionNotes').value     = s.notes    || '';
   document.getElementById('btnSave').textContent    = 'Aggiorna';
 
-  // Svuota righe
   document.getElementById('teamARows').innerHTML = '';
   document.getElementById('teamBRows').innerHTML = '';
+  document.getElementById('soloRows').innerHTML  = '';
   document.getElementById('totalA').textContent  = 'Totale: 0';
   document.getElementById('totalB').textContent  = 'Totale: 0';
 
-  const teams = s.teams || [];
+  const teams  = s.teams  || [];
   const scores = s.scores || [];
 
-  // Raggruppa scores per squadra
   const byTeam = {};
   teams.forEach(t => { byTeam[t.name] = []; });
-  scores.forEach(sc => { if (byTeam[sc.team_name]) byTeam[sc.team_name].push(sc); });
+  scores.forEach(sc => { if (sc.team_name && byTeam[sc.team_name]) byTeam[sc.team_name].push(sc); });
 
   const teamNames = Object.keys(byTeam);
 
-  // Squadra A
   const nameA = teamNames[0] || '';
   document.getElementById('teamAName').value = nameA;
   const playersA = byTeam[nameA] || [];
-  if (playersA.length) {
-    playersA.forEach(p => addPlayerRow('A', p.player_id || null, p.score));
-  } else {
-    addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
-  }
+  if (playersA.length) playersA.forEach(p => addPlayerRow('A', p.player_id || null, p.score));
+  else { addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A'); }
 
-  // Squadra B
   const nameB = teamNames[1] || '';
   document.getElementById('teamBName').value = nameB;
   const playersB = byTeam[nameB] || [];
-  if (playersB.length) {
-    playersB.forEach(p => addPlayerRow('B', p.player_id || null, p.score));
-  } else {
-    addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
-  }
+  if (playersB.length) playersB.forEach(p => addPlayerRow('B', p.player_id || null, p.score));
+  else { addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B'); }
+
+  // Carica giocatori singoli
+  scores.filter(sc => !sc.team_name).forEach(sc => addSoloRow(sc.player_id || null, sc.score));
 
   calcTotals();
   document.getElementById('modalOverlay').classList.add('open');
-
-  // Chiudi il dettaglio espanso se era aperto
   document.getElementById(`card-${id}`)?.classList.remove('open');
 }
 
@@ -315,7 +337,7 @@ function handleOverlayClick(e) {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
 
-// ── RIGHE GIOCATORI NEL MODAL ────────────────
+// ── RIGHE GIOCATORI ──────────────────────────
 
 function addPlayerRow(team, selectedId = null, score = '') {
   const opts = allPlayers.map(p =>
@@ -332,6 +354,32 @@ function addPlayerRow(team, selectedId = null, score = '') {
       value="${score}" oninput="calcTotals()"/>
     <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
   document.getElementById(`team${team}Rows`).appendChild(row);
+}
+
+function addSoloRow(selectedId = null, score = '') {
+  const opts = allPlayers.map(p =>
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
+
+  const row = document.createElement('div');
+  row.className = 'score-row solo-row';
+  row.innerHTML = `
+    <select class="form-input">
+      <option value="">— Giocatore —</option>${opts}
+    </select>
+    <input type="number" class="form-input" placeholder="Score" min="0" max="300" value="${score}"/>
+    <button class="btn-remove" onclick="this.parentElement.remove()" title="Rimuovi">✕</button>`;
+  document.getElementById('soloRows').appendChild(row);
+}
+
+function getSoloPlayers() {
+  const solo = [];
+  document.querySelectorAll('#soloRows .solo-row').forEach(row => {
+    const pid   = row.querySelector('select')?.value;
+    const score = row.querySelector('input[type="number"]')?.value;
+    if (pid && score) solo.push({ player_id: parseInt(pid), score: parseInt(score) });
+  });
+  return solo;
 }
 
 function calcTotals() {
@@ -364,7 +412,12 @@ async function saveSession() {
     if (players.length > 0) teams.push({ name, players });
   });
 
-  if (!teams.length) { showToast('Inserisci almeno un punteggio', 'error'); return; }
+  const soloPlayers = getSoloPlayers();
+
+  if (!teams.length && !soloPlayers.length) {
+    showToast('Inserisci almeno un punteggio', 'error');
+    return;
+  }
 
   btn.disabled    = true;
   btn.textContent = 'Salvataggio...';
@@ -375,7 +428,8 @@ async function saveSession() {
       date,
       location: document.getElementById('sessionLocation').value || 'Bowling',
       notes:    document.getElementById('sessionNotes').value,
-      teams
+      teams,
+      solo_players: soloPlayers
     };
     if (editingId) payload.id = editingId;
 
@@ -432,7 +486,6 @@ async function confirmDelete() {
       body: JSON.stringify({ id: deletingId })
     });
     const data = await res.json();
-
     if (data.success) {
       closeDeleteModal();
       showToast('Sessione eliminata');

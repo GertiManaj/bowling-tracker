@@ -48,7 +48,8 @@ if ($method === 'POST') {
         $stmt->execute([$data['date'], $data['location'] ?? 'Bowling', $data['notes'] ?? null]);
         $sessionId = $pdo->lastInsertId();
 
-        foreach ($data['teams'] as $team) {
+        // Squadre
+        foreach (($data['teams'] ?? []) as $team) {
             $t = $pdo->prepare('INSERT INTO teams (session_id, name) VALUES (?, ?)');
             $t->execute([$sessionId, $team['name']]);
             $teamId = $pdo->lastInsertId();
@@ -59,6 +60,14 @@ if ($method === 'POST') {
                 $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
                 $sc->execute([$sessionId, $player['player_id'], $teamId, $player['score'], $gameNumber]);
             }
+        }
+
+        // Giocatori singoli (senza squadra, team_id = NULL)
+        foreach (($data['solo_players'] ?? []) as $player) {
+            if (empty($player['player_id']) || !isset($player['score'])) continue;
+            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+            $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
+            $sc->execute([$sessionId, $player['player_id'], $player['score'], $gameNumber]);
         }
 
         $pdo->commit();
@@ -90,12 +99,12 @@ if ($method === 'PUT') {
         $pdo->prepare('UPDATE sessions SET date = ?, location = ?, notes = ? WHERE id = ?')
             ->execute([$data['date'], $data['location'] ?? 'Bowling', $data['notes'] ?? null, $id]);
 
-        // 2. Elimina vecchi scores e teams (li ricreiamo da zero)
+        // 2. Elimina vecchi scores e teams
         $pdo->prepare('DELETE FROM scores WHERE session_id = ?')->execute([$id]);
         $pdo->prepare('DELETE FROM teams  WHERE session_id = ?')->execute([$id]);
 
         // 3. Ricrea squadre e punteggi
-        foreach ($data['teams'] as $team) {
+        foreach (($data['teams'] ?? []) as $team) {
             $t = $pdo->prepare('INSERT INTO teams (session_id, name) VALUES (?, ?)');
             $t->execute([$id, $team['name']]);
             $teamId = $pdo->lastInsertId();
@@ -105,6 +114,13 @@ if ($method === 'PUT') {
                 $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score) VALUES (?, ?, ?, ?)');
                 $sc->execute([$id, $player['player_id'], $teamId, $player['score']]);
             }
+        }
+
+        // 4. Ricrea giocatori singoli
+        foreach (($data['solo_players'] ?? []) as $player) {
+            if (empty($player['player_id']) || !isset($player['score'])) continue;
+            $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score) VALUES (?, ?, NULL, ?)');
+            $sc->execute([$id, $player['player_id'], $player['score']]);
         }
 
         $pdo->commit();
@@ -131,7 +147,6 @@ if ($method === 'DELETE') {
 
     $pdo->beginTransaction();
     try {
-        // CASCADE elimina anche scores e teams collegati
         $pdo->prepare('DELETE FROM scores  WHERE session_id = ?')->execute([$id]);
         $pdo->prepare('DELETE FROM teams   WHERE session_id = ?')->execute([$id]);
         $pdo->prepare('DELETE FROM sessions WHERE id = ?')->execute([$id]);

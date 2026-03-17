@@ -6,7 +6,7 @@ if ($path !== '/' && file_exists($file) && !is_dir($file)) {
     return false;
 }
 
-$index = __DIR__ . '/index.html';
+$index = __DIR__ . '/welcome.html';
 if (file_exists($index)) {
     include $index;
 } else {
