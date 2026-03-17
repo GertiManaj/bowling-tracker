@@ -972,14 +972,31 @@ function renderSuggestResult(data) {
           <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${color}">${score}</span>
         </div>
         <div style="padding:0.5rem 0.8rem">
-          ${players.map(p => `
-            <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.2rem">
-              ${p.emoji||'🎳'} ${p.name}
-              <span style="font-size:0.65rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-weight:normal">
-                ${p.livello_manuale ? `<span style="color:var(--neon3)">livello stimato: ${p.livello_manuale}</span>` : p.media_storica > 0 ? `media: ${p.media_storica}` : '—'}
-                ${p.media_recente ? `· forma ${p.media_recente}` : ''}
+          ${players.map(p => {
+            // Prende gli ultimi risultati dalla cache classifica
+            const cached = (window.cachedPlayers || []).find(cp => cp.id === p.id);
+            const risultati = cached?.ultimi_risultati || [];
+            let formaDots = '';
+            if (risultati.length) {
+              const dots = risultati.map(r => {
+                if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#22c55e;color:#000;font-size:0.45rem;font-weight:700">V</span>';
+                if (r === 'P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.45rem;font-weight:700">P</span>';
+                return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#555570;color:#fff;font-size:0.45rem;font-weight:700">N</span>';
+              }).join('');
+              const empty = Array(5 - risultati.length).fill('<span style="display:inline-flex;width:14px;height:14px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>').join('');
+              formaDots = `<div style="display:inline-flex;gap:2px;vertical-align:middle;margin-left:4px">${empty}${dots}</div>`;
+            }
+            return `
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;display:flex;align-items:center;justify-content:space-between">
+              <span>${p.emoji||'🎳'} ${p.name}</span>
+              <span style="display:flex;align-items:center;gap:0.4rem">
+                <span style="font-size:0.62rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-weight:normal">
+                  ${p.livello_manuale ? `<span style="color:var(--neon3)">~${p.livello_manuale}</span>` : p.media_storica > 0 ? p.media_storica : '—'}
+                </span>
+                ${formaDots}
               </span>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
           ${chemHtml}
         </div>
       </div>`;
