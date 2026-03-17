@@ -27,7 +27,7 @@ body {
   color: var(--text);
   font-family: 'Barlow Condensed', sans-serif;
   min-height: 100vh;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 /* Texture noise */
@@ -151,7 +151,7 @@ main {
 .section-title .accent { width: 8px; height: 8px; background: var(--neon); border-radius: 50%; box-shadow: 0 0 8px var(--neon); }
 
 /* ── LEADERBOARD ── */
-.leaderboard-table  { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.leaderboard-table  { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 
 .leaderboard-header {
   display: grid;
@@ -353,17 +353,27 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem 2rem; text-align: 
   /* Main padding ridotto */
   main { padding: 1rem; gap: 1rem; }
 
-  /* Leaderboard: scroll orizzontale */
+  /* Leaderboard: compatta su mobile, tutto visibile senza scroll */
   .leaderboard-header,
   .leaderboard-row {
-    min-width: 640px;
-    padding: 0.7rem 0.8rem;
-    font-size: 0.8rem;
+    grid-template-columns: 28px 1fr 58px 52px 52px 52px 52px 68px !important;
+    padding: 0.5rem 0.6rem;
+    gap: 0;
   }
-
-  .player-name { font-size: 0.9rem; }
-  .player-tag  { font-size: 0.55rem; }
-  .avatar { width: 28px; height: 28px; font-size: 0.85rem; }
+  .leaderboard-header {
+    font-size: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+  .leaderboard-row {
+    font-size: 0.72rem;
+  }
+  .stat-cell { font-size: 0.7rem; }
+  .player-name { font-size: 0.82rem; }
+  .player-tag  { font-size: 0.5rem; }
+  .avatar { width: 24px; height: 24px; font-size: 0.75rem; }
+  .player-info { gap: 0.4rem; }
+  .rank, .rank-other { font-size: 0.75rem; }
+  .mini-bar-bg { margin-top: 2px; }
 
   /* Card */
   .card-header { padding: 0.8rem 1rem; }
