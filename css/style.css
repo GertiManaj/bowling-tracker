@@ -353,22 +353,19 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem 2rem; text-align: 
   /* Main padding ridotto */
   main { padding: 1rem; gap: 1rem; }
 
-  /* Leaderboard: solo rank, nome, media, forma */
+  /* Leaderboard: scroll orizzontale */
+  .leaderboard-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .leaderboard-header,
   .leaderboard-row {
-    grid-template-columns: 36px 1fr 72px 80px !important;
+    min-width: 700px;
     padding: 0.7rem 0.8rem;
     font-size: 0.8rem;
   }
-  /* Nascondi colonne extra su mobile */
-  .leaderboard-header > div:nth-child(4),
-  .leaderboard-header > div:nth-child(5),
-  .leaderboard-header > div:nth-child(6),
-  .leaderboard-header > div:nth-child(7),
-  .leaderboard-row > div:nth-child(4),
-  .leaderboard-row > div:nth-child(5),
-  .leaderboard-row > div:nth-child(6),
-  .leaderboard-row > div:nth-child(7) { display: none; }
+  .leaderboard-header > div,
+  .leaderboard-row > div { display: flex !important; }
 
   .player-name { font-size: 0.9rem; }
   .player-tag  { font-size: 0.55rem; }
