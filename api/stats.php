@@ -86,9 +86,48 @@ foreach ($qRecent->fetchAll() as $r) {
     $recentMap[$r['id']] = $r['media_recente'];
 }
 
-// Inietta media_recente nella leaderboard
+// ── ULTIMI RISULTATI V/P/N ──────────────────
+$qUltimi = $pdo->prepare("
+    SELECT sc.player_id, se.date,
+        SUM(CASE WHEN sc.team_id IS NOT NULL THEN sc.score ELSE NULL END) AS team_score,
+        sc.session_id
+    FROM scores sc
+    JOIN sessions se ON sc.session_id = se.id
+    GROUP BY sc.player_id, sc.session_id
+    ORDER BY sc.player_id, se.date DESC
+");
+$qUltimi->execute();
+$ultimiRaw = $qUltimi->fetchAll();
+
+// Per ogni sessione calcola il totale massimo squadra
+$sessionMaxCache = [];
+$getSessionMax = function($sid) use ($pdo, &$sessionMaxCache) {
+    if (!isset($sessionMaxCache[$sid])) {
+        $q = $pdo->prepare("SELECT MAX(tot) FROM (SELECT SUM(score) AS tot FROM scores WHERE session_id=? AND team_id IS NOT NULL GROUP BY team_id) sub");
+        $q->execute([$sid]);
+        $sessionMaxCache[$sid] = (int)$q->fetchColumn();
+    }
+    return $sessionMaxCache[$sid];
+};
+
+$playerTeamTotals = [];
+foreach ($ultimiRaw as $r) {
+    $pid = $r['player_id'];
+    if (!isset($playerTeamTotals[$pid])) $playerTeamTotals[$pid] = [];
+    if (count($playerTeamTotals[$pid]) >= 5) continue;
+    if ($r['team_score'] === null) continue;
+    $sessionMax = $getSessionMax($r['session_id']);
+    $myTeamTotal = (int)$r['team_score'];
+    if ($sessionMax === 0) $esito = 'N';
+    elseif ($myTeamTotal === $sessionMax) $esito = 'V';
+    else $esito = 'P';
+    $playerTeamTotals[$pid][] = $esito;
+}
+
+// Inietta media_recente e ultimi_risultati nella leaderboard
 foreach ($leaderboard as &$p) {
-    $p['media_recente'] = $recentMap[$p['id']] ?? null;
+    $p['media_recente']    = $recentMap[$p['id']] ?? null;
+    $p['ultimi_risultati'] = $playerTeamTotals[$p['id']] ?? [];
 }
 unset($p);
 
