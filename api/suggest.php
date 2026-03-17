@@ -51,7 +51,7 @@ $qForma = $pdo->prepare("
     AND (se.date >= ? OR se.date IS NULL)
     GROUP BY p.id
 ");
-$qForma->execute(array_merge([$threeMonths], $playerIds));
+$qForma->execute(array_merge($playerIds, [$threeMonths]));
 $formaRows = $qForma->fetchAll();
 $formaMap  = array_column($formaRows, 'media_recente', 'id');
 
