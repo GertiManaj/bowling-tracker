@@ -124,15 +124,21 @@ function renderRanking() {
     const val     = computeRankValue(p, currentRankMetric);
     const winPct  = (() => { const pt = parseInt(p.partite)||0; const w = parseInt(p.vittorie_squadra)||0; return pt>0 ? Math.round(w/pt*100) : null; })();
 
-    // Badge forma recente
-    const forma   = p.media_recente ? parseFloat(p.media_recente) : null;
-    const mediaG  = parseFloat(p.media) || 0;
-    let   formaBadge = '<span class="forma-badge none">—</span>';
-    if (forma != null) {
-      const diff = (forma - mediaG).toFixed(1);
-      if (forma > mediaG + 2)      formaBadge = `<span class="forma-badge up">▲ ${forma}</span>`;
-      else if (forma < mediaG - 2) formaBadge = `<span class="forma-badge down">▼ ${forma}</span>`;
-      else                          formaBadge = `<span class="forma-badge same">→ ${forma}</span>`;
+    // Badge forma — pallini V/P/N (ultimi 5 risultati)
+    const risultati = p.ultimi_risultati || [];
+    let formaBadge;
+    if (!risultati.length) {
+      formaBadge = '<span style="color:var(--text-muted);font-size:0.7rem;font-family:\'Share Tech Mono\',monospace">—</span>';
+    } else {
+      const dot = r => {
+        if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">V</span>';
+        if (r === 'P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">P</span>';
+        return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">N</span>';
+      };
+      const empty = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
+      const emptyDots = Array(5 - risultati.length).fill(empty).join('');
+      const filledDots = risultati.map(dot).join('');
+      formaBadge = `<div style="display:flex;gap:2px;justify-content:center">${emptyDots}${filledDots}</div>`;
     }
 
     const isActive = m => currentRankMetric === m;
