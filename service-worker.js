@@ -27,13 +27,18 @@ const CACHE_ASSETS = [
   '/icons/icon-512.png'
 ];
 
-// Installazione: metti in cache gli asset statici
+// Installazione: metti in cache gli asset statici (ignora errori singoli)
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(CACHE_ASSETS);
-    }).catch(function(err) {
-      console.log('Cache install error:', err);
+      // Aggiunge i file uno per uno ignorando quelli mancanti
+      return Promise.allSettled(
+        CACHE_ASSETS.map(function(url) {
+          return cache.add(url).catch(function(err) {
+            console.log('Cache skip:', url, err.message);
+          });
+        })
+      );
     })
   );
   self.skipWaiting();
