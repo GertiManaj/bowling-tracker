@@ -51,6 +51,7 @@ async function loadStats() {
 // ── CLASSIFICA GENERALE ──────────────────────
 
 let leaderboardMode = 'all'; // 'all' | 'last'
+window.leaderboardMode = 'all'; // sincronizza subito su window
 let cachedPlayers   = [];
 let cachedSessions  = [];
 
@@ -70,6 +71,10 @@ function setLeaderboardMode(mode, btn) {
   btn.style.borderColor = 'rgba(232,255,0,0.4)';
   btn.style.color       = 'var(--neon)';
   renderLeaderboard();
+
+  // Aggiorna testo bottone salva foto
+  const saveBtn = document.getElementById('btnSaveClassifica');
+  if (saveBtn) saveBtn.textContent = mode === 'last' ? '📸 Salva ultima serata' : '📸 Salva foto';
 }
 
 async function loadLeaderboard() {
@@ -799,15 +804,7 @@ function useSuggestedTeams() {
   const result = document.getElementById('suggestResult');
   if (!result) return;
 
-  // Leggi i nomi delle squadre dal risultato
-  const teamA = [...suggestSelected].slice(0, Math.ceil(suggestSelected.size / 2));
-  const teamB = [...suggestSelected].slice(Math.ceil(suggestSelected.size / 2));
-
   openModal().then(() => {
-    // Pre-seleziona i giocatori nelle righe
-    // Squadra A
-    const rowsA = document.querySelectorAll('#teamARows .player-row');
-    // Svuota e ricrea con i giocatori suggeriti
     document.getElementById('teamARows').innerHTML = '';
     document.getElementById('teamBRows').innerHTML = '';
     const resultData = window._lastSuggestData;
