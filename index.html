@@ -36,6 +36,8 @@
     <button class="btn-new-session auth-required" onclick="openModal()">+ Nuova Partita</button>
     <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
     <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
+    <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
+    <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
 
   </div>
 </header>
@@ -317,6 +319,62 @@
 </div>
 <script src="js/auth.js"></script>
 <script src="js/screenshot.js"></script>
+
+<script>
+// ── TEMA CHIARO/SCURO ──
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  const btn = document.getElementById('themeToggle');
+  if (theme === 'light') {
+    document.body.classList.add('light');
+    if (btn) btn.textContent = '🌙';
+  } else {
+    document.body.classList.remove('light');
+    if (btn) btn.textContent = '☀️';
+  }
+  localStorage.setItem('theme', theme);
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.contains('light');
+  applyTheme(isLight ? 'dark' : 'light');
+}
+
+function shareLink() {
+  const url = 'https://web-production-e43fd.up.railway.app';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      const t = document.getElementById('toast');
+      t.textContent = '✓ Link copiato negli appunti!';
+      t.className = 'toast success show';
+      setTimeout(() => t.className = 'toast', 3000);
+    });
+  } else {
+    const el = document.createElement('textarea');
+    el.value = url;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    const t = document.getElementById('toast');
+    t.textContent = '✓ Link copiato!';
+    t.className = 'toast success show';
+    setTimeout(() => t.className = 'toast', 3000);
+  }
+}
+
+// Applica tema subito per evitare flash
+(function() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  if (saved === 'light') document.body.classList.add('light');
+})();
+
+initTheme();
+</script>
 
 </body>
 </html>
