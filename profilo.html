@@ -42,10 +42,8 @@ window.addEventListener('DOMContentLoaded',function(){
       <a href="statistiche.html">Statistiche</a>
       <a href="giocatori.html" class="active">Giocatori</a>
     </nav>
-    <div style="display:flex;gap:0.4rem;align-items:center">
-      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
-      <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer">🔗 Condividi</button>
-    </div>
+    <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
+    <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
   </div>
 </header>
 
