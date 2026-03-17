@@ -97,33 +97,84 @@ function renderLeaderboard() {
   }
 }
 
+// ── ORDINAMENTO CLASSIFICA ───────────────────
+let lbSortField = 'media';
+let lbSortDir   = 'desc';
+
+function sortLeaderboard(field) {
+  if (lbSortField === field) {
+    lbSortDir = lbSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    lbSortField = field;
+    lbSortDir   = 'desc';
+  }
+  renderAllTimeLeaderboard();
+}
+
+function getLbValue(p, field) {
+  if (field === 'media')      return parseFloat(p.media)      || 0;
+  if (field === 'record')     return parseInt(p.record)       || 0;
+  if (field === 'partite')    return parseInt(p.partite)      || 0;
+  if (field === 'win_pct') {
+    const serate = parseInt(p.partite) || 0;
+    const vitt   = parseInt(p.vittorie_squadra) || 0;
+    return serate > 0 ? Math.round(vitt / serate * 100) : 0;
+  }
+  if (field === 'top_scorer') return parseInt(p.volte_top_scorer) || 0;
+  if (field === 'forma')      return parseFloat(p.media_recente) || 0;
+  return 0;
+}
+
 function renderAllTimeLeaderboard() {
-  // Separa chi ha giocato da chi non ha ancora giocato
-  const players    = cachedPlayers.filter(p => parseInt(p.partite) > 0);
-  const noGames    = cachedPlayers.filter(p => parseInt(p.partite) === 0);
+  const players = cachedPlayers.filter(p => parseInt(p.partite) > 0);
+  const noGames = cachedPlayers.filter(p => parseInt(p.partite) === 0);
   if (!players.length && !noGames.length) {
     document.getElementById('leaderboard-body').innerHTML =
       '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessuna partita ancora 🎳</div>';
     return;
   }
 
-  // Aggiorna header
+  // Ordina per campo selezionato
+  const sorted = [...players].sort((a, b) => {
+    const va = getLbValue(a, lbSortField);
+    const vb = getLbValue(b, lbSortField);
+    return lbSortDir === 'desc' ? vb - va : va - vb;
+  });
+
+  const cols = '48px 1fr 90px 80px 80px 80px 80px 80px';
+
+  // Freccia indicatore ordinamento
+  const arrow = (field) => {
+    if (lbSortField !== field) return '<span style="opacity:0.3">↕</span>';
+    return lbSortDir === 'desc' ? '↓' : '↑';
+  };
+
+  // Stile header cliccabile
+  const hStyle = (field) => {
+    const active = lbSortField === field;
+    return `style="text-align:center;cursor:pointer;user-select:none;${active ? 'color:var(--neon);' : ''}"
+      onclick="sortLeaderboard('${field}')"
+      title="Ordina per questo campo"`;
+  };
+
   document.getElementById('lb-header').innerHTML = `
     <div>#</div>
     <div>Giocatore</div>
-    <div style="text-align:center">Media</div>
-    <div style="text-align:center" class="col-partite">Partite</div>
-    <div style="text-align:center">Record</div>
-    <div style="text-align:center">Trend</div>`;
-  document.getElementById('lb-header').style.gridTemplateColumns = '48px 1fr 100px 80px 80px 80px';
+    <div ${hStyle('media')}>Media ${arrow('media')}</div>
+    <div ${hStyle('record')}>Record ${arrow('record')}</div>
+    <div ${hStyle('partite')} class="col-partite">Serate ${arrow('partite')}</div>
+    <div ${hStyle('win_pct')}>% Vitt ${arrow('win_pct')}</div>
+    <div ${hStyle('top_scorer')}>Top 🏆 ${arrow('top_scorer')}</div>
+    <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>`;
+  document.getElementById('lb-header').style.gridTemplateColumns = cols;
 
-  const maxM    = players.length ? Math.max(...players.map(p => parseFloat(p.media) || 0)) : 1;
+  const maxM    = sorted.length ? Math.max(...sorted.map(p => parseFloat(p.media) || 0)) : 1;
   const medals  = ['🥇','🥈','🥉'];
   const mColors = ['var(--gold)','var(--silver)','var(--bronze)'];
   const bColors = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
 
   let html = '';
-  players.forEach((p, i) => {
+  sorted.forEach((p, i) => {
     const bc    = bColors[i % bColors.length];
     const pct   = maxM > 0 ? Math.round(parseFloat(p.media) / maxM * 100) : 0;
     const delay = (i * 0.07).toFixed(2);
@@ -131,21 +182,32 @@ function renderAllTimeLeaderboard() {
       ? `<div class="rank" style="color:${mColors[i]};text-shadow:0 0 10px ${mColors[i]}88">${medals[i]}</div>`
       : `<div class="rank-other">${i+1}</div>`;
 
-    const trend = p.trend || [];
-    let spark = '';
-    if (trend.length) {
-      const mx = Math.max(...trend);
-      trend.forEach((v, ti) => {
-        const h = mx > 0 ? Math.round(v/mx*100) : 50;
-        const last = ti === trend.length-1;
-        spark += `<div class="sparkline-bar${last?' last':''}" style="height:${h}%;background:${bc};${last?'opacity:1;box-shadow:0 0 6px '+bc:''}"></div>`;
-      });
-    } else spark = '<span style="color:var(--text-muted);font-size:0.65rem">—</span>';
-
     const nc = i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text)';
 
+    // Calcola valori colonne
+    const serate  = parseInt(p.partite) || 0;
+    const vittorie = parseInt(p.vittorie_squadra) || 0;
+    const winPct  = serate > 0 ? Math.round(vittorie / serate * 100) : null;
+    const topScore = parseInt(p.volte_top_scorer) || 0;
+    const forma   = p.media_recente ? parseFloat(p.media_recente) : null;
+    const mediaVal = parseFloat(p.media) || 0;
+
+    // Badge forma
+    let formaBadge = '<span style="color:var(--text-muted);font-size:0.75rem">—</span>';
+    if (forma !== null) {
+      const diff = forma - mediaVal;
+      if (diff > 2)       formaBadge = `<span style="color:var(--neon);font-size:0.75rem">▲ ${forma}</span>`;
+      else if (diff < -2) formaBadge = `<span style="color:var(--neon2);font-size:0.75rem">▼ ${forma}</span>`;
+      else                formaBadge = `<span style="color:var(--text-muted);font-size:0.75rem">→ ${forma}</span>`;
+    }
+
+    // Highlight colonna attiva
+    const cellStyle = (field) => lbSortField === field
+      ? 'color:var(--neon);font-weight:700'
+      : '';
+
     html += `
-      <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:48px 1fr 100px 80px 80px 80px">
+      <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:${cols}">
         ${rankEl}
         <div class="player-info">
           <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
@@ -154,22 +216,24 @@ function renderAllTimeLeaderboard() {
             <div class="player-tag">${p.partite} serate · ${p.game_totali||0} game</div>
           </div>
         </div>
-        <div class="stat-cell" style="color:${nc}">
+        <div class="stat-cell" style="${cellStyle('media') || 'color:'+nc}">
           <strong>${p.media??'—'}</strong>
           <div class="mini-bar-bg">
             <div class="mini-bar-fill" style="width:0%;background:${bc};box-shadow:0 0 6px ${bc}" data-w="${pct}%"></div>
           </div>
         </div>
-        <div class="stat-cell col-partite">${p.partite}</div>
-        <div class="stat-cell best">${p.record??'—'}</div>
-        <div class="stat-cell"><div class="sparkline">${spark}</div></div>
+        <div class="stat-cell best" style="${cellStyle('record')}">${p.record??'—'}</div>
+        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${p.partite}</div>
+        <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct+'%' : '—'}</div>
+        <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
+        <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
       </div>`;
   });
 
-  // Aggiungi giocatori senza partite in fondo
+  // Giocatori senza partite in fondo
   noGames.forEach(p => {
     html += `
-      <div class="leaderboard-row" style="grid-template-columns:48px 1fr 100px 80px 80px 80px;opacity:0.4">
+      <div class="leaderboard-row" style="grid-template-columns:${cols};opacity:0.4">
         <div class="rank-other">—</div>
         <div class="player-info">
           <div class="avatar" style="border-color:var(--border)">${p.emoji||'🎳'}</div>
@@ -179,7 +243,9 @@ function renderAllTimeLeaderboard() {
           </div>
         </div>
         <div class="stat-cell">—</div>
+        <div class="stat-cell">—</div>
         <div class="stat-cell col-partite">0</div>
+        <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
       </div>`;

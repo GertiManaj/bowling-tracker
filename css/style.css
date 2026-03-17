@@ -155,7 +155,7 @@ main {
 
 .leaderboard-header {
   display: grid;
-  grid-template-columns: 48px 1fr 80px 80px 80px 80px;
+  grid-template-columns: 48px 1fr 90px 80px 80px 80px 80px 80px;
   padding: 0.7rem 1.2rem;
   background: var(--surface2);
   border-bottom: 1px solid var(--border);
@@ -166,7 +166,7 @@ main {
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 48px 1fr 80px 80px 80px 80px;
+  grid-template-columns: 48px 1fr 90px 80px 80px 80px 80px 80px;
   padding: 0.9rem 1.2rem;
   border-bottom: 1px solid var(--border);
   align-items: center;
@@ -295,7 +295,7 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem 2rem; text-align: 
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; }
   .leaderboard-header,
-  .leaderboard-row    { grid-template-columns: 40px 1fr 70px 70px 70px; }
+  .leaderboard-row    { grid-template-columns: 40px 1fr 70px 70px 70px 70px; }
   .col-partite        { display: none; }
   .hero-bar-inner     { grid-template-columns: repeat(2,1fr); }
   .hero-stat:nth-child(2) { border-right: none; }

@@ -88,14 +88,15 @@
     </div>
 
     <div class="leaderboard-table">
-      <div class="leaderboard-header" id="lb-header" style="grid-template-columns:48px 1fr 100px 80px 80px 80px">
+      <div class="leaderboard-header" id="lb-header" style="grid-template-columns:48px 1fr 90px 80px 80px 80px 80px 80px">
         <div>#</div>
         <div>Giocatore</div>
-        <div style="text-align:center">Media sfida</div>
-        <div style="text-align:center">Media game</div>
-        <div style="text-align:center" class="col-partite">Sfide/Game</div>
-        <div style="text-align:center">Record</div>
-        <div style="text-align:center">Trend</div>
+        <div style="text-align:center;cursor:pointer" onclick="sortLeaderboard('media')">Media ↕</div>
+        <div style="text-align:center;cursor:pointer" onclick="sortLeaderboard('record')">Record ↕</div>
+        <div style="text-align:center;cursor:pointer" class="col-partite" onclick="sortLeaderboard('partite')">Serate ↕</div>
+        <div style="text-align:center;cursor:pointer" onclick="sortLeaderboard('win_pct')">% Vitt ↕</div>
+        <div style="text-align:center;cursor:pointer" onclick="sortLeaderboard('top_scorer')">Top 🏆 ↕</div>
+        <div style="text-align:center;cursor:pointer" onclick="sortLeaderboard('forma')">Forma ↕</div>
       </div>
       <div id="leaderboard-body">
         <!-- Skeleton loader, sostituito da app.js -->
