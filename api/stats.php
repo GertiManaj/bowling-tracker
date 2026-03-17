@@ -87,41 +87,58 @@ foreach ($qRecent->fetchAll() as $r) {
 }
 
 // ── ULTIMI RISULTATI V/P/N ──────────────────
+// Per ogni giocatore: ultime 5 sessioni con team, calcola V/P/N
 $qUltimi = $pdo->prepare("
-    SELECT sc.player_id, se.date,
-        SUM(CASE WHEN sc.team_id IS NOT NULL THEN sc.score ELSE NULL END) AS team_score,
-        sc.session_id
+    SELECT sc.player_id, sc.session_id, sc.team_id, se.date
     FROM scores sc
     JOIN sessions se ON sc.session_id = se.id
-    GROUP BY sc.player_id, sc.session_id
+    WHERE sc.team_id IS NOT NULL
     ORDER BY sc.player_id, se.date DESC
 ");
 $qUltimi->execute();
 $ultimiRaw = $qUltimi->fetchAll();
 
-// Per ogni sessione calcola il totale massimo squadra
-$sessionMaxCache = [];
-$getSessionMax = function($sid) use ($pdo, &$sessionMaxCache) {
-    if (!isset($sessionMaxCache[$sid])) {
-        $q = $pdo->prepare("SELECT MAX(tot) FROM (SELECT SUM(score) AS tot FROM scores WHERE session_id=? AND team_id IS NOT NULL GROUP BY team_id) sub");
-        $q->execute([$sid]);
-        $sessionMaxCache[$sid] = (int)$q->fetchColumn();
-    }
-    return $sessionMaxCache[$sid];
-};
+// Precalcola totale per ogni team in ogni sessione
+$teamTotalCache = [];
+$qTeamTotals = $pdo->query("
+    SELECT team_id, session_id, SUM(score) AS tot
+    FROM scores
+    WHERE team_id IS NOT NULL
+    GROUP BY team_id, session_id
+");
+foreach ($qTeamTotals->fetchAll() as $tt) {
+    $teamTotalCache[$tt['session_id']][$tt['team_id']] = (int)$tt['tot'];
+}
 
-$playerTeamTotals = [];
+$playerResults = [];
 foreach ($ultimiRaw as $r) {
     $pid = $r['player_id'];
-    if (!isset($playerTeamTotals[$pid])) $playerTeamTotals[$pid] = [];
-    if (count($playerTeamTotals[$pid]) >= 5) continue;
-    if ($r['team_score'] === null) continue;
-    $sessionMax = $getSessionMax($r['session_id']);
-    $myTeamTotal = (int)$r['team_score'];
-    if ($sessionMax === 0) $esito = 'N';
-    elseif ($myTeamTotal === $sessionMax) $esito = 'V';
+    $sid = $r['session_id'];
+    $tid = $r['team_id'];
+    if (!isset($playerResults[$pid])) $playerResults[$pid] = [];
+    if (count($playerResults[$pid]) >= 5) continue;
+    // Evita duplicati per stessa sessione
+    $alreadyDone = false;
+    foreach ($playerResults[$pid] as $existing) {
+        if (isset($existing['sid']) && $existing['sid'] === $sid) { $alreadyDone = true; break; }
+    }
+    if ($alreadyDone) continue;
+
+    $teamTotals = $teamTotalCache[$sid] ?? [];
+    if (empty($teamTotals) || !isset($teamTotals[$tid])) continue;
+    $myTotal  = $teamTotals[$tid];
+    $maxTotal = max($teamTotals);
+
+    if ($myTotal === $maxTotal && count(array_unique($teamTotals)) > 1) $esito = 'V';
+    elseif ($myTotal === $maxTotal && count(array_unique($teamTotals)) === 1) $esito = 'N';
     else $esito = 'P';
-    $playerTeamTotals[$pid][] = $esito;
+
+    $playerResults[$pid][] = ['sid' => $sid, 'esito' => $esito];
+}
+
+$playerTeamTotals = [];
+foreach ($playerResults as $pid => $results) {
+    $playerTeamTotals[$pid] = array_column($results, 'esito');
 }
 
 // Inietta media_recente e ultimi_risultati nella leaderboard
