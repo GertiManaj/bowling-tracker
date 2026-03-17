@@ -51,9 +51,7 @@ async function shareOrDownload(blob, filename, title) {
 async function saveClassifica() {
   const btn = document.getElementById('btnSaveClassifica');
   if (btn) { btn.disabled=true; btn.textContent='⏳ Generando...'; }
-
   try {
-    // Carica html2canvas se non ancora caricato
     if (typeof html2canvas === 'undefined') {
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
@@ -62,60 +60,61 @@ async function saveClassifica() {
         document.head.appendChild(s);
       });
     }
-
     const table = document.querySelector('.leaderboard-table');
     if (!table) { showToast('Classifica non trovata', 'error'); return; }
 
-    // Crea un wrapper temporaneo con sfondo e padding
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = `
-      position:fixed; top:-9999px; left:-9999px;
-      background:#0a0a0f;
-      padding:20px;
-      border-radius:12px;
-      width:${table.offsetWidth + 40}px;
-      font-family:'Barlow Condensed',sans-serif;
-    `;
+    wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;background:#0a0a0f;padding:20px;border-radius:12px;width:' + (table.offsetWidth + 40) + 'px';
 
-    // Titolo
-    const title = document.createElement('div');
-    title.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px';
-    title.innerHTML = `
+    const titleEl = document.createElement('div');
+    titleEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px';
+    titleEl.innerHTML = `
       <div>
-        <div style="font-family:'Black Han Sans',sans-serif;font-size:22px;color:#e8ff00;text-shadow:0 0 20px rgba(232,255,0,0.5);letter-spacing:0.05em">🎳 STRIKE ZONE</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#666680;letter-spacing:0.2em;text-transform:uppercase;margin-top:2px">Classifica · ${new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase()}</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:22px;color:#e8ff00;letter-spacing:0.05em">🎳 STRIKE ZONE</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#666680;letter-spacing:0.2em;text-transform:uppercase;margin-top:2px">Classifica · ${new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase()}</div>
       </div>
       <div style="font-size:28px">🏆</div>`;
 
-    // Clona la tabella
     const clone = table.cloneNode(true);
     clone.style.margin = '0';
+    clone.querySelectorAll('.mini-bar-fill').forEach(el => {
+      if (el.dataset.w) el.style.width = el.dataset.w;
+    });
 
-    wrapper.appendChild(title);
+    wrapper.appendChild(titleEl);
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
 
-    // Cattura con html2canvas
+    const styleTag = document.createElement('style');
+    styleTag.id = 'sz-no-anim';
+    styleTag.textContent = '#sz-no-anim-wrap * { animation: none !important; transition: none !important; opacity: 1 !important; }';
+    document.head.appendChild(styleTag);
+    wrapper.id = 'sz-no-anim-wrap';
+
+    await new Promise(r => setTimeout(r, 200));
+
     const canvas = await html2canvas(wrapper, {
       backgroundColor: '#0a0a0f',
       scale: 2,
       useCORS: true,
       logging: false,
+      allowTaint: true,
     });
 
     document.body.removeChild(wrapper);
+    document.getElementById('sz-no-anim')?.remove();
 
     const blob = await blobFromCanvas(canvas);
     const date = new Date().toLocaleDateString('it-IT').replace(/\//g,'-');
     await shareOrDownload(blob, `classifica-${date}.png`, 'Classifica Strike Zone');
     showToast('Foto classifica pronta!');
-
   } catch(e) {
     console.error(e);
     showToast('Errore nella generazione', 'error');
   }
   if (btn) { btn.disabled=false; btn.textContent='📸 Salva foto'; }
 }
+
 // ── CLASSIFICA ULTIMA SERATA ────────────────────
 async function saveClassificaUltimaSerata() {
   const btn = document.getElementById('btnSaveClassifica');
