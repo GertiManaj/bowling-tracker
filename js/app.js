@@ -542,35 +542,45 @@ async function loadHof() {
   try {
     const d = await fetch(`${API}/stats.php`).then(r => r.json());
 
-    document.getElementById('hof-card').innerHTML = `
-      <div class="hof-row" style="padding:1rem 1.2rem">
-        <div>
-          <div class="hof-label">Record assoluto</div>
-          <div style="font-family:'Black Han Sans',sans-serif;font-size:1.4rem;color:var(--gold);text-shadow:0 0 15px rgba(255,215,0,0.4)">
-            ${d.record_assoluto ?? '—'}
-          </div>
-          <div class="hof-sub">
-            ${d.record_holder ? d.record_holder.emoji + ' ' + d.record_holder.name + ' · ' + formatDate(d.record_holder.date) : '—'}
-          </div>
-        </div>
-        <div style="font-size:2.5rem">🏆</div>
-      </div>
+    // Riga uniforme HoF
+    const hofRow = (label, icon, nameStr, sub, valStr, valColor) => `
       <div class="hof-row">
-        <div>
-          <div class="hof-label">Più vittorie</div>
-          <div class="hof-name">${d.most_wins ? d.most_wins.emoji + ' ' + d.most_wins.name : '—'}</div>
-          <div class="hof-sub">${d.most_wins ? d.most_wins.vittorie + ' sessioni vinte' : ''}</div>
+        <div style="display:flex;align-items:center;gap:0.8rem">
+          <div style="font-size:1.6rem;width:2rem;text-align:center">${icon}</div>
+          <div>
+            <div class="hof-label">${label}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;color:var(--text);margin:0.2rem 0">${nameStr}</div>
+            <div class="hof-sub">${sub}</div>
+          </div>
         </div>
-        <div class="hof-val" style="color:var(--neon)">${d.most_wins?.vittorie ?? '—'}</div>
-      </div>
-      <div class="hof-row">
-        <div>
-          <div class="hof-label">Più migliorato</div>
-          <div class="hof-name">${d.most_improved ? d.most_improved.emoji + ' ' + d.most_improved.name : '—'}</div>
-          <div class="hof-sub">${d.most_improved ? '+' + d.most_improved.miglioramento + ' pts di media' : 'min. 4 partite'}</div>
-        </div>
-        <div class="hof-val" style="color:var(--neon2)">📈</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:1.4rem;color:${valColor};text-shadow:0 0 12px ${valColor}66;text-align:right;min-width:2.5rem">${valStr}</div>
       </div>`;
+
+    document.getElementById('hof-card').innerHTML =
+      hofRow(
+        'Record singolo game',
+        '🏆',
+        d.record_holder ? d.record_holder.emoji + ' ' + d.record_holder.name : '—',
+        d.record_holder ? formatDate(d.record_holder.date) : '—',
+        d.record_assoluto ?? '—',
+        'var(--gold)'
+      ) +
+      hofRow(
+        'Più vittorie squadra',
+        '🥇',
+        d.most_wins ? d.most_wins.emoji + ' ' + d.most_wins.name : '—',
+        d.most_wins ? d.most_wins.vittorie + ' sfide vinte' : 'nessun dato',
+        d.most_wins?.vittorie ?? '—',
+        'var(--neon)'
+      ) +
+      hofRow(
+        'Più migliorato',
+        '📈',
+        d.most_improved ? d.most_improved.emoji + ' ' + d.most_improved.name : '—',
+        d.most_improved ? '+' + d.most_improved.miglioramento + ' pts di media' : 'min. 2 serate',
+        d.most_improved ? '+' + d.most_improved.miglioramento : '—',
+        'var(--neon2)'
+      );
   } catch (e) {
     console.error('Errore HoF:', e);
   }
