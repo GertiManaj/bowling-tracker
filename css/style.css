@@ -22,17 +22,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
-html, body {
-  overflow-x: hidden;
-  max-width: 100%;
-}
-
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Barlow Condensed', sans-serif;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Texture noise */
@@ -156,8 +151,7 @@ main {
 .section-title .accent { width: 8px; height: 8px; background: var(--neon); border-radius: 50%; box-shadow: 0 0 8px var(--neon); }
 
 /* ── LEADERBOARD ── */
-.leaderboard-table  { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; max-width: 100%; }
-.leaderboard-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+.leaderboard-table  { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
 
 .leaderboard-header {
   display: grid;
@@ -359,15 +353,10 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem 2rem; text-align: 
   /* Main padding ridotto */
   main { padding: 1rem; gap: 1rem; }
 
-  /* Leaderboard: scroll orizzontale solo sulla tabella */
-  .leaderboard-table {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    overflow-y: visible;
-  }
+  /* Leaderboard: scroll orizzontale */
   .leaderboard-header,
   .leaderboard-row {
-    min-width: 660px;
+    min-width: 640px;
     padding: 0.7rem 0.8rem;
     font-size: 0.8rem;
   }
