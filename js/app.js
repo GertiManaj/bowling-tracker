@@ -990,12 +990,12 @@ function renderSuggestResult(data) {
               ? `<span style="color:var(--neon3);font-size:0.68rem">~${p.livello_manuale}</span>`
               : `<span style="color:var(--text-muted);font-size:0.68rem">${p.media_storica > 0 ? p.media_storica : '—'}</span>`;
             return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.45rem 0;border-bottom:1px solid var(--border)">
-              <div style="display:flex;flex-direction:column;gap:0.1rem;min-width:0">
-                <span style="font-size:0.88rem;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.emoji||'🎳'} ${p.name}</span>
-                <span style="font-family:'Share Tech Mono',monospace">${mediaStr}</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border)22">
+              <div>
+                <div style="font-size:0.9rem;font-weight:700;font-family:'Barlow Condensed',sans-serif">${p.emoji||'🎳'} ${p.name}</div>
+                <div style="font-family:'Share Tech Mono',monospace;margin-top:0.1rem">${mediaStr}</div>
               </div>
-              <div style="display:flex;gap:2px;flex-shrink:0;margin-left:0.5rem">${allDots}</div>
+              <div style="display:flex;gap:2px;flex-shrink:0;margin-left:0.4rem">${allDots}</div>
             </div>`;
           }).join('')}
           ${chemHtml}
@@ -1007,9 +1007,9 @@ function renderSuggestResult(data) {
     <div style="background:${balanced ? 'rgba(232,255,0,0.05)' : 'rgba(255,107,53,0.05)'};border:1px solid ${balanced ? 'rgba(232,255,0,0.2)' : 'rgba(255,107,53,0.2)'};border-radius:6px;padding:0.5rem 0.8rem;margin-bottom:0.8rem;font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:${balanced ? 'var(--neon)' : 'var(--neon4)'}">
       ${balanced ? '✅ Squadre equilibrate' : '⚠ Leggero squilibrio'} — differenza media: ${data.diff}
     </div>
-    <div style="display:flex;gap:0.8rem">
-      ${teamHtml('⚡ SQ. A', data.teamA, data.scoreA, tColors[0], data.teamA_chemistry)}
-      ${teamHtml('🔥 SQ. B', data.teamB, data.scoreB, tColors[1], data.teamB_chemistry)}
+    <div style="display:flex;flex-direction:column;gap:0.6rem">
+      ${teamHtml('⚡ Squadra A', data.teamA, data.scoreA, tColors[0], data.teamA_chemistry)}
+      ${teamHtml('🔥 Squadra B', data.teamB, data.scoreB, tColors[1], data.teamB_chemistry)}
     </div>
     <button onclick="useSuggestedTeams()" class="btn-primary" style="width:100%;margin-top:0.8rem;font-size:0.78rem;padding:0.5rem">
       ✓ Usa queste squadre per la nuova partita
