@@ -13,32 +13,62 @@
 </head>
 <body>
 
+<!-- ══ SPLASH SCREEN ══ -->
+<div id="splashScreen" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.5s ease,visibility 0.5s ease">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem">
+    <div style="font-size:4rem;animation:splashWobble 0.6s ease-in-out infinite">🎳</div>
+    <div style="text-align:center">
+      <div style="font-family:'Black Han Sans',sans-serif;font-size:2.5rem;color:var(--neon);text-shadow:0 0 30px rgba(232,255,0,0.6);letter-spacing:0.1em">STRIKE ZONE</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.3em;text-transform:uppercase;margin-top:0.3rem">Bowling Tracker v1.0</div>
+    </div>
+    <div style="width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+      <div id="splashBar" style="height:100%;width:0%;background:var(--neon);box-shadow:0 0 8px var(--neon);border-radius:2px;transition:width 1.2s ease"></div>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.2em" id="splashText">CARICAMENTO...</div>
+  </div>
+</div>
+<style>@keyframes splashWobble{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.1)}}</style>
+
+<script>
+(function(){const s=localStorage.getItem('theme')||'dark';if(s==='light')document.body.classList.add('light');})();
+window.addEventListener('DOMContentLoaded',function(){
+  const sp=document.getElementById('splashScreen'),bar=document.getElementById('splashBar'),txt=document.getElementById('splashText');
+  setTimeout(()=>{bar.style.width='60%'},50);
+  setTimeout(()=>{bar.style.width='85%';txt.textContent='QUASI PRONTO...'},600);
+  setTimeout(()=>{bar.style.width='100%';txt.textContent='PRONTO! 🎳'},1000);
+  setTimeout(()=>{sp.style.opacity='0';sp.style.visibility='hidden';setTimeout(()=>sp.remove(),500)},1500);
+});
+</script>
+
+<script>
+function initTheme(){const s=localStorage.getItem('theme')||'dark';applyTheme(s);}
+function applyTheme(theme){const btn=document.getElementById('themeToggle');if(theme==='light'){document.body.classList.add('light');if(btn)btn.textContent='🌙';}else{document.body.classList.remove('light');if(btn)btn.textContent='☀️';}localStorage.setItem('theme',theme);}
+function toggleTheme(){const l=document.body.classList.contains('light');applyTheme(l?'dark':'light');}
+initTheme();
+</script>
+
 <!-- ══ HEADER ══ -->
 <header>
   <div class="header-glow"></div>
   <div class="header-inner">
-
-    <div class="logo">
+    <a href="index.html" class="logo" style="text-decoration:none">
       <div class="logo-pin">🎳</div>
       <div class="logo-text">
         <span class="logo-title">STRIKE ZONE</span>
         <span class="logo-sub">Bowling Tracker v1.0</span>
       </div>
-    </div>
-
+    </a>
     <nav>
-      <a href="#" class="active">Dashboard</a>
+      <a href="index.html" class="active">Dashboard</a>
       <a href="sessioni.html">Sessioni</a>
       <a href="statistiche.html">Statistiche</a>
       <a href="giocatori.html">Giocatori</a>
     </nav>
-
     <button class="btn-new-session auth-required" onclick="openModal()">+ Nuova Partita</button>
-    <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
-    <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
     <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
-
+    <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
+    <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
   </div>
 </header>
 
@@ -319,62 +349,8 @@
 </div>
 <script src="js/auth.js"></script>
 <script src="js/screenshot.js"></script>
-
 <script>
-// ── TEMA CHIARO/SCURO ──
-function initTheme() {
-  const saved = localStorage.getItem('theme') || 'dark';
-  applyTheme(saved);
-}
-
-function applyTheme(theme) {
-  const btn = document.getElementById('themeToggle');
-  if (theme === 'light') {
-    document.body.classList.add('light');
-    if (btn) btn.textContent = '🌙';
-  } else {
-    document.body.classList.remove('light');
-    if (btn) btn.textContent = '☀️';
-  }
-  localStorage.setItem('theme', theme);
-}
-
-function toggleTheme() {
-  const isLight = document.body.classList.contains('light');
-  applyTheme(isLight ? 'dark' : 'light');
-}
-
-function shareLink() {
-  const url = 'https://web-production-e43fd.up.railway.app';
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(() => {
-      const t = document.getElementById('toast');
-      t.textContent = '✓ Link copiato negli appunti!';
-      t.className = 'toast success show';
-      setTimeout(() => t.className = 'toast', 3000);
-    });
-  } else {
-    const el = document.createElement('textarea');
-    el.value = url;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-    const t = document.getElementById('toast');
-    t.textContent = '✓ Link copiato!';
-    t.className = 'toast success show';
-    setTimeout(() => t.className = 'toast', 3000);
-  }
-}
-
-// Applica tema subito per evitare flash
-(function() {
-  const saved = localStorage.getItem('theme') || 'dark';
-  if (saved === 'light') document.body.classList.add('light');
-})();
-
-initTheme();
+function shareLink(){const url='https://web-production-e43fd.up.railway.app';if(navigator.clipboard){navigator.clipboard.writeText(url).then(()=>{const t=document.getElementById('toast');t.textContent='✓ Link copiato negli appunti!';t.className='toast success show';setTimeout(()=>t.className='toast',3000);});}else{const el=document.createElement('textarea');el.value=url;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);const t=document.getElementById('toast');t.textContent='✓ Link copiato!';t.className='toast success show';setTimeout(()=>t.className='toast',3000);}}
 </script>
-
 </body>
 </html>
