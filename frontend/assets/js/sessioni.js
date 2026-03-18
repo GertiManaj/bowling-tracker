@@ -2,10 +2,10 @@
 //  sessioni.js — Gestione sessioni
 // ============================================
 
-const API = '../../api';
+
 
 let allSessions = [];
-let allPlayers  = [];
+
 let editingId   = null;
 let deletingId  = null;
 

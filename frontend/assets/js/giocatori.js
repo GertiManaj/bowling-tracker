@@ -2,7 +2,7 @@
 //  giocatori.js — Gestione giocatori
 // ============================================
 
-const API = '../../api';
+
 
 // Colori accent ciclici per le card
 const CARD_COLORS = [
@@ -20,7 +20,7 @@ const EMOJIS = [
 ];
 
 // Stato locale
-let allPlayers  = [];
+
 let currentSort = 'name';
 let editingId   = null;
 let deletingId  = null;
