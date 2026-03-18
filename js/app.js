@@ -114,7 +114,7 @@ function sortLeaderboard(field) {
 function getLbValue(p, field) {
   if (field === 'media')      return parseFloat(p.media)      || 0;
   if (field === 'record')     return parseInt(p.record)       || 0;
-  if (field === 'partite')    return parseInt(p.partite)      || 0;
+  if (field === 'partite')    return parseInt(p.serate_con_squadra) || 0;
   if (field === 'win_pct') {
     const scs  = parseInt(p.serate_con_squadra) || 0;
     const vitt = parseInt(p.vittorie_squadra) || 0;
@@ -162,7 +162,7 @@ function renderAllTimeLeaderboard() {
     <div>Giocatore</div>
     <div ${hStyle('media')}>Media ${arrow('media')}</div>
     <div ${hStyle('record')}>Record ${arrow('record')}</div>
-    <div ${hStyle('partite')} class="col-partite">Serate ${arrow('partite')}</div>
+    <div ${hStyle('partite')} class="col-partite">Sfide ${arrow('partite')}</div>
     <div ${hStyle('win_pct')}>% Vitt ${arrow('win_pct')}</div>
     <div ${hStyle('top_scorer')}>Top 🏆 ${arrow('top_scorer')}</div>
     <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>`;
@@ -224,7 +224,7 @@ function renderAllTimeLeaderboard() {
           <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
           <div>
             <div class="player-name">${p.name}</div>
-            <div class="player-tag">${p.partite} serate · ${p.game_totali||0} game</div>
+            <div class="player-tag">${p.serate_con_squadra||0} sfide · ${p.game_totali||0} game</div>
           </div>
         </div>
         <div class="stat-cell" style="${cellStyle('media') || 'color:'+nc}">
@@ -234,7 +234,7 @@ function renderAllTimeLeaderboard() {
           </div>
         </div>
         <div class="stat-cell best" style="${cellStyle('record')}">${p.record??'—'}</div>
-        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${p.partite}</div>
+        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${parseInt(p.serate_con_squadra) || '—'}</div>
         <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct+'%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
@@ -255,7 +255,7 @@ function renderAllTimeLeaderboard() {
         </div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
-        <div class="stat-cell col-partite">0</div>
+        <div class="stat-cell col-partite">—</div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>

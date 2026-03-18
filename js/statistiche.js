@@ -46,7 +46,7 @@ function computeRankValue(p, metric) {
   if (metric === 'media_recente') return p.media_recente ? parseFloat(p.media_recente) : null;
   if (metric === 'media')   return parseFloat(p.media)   || null;
   if (metric === 'record')  return parseInt(p.record)    || null;
-  if (metric === 'partite') return parseInt(p.partite)   || null;
+  if (metric === 'partite') return parseInt(p.serate_con_squadra) || null;
   return null;
 }
 
@@ -174,7 +174,7 @@ function renderRanking() {
         <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}" style="${isActive('media')?'':'color:var(--neon)'}">${p.media ?? '—'}</div>
         <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct+'%' : '—'}</div>
         <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}" style="${isActive('record')?'':'color:var(--neon3)'}">${p.record ?? '—'}</div>
-        <div class="rank-table-val ${isActive('partite') ? 'active-val' : ''}">${p.partite ?? '—'}</div>
+        <div class="rank-table-val ${isActive('partite') ? 'active-val' : ''}">${parseInt(p.serate_con_squadra) > 0 ? p.serate_con_squadra : '—'}</div>
         <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.75rem">${vnpBadge}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
       </div>`;
