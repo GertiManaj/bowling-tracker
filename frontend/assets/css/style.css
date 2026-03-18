@@ -804,3 +804,31 @@ main,
   margin-left: auto !important;
   margin-right: auto !important;
 }
+
+/* ============================================
+   HEADER — nav centrata tra logo e bottoni
+   ============================================ */
+.header-inner {
+  position: relative;
+}
+
+/* La nav è centrata in assoluto nell'header */
+.header-inner nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-right: 0 !important;
+}
+
+/* Il logo non si sovrappone alla nav */
+.header-inner .logo {
+  position: relative;
+  z-index: 1;
+}
+
+/* I bottoni a destra non si sovrappongono alla nav */
+.header-actions {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+}
