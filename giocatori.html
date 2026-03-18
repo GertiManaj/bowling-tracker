@@ -112,7 +112,7 @@ initTheme();
       <div class="logo-text">
         <span class="logo-title">STRIKE ZONE</span>
         <span class="logo-sub">Bowling Tracker v1.0</span>
-      </div>  
+      </div>
     </a>
     <nav>
       <a href="index.html">Dashboard</a>
@@ -121,7 +121,7 @@ initTheme();
       <a href="giocatori.html" class="active">Giocatori</a>
     </nav>
     <button class="btn-new-session auth-required" onclick="openModal()">+ Nuova Partita</button>
-    <button class="btn-new-session auth-required" onclick="openAddModal()">+ Giocatore</button>
+    <button class="btn-new-session auth-required" onclick="openAddModal()" style="background:rgba(0,245,255,0.1);border-color:rgba(0,245,255,0.4);color:var(--neon3)">+ Giocatore</button>
     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
     <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
     <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
@@ -337,7 +337,6 @@ initTheme();
     </div>
   </div>
 </div>
-<script src="js/modal-partita.js"></script>
 <script>
 function openModal() {
   document.getElementById('sessionModalOverlay').classList.add('open');
@@ -367,6 +366,107 @@ function closeSessionModal() {
 }
 // Override closeModal per giocatori
 var _origCloseModal = typeof closeModal !== 'undefined' ? closeModal : null;
+</script>
+
+<!-- ══ MODAL: NUOVA PARTITA ══ -->
+<div class="modal-overlay" id="sessionModalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🎳 Nuova Partita</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:0.8rem">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="sessionDate"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Luogo</label>
+          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° Game</label>
+          <select class="form-input" id="numGames" onchange="buildGameRows()">
+            <option value="1">1 game</option>
+            <option value="2" selected>2 game</option>
+            <option value="3">3 game</option>
+            <option value="4">4 game</option>
+            <option value="5">5 game</option>
+          </select>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-a-title">⚡ Squadra A</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
+          </div>
+          <div id="teamARows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-b-title">🔥 Squadra B</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
+          </div>
+          <div id="teamBRows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Non partecipano alla sfida</span>
+        </div>
+        <div class="team-section-body">
+          <div id="soloRows"></div>
+          <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (opzionale)</label>
+        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
+    </div>
+  </div>
+</div>
+<script src="js/modal-nuova-partita.js"></script>
+<script>
+// Override: apri il modal partita nel sessionModalOverlay
+const _openModal = openModal;
+async function openModal() {
+  if (!window.isLoggedIn) { openLoginModal(); return; }
+  try { allPlayers = await fetch("api/players.php").then(r => r.json()); } catch(e) { allPlayers = []; }
+  document.getElementById("sessionDate").value = new Date().toISOString().split("T")[0];
+  document.getElementById("sessionLocation").value = "";
+  document.getElementById("sessionNotes").value = "";
+  document.getElementById("teamAName").value = "";
+  document.getElementById("teamBName").value = "";
+  document.getElementById("numGames").value = "2";
+  document.getElementById("totalA").textContent = "Totale: 0";
+  document.getElementById("totalB").textContent = "Totale: 0";
+  document.getElementById("soloRows").innerHTML = "";
+  buildGameRows();
+  document.getElementById("sessionModalOverlay").classList.add("open");
+}
+function closeModal() {
+  document.getElementById("sessionModalOverlay").classList.remove("open");
+}
 </script>
 
 <!-- ══ MODAL LOGIN ══ -->
@@ -423,7 +523,7 @@ function shareLink() {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
       .then(function(reg) { console.log('SW registrato'); })
       .catch(function(err) { console.log('SW errore:', err); });
   });

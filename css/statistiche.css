@@ -2,13 +2,6 @@
    statistiche.css — stili pagina Statistiche
    ============================================ */
 
-/* ── FIX HEADER (uguale alla dashboard) ── */
-header .header-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 header .logo {
   flex-shrink: 0;
   margin-right: auto;
