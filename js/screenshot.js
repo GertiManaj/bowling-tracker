@@ -212,6 +212,26 @@ async function saveUltimaSerata() {
   if (btn) { btn.disabled = false; btn.textContent = '📸 Salva serata'; }
 }
 
+
+// ── CLASSIFICA STATISTICHE ────────────────────
+async function saveClassificaStatistiche() {
+  var btn = document.getElementById('btnSaveClassificaStats');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
+  try {
+    await loadHtml2Canvas();
+    var table = document.querySelector('.rank-table-wrap');
+    if (!table) { showToast('Classifica non trovata', 'error'); return; }
+    var blob = await captureElementToBlob(table);
+    var date = new Date().toLocaleDateString('it-IT').replace(/\//g, '-');
+    await shareOrDownload(blob, 'classifica-statistiche-' + date + '.png', 'Classifica Statistiche');
+    showToast('Foto classifica pronta!');
+  } catch(e) {
+    console.error(e);
+    showToast('Errore nella generazione', 'error');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '📸 Salva classifica'; }
+}
+
 // ── PROFILO ───────────────────────────────────
 async function saveProfilo() {
   var btn = document.getElementById('btnSaveProfilo');

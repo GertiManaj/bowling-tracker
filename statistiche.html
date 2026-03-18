@@ -179,6 +179,9 @@ initTheme();
       <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
       Classifica Generale
     </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
+      <button id="btnSaveClassificaStats" onclick="saveClassificaStatistiche()" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.35rem 0.7rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon4)';this.style.color='var(--neon4)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📸 Salva classifica</button>
+    </div>
     <div class="rank-controls">
       <span class="chart-hint">Ordina per:</span>
       <div class="metric-btns">
@@ -319,6 +322,7 @@ initTheme();
 <footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
 <div class="toast" id="toast"></div>
 <script src="js/statistiche.js"></script>
+<script src="js/screenshot.js"></script>
 
 <!-- ══ MODAL LOGIN ══ -->
 <div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
