@@ -47,21 +47,13 @@ $recordHolder = $qRec->fetch();
 // Tutte le metriche in una query + vittorie squadra
 $qLb = $pdo->prepare("
     SELECT p.id, p.name, p.emoji, p.nickname,
-           COUNT(sc.id)            AS partite,
-           ROUND(AVG(sc.score),1)  AS media,
-           MAX(sc.score)           AS record,
-           MIN(sc.score)           AS minimo,
-           -- Vittorie squadra (squadra con totale più alto)
-           SUM(CASE WHEN (
-               SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id
-           ) = (
-               SELECT MAX(tot) FROM (
-                   SELECT SUM(s3.score) AS tot FROM scores s3
-                   WHERE s3.session_id = sc.session_id GROUP BY s3.team_id
-               ) mx
-           ) THEN 1 ELSE 0 END) AS vittorie_squadra
+           COUNT(DISTINCT sc.session_id)  AS partite,
+           COUNT(sc.id)                   AS game_totali,
+           ROUND(AVG(sc.score),1)         AS media,
+           MAX(sc.score)                  AS record,
+           MIN(sc.score)                  AS minimo
     FROM players p
-    LEFT JOIN scores sc  ON sc.player_id  = p.id
+    LEFT JOIN scores sc   ON sc.player_id  = p.id
     LEFT JOIN sessions se ON sc.session_id = se.id
     $dateWhere
     GROUP BY p.id
@@ -141,10 +133,51 @@ foreach ($playerResults as $pid => $results) {
     $playerTeamTotals[$pid] = array_column($results, 'esito');
 }
 
-// Inietta media_recente e ultimi_risultati nella leaderboard
+// Precalcola vittorie_squadra e serate_con_squadra per ogni giocatore
+$vittorieMap = [];
+$serateSquadraMap = [];
+foreach ($leaderboard as $pl) {
+    $pid = $pl['id'];
+
+    // Serate con squadra
+    $qSCS = $pdo->prepare("
+        SELECT COUNT(DISTINCT sc.session_id)
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
+        " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
+    ");
+    $params = array_merge([$pid], $dateParams);
+    $qSCS->execute($params);
+    $serateSquadraMap[$pid] = (int)$qSCS->fetchColumn();
+
+    // Vittorie squadra (una per sessione, non per game)
+    $qVitt = $pdo->prepare("
+        SELECT COUNT(DISTINCT sc.session_id) AS vittorie
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        WHERE sc.player_id = ?
+        AND sc.team_id IS NOT NULL
+        AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id AND s2.session_id = sc.session_id) = (
+            SELECT MAX(team_tot) FROM (
+                SELECT SUM(s3.score) AS team_tot FROM scores s3
+                WHERE s3.session_id = sc.session_id AND s3.team_id IS NOT NULL
+                GROUP BY s3.team_id
+            ) t
+        )
+        " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
+    ");
+    $qVitt->execute($params);
+    $vittorieMap[$pid] = (int)$qVitt->fetchColumn();
+}
+
+// Inietta tutti i campi nella leaderboard
 foreach ($leaderboard as &$p) {
-    $p['media_recente']    = $recentMap[$p['id']] ?? null;
-    $p['ultimi_risultati'] = $playerTeamTotals[$p['id']] ?? [];
+    $pid = $p['id'];
+    $p['media_recente']      = $recentMap[$pid] ?? null;
+    $p['ultimi_risultati']   = $playerTeamTotals[$pid] ?? [];
+    $p['vittorie_squadra']   = $vittorieMap[$pid] ?? 0;
+    $p['serate_con_squadra'] = $serateSquadraMap[$pid] ?? 0;
 }
 unset($p);
 
