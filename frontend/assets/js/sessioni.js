@@ -271,6 +271,11 @@ function openEditModal(id) {
   document.getElementById('sessionNotes').value     = s.notes    || '';
   document.getElementById('btnSave').textContent    = 'Aggiorna';
 
+  // Determina numGames dalla sessione (massimo game_number trovato)
+  const allGameNums = (s.scores || []).map(sc => sc.game_number || 1);
+  const detectedGames = allGameNums.length ? Math.max(...allGameNums) : 1;
+  document.getElementById('numGames').value = detectedGames;
+
   document.getElementById('teamARows').innerHTML = '';
   document.getElementById('teamBRows').innerHTML = '';
   document.getElementById('soloRows').innerHTML  = '';
@@ -280,26 +285,76 @@ function openEditModal(id) {
   const teams  = s.teams  || [];
   const scores = s.scores || [];
 
+  // Raggruppa scores per team_name, poi per player_id
   const byTeam = {};
-  teams.forEach(t => { byTeam[t.name] = []; });
-  scores.forEach(sc => { if (sc.team_name && byTeam[sc.team_name]) byTeam[sc.team_name].push(sc); });
+  teams.forEach(t => { byTeam[t.name] = {}; });
+  scores.forEach(sc => {
+    if (!sc.team_name || !byTeam[sc.team_name]) return;
+    const pid = sc.player_id;
+    if (!byTeam[sc.team_name][pid]) {
+      byTeam[sc.team_name][pid] = { player_id: pid, games: [] };
+    }
+    byTeam[sc.team_name][pid].games.push({ game_number: sc.game_number || 1, score: sc.score });
+  });
+
+  // Determina il numero di game dalla sessione
+  const numGames = parseInt(document.getElementById('numGames').value) || 1;
 
   const teamNames = Object.keys(byTeam);
 
+  // Squadra A
   const nameA = teamNames[0] || '';
   document.getElementById('teamAName').value = nameA;
-  const playersA = byTeam[nameA] || [];
-  if (playersA.length) playersA.forEach(p => addPlayerRow('A', p.player_id || null, p.score));
-  else { addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A'); }
+  const playersA = Object.values(byTeam[nameA] || {});
+  if (playersA.length) {
+    playersA.forEach(p => {
+      addPlayerRow('A', p.player_id, numGames);
+      // Precompila i punteggi nei campi appena creati
+      const rows = document.querySelectorAll('#teamARows .player-row');
+      const lastRow = rows[rows.length - 1];
+      p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+        const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+        if (input) input.value = g.score;
+      });
+    });
+  } else {
+    addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
+  }
 
+  // Squadra B
   const nameB = teamNames[1] || '';
   document.getElementById('teamBName').value = nameB;
-  const playersB = byTeam[nameB] || [];
-  if (playersB.length) playersB.forEach(p => addPlayerRow('B', p.player_id || null, p.score));
-  else { addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B'); }
+  const playersB = Object.values(byTeam[nameB] || {});
+  if (playersB.length) {
+    playersB.forEach(p => {
+      addPlayerRow('B', p.player_id, numGames);
+      const rows = document.querySelectorAll('#teamBRows .player-row');
+      const lastRow = rows[rows.length - 1];
+      p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+        const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+        if (input) input.value = g.score;
+      });
+    });
+  } else {
+    addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
+  }
 
-  // Carica giocatori singoli
-  scores.filter(sc => !sc.team_name).forEach(sc => addSoloRow(sc.player_id || null, sc.score));
+  // Giocatori singoli
+  const soloScores = scores.filter(sc => !sc.team_name);
+  const soloByPlayer = {};
+  soloScores.forEach(sc => {
+    if (!soloByPlayer[sc.player_id]) soloByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
+    soloByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+  });
+  Object.values(soloByPlayer).forEach(p => {
+    addSoloRow(p.player_id, numGames);
+    const rows = document.querySelectorAll('#soloRows .solo-row');
+    const lastRow = rows[rows.length - 1];
+    p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+      const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+      if (input) input.value = g.score;
+    });
+  });
 
   calcTotals();
   document.getElementById('modalOverlay').classList.add('open');
