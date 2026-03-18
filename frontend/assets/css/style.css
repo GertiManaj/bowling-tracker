@@ -677,3 +677,56 @@ body.light .logo-title {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ============================================
+   HEADER UNIFICATO — sovrascrive statistiche.css
+   che aveva margin-right:auto sul logo
+   ============================================ */
+header .logo {
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+/* nav prende tutto lo spazio orizzontale disponibile */
+header nav {
+  margin-right: auto;
+}
+
+/* ============================================
+   LEADERBOARD TOGGLE — pill tab rifatto
+   ============================================ */
+.lb-toggle-wrap {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.lb-toggle-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.4rem 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.lb-toggle-btn.active {
+  background: var(--neon) !important;
+  color: #0a0a0f !important;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(232,255,0,0.3);
+}
+
+.lb-toggle-btn:not(.active):hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+}

@@ -56,10 +56,12 @@
     <!-- Classifica generale -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
       <div class="section-title" style="margin-bottom:0;flex:1"><span class="accent"></span>Classifica</div>
-      <div style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
         <button id="btnSaveClassifica" onclick="saveFotoClassifica()" class="btn-screenshot">📸 Salva foto</button>
-        <button class="lb-toggle-btn active" id="toggleAll" onclick="setLeaderboardMode('all',this)">Di sempre</button>
-        <button class="lb-toggle-btn" id="toggleLast" onclick="setLeaderboardMode('last',this)">Ultima serata</button>
+        <div class="lb-toggle-wrap">
+          <button class="lb-toggle-btn active" id="toggleAll" onclick="setLeaderboardMode('all',this)">Di sempre</button>
+          <button class="lb-toggle-btn" id="toggleLast" onclick="setLeaderboardMode('last',this)">Ultima serata</button>
+        </div>
       </div>
     </div>
 

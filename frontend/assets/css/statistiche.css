@@ -2,11 +2,6 @@
    statistiche.css — stili pagina Statistiche
    ============================================ */
 
-header .logo {
-  flex-shrink: 0;
-  margin-right: auto;
-}
-
 .main-stats {
     max-width: 1200px;
     margin: 0 auto;

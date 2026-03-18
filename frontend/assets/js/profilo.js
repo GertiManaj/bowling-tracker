@@ -2,6 +2,8 @@
 //  profilo.js — Pagina Profilo Giocatore
 // ============================================
 
+const API = '/api';
+
 
 
 const PLAYER_COLORS = [

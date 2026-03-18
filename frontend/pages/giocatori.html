@@ -238,7 +238,7 @@
 const _origOpen = openModal;
 async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
-  try { allPlayers = await fetch('api/players.php').then(r => r.json()); } catch(e) { allPlayers = []; }
+  try { allPlayers = await fetch('/api/players.php').then(r => r.json()); } catch(e) { allPlayers = []; }
   document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
   document.getElementById('sessionLocation').value = '';
   document.getElementById('sessionNotes').value    = '';
