@@ -873,3 +873,231 @@ main,
   align-items: center;
   gap: 0.4rem;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE — fix completo
+   Basato su screenshot reali da iPhone
+   ============================================ */
+
+@media (max-width: 640px) {
+
+  /* ── HEADER ── */
+  header { padding: 0 1rem; }
+
+  .header-inner {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.8rem 0;
+    justify-content: flex-start !important;
+  }
+
+  /* Logo occupa tutta la prima riga */
+  .header-inner .logo {
+    flex: 1 0 100%;
+  }
+
+  /* Nav occupa tutta la seconda riga */
+  .header-inner nav {
+    flex: 1 0 100%;
+    position: static !important;
+    transform: none !important;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.2rem;
+    padding-bottom: 2px;
+  }
+
+  .header-inner nav a {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.6rem;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  /* Bottoni header sulla terza riga */
+  .header-actions {
+    flex: 1 0 100%;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    margin-left: 0 !important;
+  }
+
+  .btn-new-session {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.8rem;
+    letter-spacing: 0.06em;
+  }
+
+  .btn-share, .btn-login, .btn-logout {
+    font-size: 0.68rem;
+    padding: 0.38rem 0.7rem;
+  }
+
+  .theme-toggle { width: 32px; height: 32px; font-size: 0.95rem; }
+
+  /* ── HERO BAR ── */
+  .hero-bar { padding: 0 1rem; }
+  .hero-bar-inner {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .hero-stat { padding: 0.8rem 1rem; }
+  .hero-stat:nth-child(2) { border-right: none; }
+  .hero-stat:nth-child(3) { border-top: 1px solid var(--border); }
+  .hero-stat:nth-child(4) { border-top: 1px solid var(--border); border-right: none; }
+  .hero-stat-value { font-size: 1.5rem; }
+
+  /* ── MAIN ── */
+  main { padding: 1rem; gap: 1rem; }
+
+  /* ── SEZIONE CLASSIFICA DASHBOARD ── */
+  /* Titolo + bottoni su righe separate */
+  .lb-controls-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.6rem !important;
+  }
+
+  /* Tabella classifica: su mobile mostra solo
+     #, Giocatore, Media, Forma — nasconde il resto */
+  .leaderboard-header,
+  .leaderboard-row {
+    grid-template-columns: 28px 1fr 64px 72px !important;
+    padding: 0.6rem 0.8rem;
+    gap: 0.3rem;
+  }
+
+  .leaderboard-header { font-size: 0.55rem; letter-spacing: 0.05em; }
+  .leaderboard-row    { font-size: 0.8rem; }
+
+  /* Nasconde colonne non essenziali */
+  .leaderboard-header div:nth-child(4),
+  .leaderboard-header div:nth-child(5),
+  .leaderboard-header div:nth-child(6),
+  .leaderboard-header div:nth-child(7),
+  .leaderboard-row .stat-cell:nth-child(4),
+  .leaderboard-row .stat-cell:nth-child(5),
+  .leaderboard-row .stat-cell:nth-child(6),
+  .leaderboard-row .stat-cell:nth-child(7) {
+    display: none !important;
+  }
+
+  /* Forma (ultima colonna) sempre visibile */
+  .leaderboard-header div:last-child,
+  .leaderboard-row .stat-cell:last-child {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Player info compatta */
+  .player-info { gap: 0.4rem; }
+  .avatar      { width: 28px; height: 28px; font-size: 0.85rem; flex-shrink: 0; }
+  .player-name { font-size: 0.85rem; }
+  .player-tag  { font-size: 0.55rem; white-space: normal; line-height: 1.3; }
+  .rank, .rank-other { font-size: 0.8rem; }
+  .stat-cell   { font-size: 0.75rem; }
+  .mini-bar-bg { display: none; } /* nasconde mini-bar su mobile */
+
+  /* Pallini forma più piccoli */
+  .leaderboard-row span[style*="border-radius:50%"] {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 0.45rem !important;
+  }
+
+  /* ── MODAL ── */
+  .modal { width: 96vw !important; max-height: 90vh; overflow-y: auto; }
+  .modal-body  { padding: 1rem; }
+  .modal-footer { padding: 0.8rem 1rem; }
+  .modal-body > div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── CARD / FOOTER / TOAST ── */
+  .card-header { padding: 0.8rem 1rem; }
+  footer { padding: 1rem; font-size: 0.55rem; }
+  .toast { right: 1rem; left: 1rem; bottom: 1rem; text-align: center; }
+
+  /* ── TOGGLE CLASSIFICA ── */
+  .lb-toggle-wrap { width: 100%; }
+  .lb-toggle-btn  { flex: 1; text-align: center; }
+
+  /* ── SCREENSHOT BTN ── */
+  .btn-screenshot { font-size: 0.6rem; padding: 0.3rem 0.6rem; }
+}
+
+/* ── STATISTICHE MOBILE ── */
+@media (max-width: 640px) {
+
+  /* Tabella rank statistiche */
+  .rank-table-header,
+  .rank-table-row {
+    grid-template-columns: 28px 1fr 60px 56px !important;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.75rem;
+  }
+
+  /* Nasconde colonne extra statistiche */
+  .rank-table-header .rank-col:nth-child(n+5),
+  .rank-table-row .rank-table-val:nth-child(n+5) {
+    display: none !important;
+  }
+
+  /* Podio più compatto */
+  .podium-wrap { gap: 0.5rem; padding: 1rem 0.5rem 0; min-height: 160px; }
+  .podium-avatar { width: 44px; height: 44px; font-size: 1.6rem; }
+  .podium-value  { font-size: 1.2rem; }
+  .podium-name   { font-size: 0.8rem; }
+  .podium-slot.pos-1 .podium-block { height: 90px; }
+  .podium-slot.pos-2 .podium-block { height: 70px; }
+  .podium-slot.pos-3 .podium-block { height: 50px; }
+
+  /* Period bar */
+  .period-bar { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+  .period-custom { margin-left: 0; flex-wrap: wrap; }
+  .period-input  { width: 100% !important; }
+
+  /* Stats two col → una colonna */
+  .stats-two-col { grid-template-columns: 1fr !important; }
+
+  /* Chart altezza ridotta */
+  .chart-wrap { height: 220px !important; }
+}
+
+/* ── SESSIONI MOBILE ── */
+@media (max-width: 640px) {
+  .main-sessioni { padding: 1rem; }
+  .filters-bar   { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+  .filter-group  { gap: 0.4rem; }
+  .filter-group input { width: 100% !important; }
+  .session-card-header {
+    grid-template-columns: 70px 1fr auto !important;
+  }
+  .session-card-winner { display: none; }
+  .detail-teams { grid-template-columns: 1fr !important; }
+}
+
+/* ── GIOCATORI MOBILE ── */
+@media (max-width: 640px) {
+  .main-players  { padding: 1rem; }
+  .search-bar    { flex-direction: column; align-items: stretch; }
+  .sort-btns     { flex-wrap: wrap; gap: 0.3rem; }
+  .players-grid  { grid-template-columns: 1fr 1fr !important; gap: 0.6rem; }
+  .player-card-name { font-size: 0.95rem; }
+  .player-stat-value { font-size: 0.9rem; }
+}
+
+@media (max-width: 380px) {
+  .players-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── PROFILO MOBILE ── */
+@media (max-width: 640px) {
+  .main-profilo       { padding: 1rem; }
+  .profile-hero-body  { flex-direction: column; text-align: center; }
+  .profile-vs-group   { margin-left: 0; align-items: center; }
+  .stats-grid         { grid-template-columns: repeat(2, 1fr) !important; }
+  .profilo-two-col    { grid-template-columns: 1fr !important; }
+  .history-header     { grid-template-columns: 70px 1fr auto auto !important; }
+}
