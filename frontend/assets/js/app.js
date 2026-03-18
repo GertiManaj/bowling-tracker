@@ -43,6 +43,10 @@ async function loadStats() {
         d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).toUpperCase();
       document.getElementById('stat-ultima-sub').textContent = data.ultima_sessione.location;
     }
+
+    // Anima i numeri hero
+    if (typeof animateHeroNumbers === 'function') animateHeroNumbers();
+
   } catch (e) {
     console.error('Errore stats:', e);
   }
