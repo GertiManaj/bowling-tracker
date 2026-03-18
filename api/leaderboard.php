@@ -61,6 +61,15 @@ foreach ($players as &$player) {
     $qVitt->execute([$id]);
     $player['vittorie_squadra'] = (int)$qVitt->fetchColumn();
 
+    // ── SERATE CON SQUADRA (denominatore corretto per % vittorie) ──
+    $qSS = $pdo->prepare('
+        SELECT COUNT(DISTINCT session_id)
+        FROM scores
+        WHERE player_id = ? AND team_id IS NOT NULL
+    ');
+    $qSS->execute([$id]);
+    $player['serate_con_squadra'] = (int)$qSS->fetchColumn();
+
     // ── VOLTE TOP SCORER ──
     $qTop = $pdo->prepare('
         SELECT COUNT(*) AS volte

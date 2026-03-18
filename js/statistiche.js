@@ -38,10 +38,9 @@ const MEDAL_EMOJIS = ['🥇', '🥈', '🥉'];
 
 function computeRankValue(p, metric) {
   if (metric === 'win_pct') {
-    const partite = parseInt(p.partite) || 0;
-    const wins    = parseInt(p.vittorie_squadra) || 0;
-    const hasSf   = wins > 0 || (p.ultimi_risultati||[]).length > 0;
-    return hasSf && partite > 0 ? Math.round(wins / partite * 100) : null;
+    const scs  = parseInt(p.serate_con_squadra) || 0;
+    const wins = parseInt(p.vittorie_squadra) || 0;
+    return scs > 0 ? Math.round(wins / scs * 100) : null;
   }
   if (metric === 'vitt')  return parseInt(p.vittorie_squadra) || 0;
   if (metric === 'media_recente') return p.media_recente ? parseFloat(p.media_recente) : null;
@@ -137,12 +136,13 @@ function renderRanking() {
       ? `<div class="rank-table-rank">${medals[i]}</div>`
       : `<div class="rank-table-rank" style="color:var(--text-muted);font-size:0.85rem">${i+1}</div>`;
 
-    const vittorie  = parseInt(p.vittorie_squadra) || 0;
-    const hasSfide   = vittorie > 0 || (p.ultimi_risultati || []).length > 0;
-    const winPct     = hasSfide && parseInt(p.partite) > 0 ? Math.round(vittorie / parseInt(p.partite) * 100) : null;
-    const sconfitte  = hasSfide ? Math.max(0, (parseInt(p.partite)||0) - vittorie) : null;
+    const vittorie         = parseInt(p.vittorie_squadra) || 0;
+    const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
+    const hasSfide         = serateConSquadra > 0;
+    const winPct           = hasSfide ? Math.round(vittorie / serateConSquadra * 100) : null;
+    const sconfitte        = hasSfide ? Math.max(0, serateConSquadra - vittorie) : null;
 
-    // Colonna V/N/P compatta
+    // Colonna V/N/P
     const vnpBadge = hasSfide
       ? '<span style="color:#22c55e;font-weight:700">' + vittorie + 'V</span> <span style="color:#666680">0N</span> <span style="color:#ef4444">' + sconfitte + 'P</span>'
       : '—';
@@ -690,7 +690,6 @@ function renderChemistry() {
 // ── INIT ─────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', loadStats);
-// Ordina cliccando sull'header della tabella
 function setRankMetricById(metric) {
   currentRankMetric = metric;
   document.querySelectorAll('.rank-metric').forEach(b => {

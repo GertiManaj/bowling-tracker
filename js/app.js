@@ -116,9 +116,9 @@ function getLbValue(p, field) {
   if (field === 'record')     return parseInt(p.record)       || 0;
   if (field === 'partite')    return parseInt(p.partite)      || 0;
   if (field === 'win_pct') {
-    const serate = parseInt(p.partite) || 0;
-    const vitt   = parseInt(p.vittorie_squadra) || 0;
-    return serate > 0 ? Math.round(vitt / serate * 100) : 0;
+    const scs  = parseInt(p.serate_con_squadra) || 0;
+    const vitt = parseInt(p.vittorie_squadra) || 0;
+    return scs > 0 ? Math.round(vitt / scs * 100) : 0;
   }
   if (field === 'top_scorer') return parseInt(p.volte_top_scorer) || 0;
   if (field === 'forma')      return (p.ultimi_risultati || []).filter(r => r === 'V').length;
@@ -185,9 +185,11 @@ function renderAllTimeLeaderboard() {
     const nc = i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text)';
 
     // Calcola valori colonne
-    const serate  = parseInt(p.partite) || 0;
-    const vittorie = parseInt(p.vittorie_squadra) || 0;
-    const winPct  = serate > 0 ? Math.round(vittorie / serate * 100) : null;
+    const serate           = parseInt(p.partite) || 0;
+    const vittorie         = parseInt(p.vittorie_squadra) || 0;
+    const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
+    const hasSfide         = serateConSquadra > 0;
+    const winPct           = hasSfide ? Math.round(vittorie / serateConSquadra * 100) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
     // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
