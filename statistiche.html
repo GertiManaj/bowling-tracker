@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#e8ff00"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Strike Zone"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
   <title>🎳 Strike Zone — Statistiche</title>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
@@ -102,13 +108,13 @@ initTheme();
 <header>
   <div class="header-glow"></div>
   <div class="header-inner">
-    <div class="logo">
+    <a href="index.html" class="logo" style="text-decoration:none">
       <div class="logo-pin">🎳</div>
       <div class="logo-text">
         <span class="logo-title">STRIKE ZONE</span>
         <span class="logo-sub">Bowling Tracker v1.0</span>
       </div>
-    </div>
+    </a>
     <nav>
       <a href="index.html">Dashboard</a>
       <a href="sessioni.html">Sessioni</a>
@@ -118,8 +124,8 @@ initTheme();
     <div style="width:130px;display:flex;gap:0.3rem">
     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
     <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
-    <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon);width:100%">🔐 Accedi</button>
-    <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()">Esci</button>
+    <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
+    <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
     </div>
   </div>
 </header>
@@ -365,6 +371,15 @@ function shareLink() {
     t.className = 'toast success show';
     setTimeout(() => t.className = 'toast', 3000);
   }
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(function(reg) { console.log('SW registrato'); })
+      .catch(function(err) { console.log('SW errore:', err); });
+  });
 }
 </script>
 </body>
