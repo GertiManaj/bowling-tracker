@@ -36,6 +36,8 @@ const MEDAL_COLORS = ['#ffd700', '#c0c0d0', '#cd7f32'];
 const MEDAL_EMOJIS = ['🥇', '🥈', '🥉'];
 
 function computeRankValue(p, metric) {
+  if (metric === 'vitt')     return parseInt(p.vittorie_squadra) || 0;
+  if (metric === 'sconf')    { const v = parseInt(p.vittorie_squadra)||0; const pt = parseInt(p.partite)||0; return pt - v; }
   if (metric === 'win_pct') {
     const partite = parseInt(p.partite) || 0;
     const wins    = parseInt(p.vittorie_squadra) || 0;
@@ -117,7 +119,7 @@ function renderRanking() {
   }).join('');
 
   // Aggiorna header colonna attiva
-  const colIds = { media:'thMedia', win_pct:'thWin', record:'thRecord', partite:'thPartite', media_recente:'thForma' };
+  const colIds = { media:'thMedia', win_pct:'thWin', record:'thRecord', partite:'thPartite', vitt:'thVitt', sconf:'thSconf', media_recente:'thForma' };
   Object.values(colIds).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('active-col');
@@ -135,13 +137,16 @@ function renderRanking() {
       : `<div class="rank-table-rank" style="color:var(--text-muted);font-size:0.85rem">${i+1}</div>`;
 
     const val     = computeRankValue(p, currentRankMetric);
-    const winPct  = (() => { const pt = parseInt(p.partite)||0; const w = parseInt(p.vittorie_squadra)||0; return pt>0 ? Math.round(w/pt*100) : null; })();
+    const vittorie = parseInt(p.vittorie_squadra) || 0;
+    const hasSfide  = vittorie > 0 || (p.ultimi_risultati || []).length > 0;
+    const winPct    = hasSfide && parseInt(p.partite) > 0 ? Math.round(vittorie / parseInt(p.partite) * 100) : null;
 
     // Badge forma — pallini V/P/N
     const risultati = p.ultimi_risultati || [];
     let formaBadge;
     if (!risultati.length) {
-      formaBadge = '<span style="color:var(--text-muted);font-size:0.7rem;font-family:\'Share Tech Mono\',monospace">—</span>';
+      const emptyOnly = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
+      formaBadge = '<div style="display:flex;gap:2px;justify-content:center">' + Array(5).fill(emptyOnly).join('') + '</div>';
     } else {
       const dot = r => {
         if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span>';
@@ -169,6 +174,8 @@ function renderRanking() {
         <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct+'%' : '—'}</div>
         <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}">${p.record ?? '—'}</div>
         <div class="rank-table-val ${isActive('partite') ? 'active-val' : ''}">${p.partite ?? '—'}</div>
+        <div class="rank-table-val ${isActive('vitt') ? 'active-val' : 'color:var(--neon3 )'}"> ${hasSfide ? vittorie : '—'}</div>
+        <div class="rank-table-val ${isActive('sconf') ? 'active-val' : 'color:var(--neon2)'}"> ${hasSfide ? ((parseInt(p.partite)||0) - vittorie) : '—'}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
       </div>`;
   }).join('');

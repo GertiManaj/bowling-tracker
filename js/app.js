@@ -185,12 +185,9 @@ function renderAllTimeLeaderboard() {
     const nc = i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text)';
 
     // Calcola valori colonne
-    const serate   = parseInt(p.partite) || 0;
+    const serate  = parseInt(p.partite) || 0;
     const vittorie = parseInt(p.vittorie_squadra) || 0;
-    // winPct: null se il giocatore non ha mai fatto sfide (nessun risultato V/P/N)
-    // Usa vittorie_squadra come numeratore — ma solo se ha almeno una sessione con squadra
-    const hasSfide = vittorie > 0 || (p.ultimi_risultati || []).length > 0;
-    const winPct   = hasSfide && serate > 0 ? Math.round(vittorie / serate * 100) : null;
+    const winPct  = serate > 0 ? Math.round(vittorie / serate * 100) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
     // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
@@ -199,9 +196,8 @@ function renderAllTimeLeaderboard() {
     const risultati = p.ultimi_risultati || [];
     let formaBadge = '';
     if (!risultati.length) {
-      // Nessuna sfida mai: 5 pallini grigi vuoti
-      const emptyOnly = Array(5).fill('<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>').join('');
-      formaBadge = `<div style="display:flex;gap:2px;justify-content:center">${emptyOnly}</div>`;
+      const emptyOnly2 = '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
+      formaBadge = `<div style="display:flex;gap:2px;justify-content:center">${Array(5).fill(emptyOnly2).join('')}</div>`;
     } else {
       const dots = risultati.map(r => {
         if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#000;font-size:0.55rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">V</span>';
@@ -398,7 +394,7 @@ async function loadSessions() {
       const best = Object.values(totals).reduce((a, b) => b.total > a.total ? b : a, { total: 0 });
 
       html += `
-        <div class="session-item">
+        <div class="session-item" onclick="window.location.href='sessioni.html'" style="cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
           <div class="session-item-left">
             <div class="session-item-date">${formatDate(s.date)} · ${s.location}</div>
             <div class="session-item-players">${names || '—'}</div>
