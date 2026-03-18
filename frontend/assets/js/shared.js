@@ -96,3 +96,38 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW errore:', err));
   });
 }
+
+// ── EXPORT DATI (solo admin) ──────────────────
+
+async function exportData() {
+  const token = localStorage.getItem('sz_auth_token');
+  if (!token) { showToast('Devi essere admin per esportare', 'error'); return; }
+
+  const btn = document.querySelector('.btn-export');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+  try {
+    const res = await fetch(`/api/export.php?token=${encodeURIComponent(token)}`);
+
+    if (res.status === 401) {
+      showToast('Non autorizzato', 'error');
+      return;
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `strikezone-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Backup scaricato!');
+  } catch(e) {
+    showToast('Errore durante l\'esportazione', 'error');
+    console.error(e);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '💾'; }
+}

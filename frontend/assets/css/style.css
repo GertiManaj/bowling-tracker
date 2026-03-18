@@ -1101,3 +1101,22 @@ main,
   .profilo-two-col    { grid-template-columns: 1fr !important; }
   .history-header     { grid-template-columns: 70px 1fr auto auto !important; }
 }
+
+/* ── BOTTONE EXPORT ── */
+.btn-export {
+  font-size: 1rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 34px; height: 34px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.btn-export:hover {
+  border-color: var(--neon3);
+  color: var(--neon3);
+  box-shadow: 0 0 12px rgba(0,245,255,0.2);
+}
+.btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
