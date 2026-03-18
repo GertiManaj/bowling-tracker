@@ -438,7 +438,7 @@
   
   .rank-table-header {
     display: grid;
-    grid-template-columns: 44px 1fr repeat(5, 80px);
+    grid-template-columns: 44px 1fr 80px 70px 72px 60px 120px 90px;
     padding: 0.6rem 1.2rem;
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
@@ -454,7 +454,7 @@
   
   .rank-table-row {
     display: grid;
-    grid-template-columns: 44px 1fr repeat(5, 80px);
+    grid-template-columns: 44px 1fr 80px 70px 72px 60px 120px 90px;
     padding: 0.85rem 1.2rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
@@ -523,7 +523,7 @@
   
   @media (max-width: 700px) {
     .rank-table-header,
-    .rank-table-row { grid-template-columns: 36px 1fr repeat(3, 64px); }
-    .rank-col:nth-child(5),
-    .rank-table-val:nth-child(5) { display: none; }
+    .rank-table-row { grid-template-columns: 36px 1fr 70px 56px 56px 56px 80px; overflow-x: auto; }
+    .rank-col.hide-mobile,
+    .rank-table-val.hide-mobile { display: none; }
   }

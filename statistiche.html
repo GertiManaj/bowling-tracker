@@ -181,10 +181,9 @@ initTheme();
         <button class="metric-btn rank-metric active" data-metric="media"         onclick="setRankMetric(this)">Media</button>
         <button class="metric-btn rank-metric"        data-metric="win_pct"       onclick="setRankMetric(this)">% Vittorie</button>
         <button class="metric-btn rank-metric"        data-metric="vitt"          onclick="setRankMetric(this)">Vittorie</button>
-        <button class="metric-btn rank-metric"        data-metric="sconf"         onclick="setRankMetric(this)">Sconfitte</button>
-        <button class="metric-btn rank-metric"        data-metric="record"        onclick="setRankMetric(this)">Top Score</button>
+        <button class="metric-btn rank-metric"        data-metric="record"        onclick="setRankMetric(this)">Record</button>
         <button class="metric-btn rank-metric"        data-metric="partite"       onclick="setRankMetric(this)">Presenze</button>
-        <button class="metric-btn rank-metric"        data-metric="media_recente" onclick="setRankMetric(this)">Forma ↑</button>
+        <button class="metric-btn rank-metric"        data-metric="media_recente" onclick="setRankMetric(this)">Forma</button>
       </div>
     </div>
     <div class="podium-wrap" id="podiumWrap"></div>
@@ -192,13 +191,12 @@ initTheme();
       <div class="rank-table-header">
         <div>#</div>
         <div>Giocatore</div>
-        <div class="rank-col" id="thMedia">Media</div>
-        <div class="rank-col" id="thWin">% Vitt.</div>
-        <div class="rank-col" id="thRecord">Top Score</div>
-        <div class="rank-col" id="thPartite">Presenze</div>
-        <div class="rank-col" id="thVitt" style="color:var(--neon3)">Vitt</div>
-        <div class="rank-col" id="thSconf" style="color:var(--neon2)">Sconf</div>
-        <div class="rank-col" id="thForma">Forma</div>
+        <div class="rank-col" id="thMedia"   style="cursor:pointer" onclick="setRankMetricById('media')">Media ↕</div>
+        <div class="rank-col" id="thWin"     style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
+        <div class="rank-col" id="thRecord"  style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕</div>
+        <div class="rank-col" id="thPartite" style="cursor:pointer" onclick="setRankMetricById('partite')">Serate ↕</div>
+        <div class="rank-col" id="thVitt"    style="cursor:pointer" onclick="setRankMetricById('vitt')">V/N/P ↕</div>
+        <div class="rank-col" id="thForma"   style="cursor:pointer" onclick="setRankMetricById('media_recente')">Forma ↕</div>
       </div>
       <div id="rankTableBody"></div>
     </div>

@@ -29,6 +29,7 @@ const RANK_METRICS = {
   win_pct:       { label: '% Vittorie', fmt: v => v != null ? v + '%' : '—',      unit: '%' },
   record:        { label: 'Top Score',  fmt: v => v ?? '—',                       unit: '' },
   partite:       { label: 'Presenze',   fmt: v => v ?? '—',                       unit: '' },
+  vitt:          { label: 'Vittorie',   fmt: v => v ?? '—',                       unit: '' },
   media_recente: { label: 'Forma',      fmt: v => v ?? '—',                       unit: '' },
 };
 
@@ -36,13 +37,13 @@ const MEDAL_COLORS = ['#ffd700', '#c0c0d0', '#cd7f32'];
 const MEDAL_EMOJIS = ['🥇', '🥈', '🥉'];
 
 function computeRankValue(p, metric) {
-  if (metric === 'vitt')     return parseInt(p.vittorie_squadra) || 0;
-  if (metric === 'sconf')    { const v = parseInt(p.vittorie_squadra)||0; const pt = parseInt(p.partite)||0; return pt - v; }
   if (metric === 'win_pct') {
     const partite = parseInt(p.partite) || 0;
     const wins    = parseInt(p.vittorie_squadra) || 0;
-    return partite > 0 ? Math.round(wins / partite * 100) : null;
+    const hasSf   = wins > 0 || (p.ultimi_risultati||[]).length > 0;
+    return hasSf && partite > 0 ? Math.round(wins / partite * 100) : null;
   }
+  if (metric === 'vitt')  return parseInt(p.vittorie_squadra) || 0;
   if (metric === 'media_recente') return p.media_recente ? parseFloat(p.media_recente) : null;
   if (metric === 'media')   return parseFloat(p.media)   || null;
   if (metric === 'record')  return parseInt(p.record)    || null;
@@ -119,7 +120,7 @@ function renderRanking() {
   }).join('');
 
   // Aggiorna header colonna attiva
-  const colIds = { media:'thMedia', win_pct:'thWin', record:'thRecord', partite:'thPartite', vitt:'thVitt', sconf:'thSconf', media_recente:'thForma' };
+  const colIds = { media:'thMedia', win_pct:'thWin', record:'thRecord', partite:'thPartite', vitt:'thVitt', media_recente:'thForma' };
   Object.values(colIds).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('active-col');
@@ -136,27 +137,27 @@ function renderRanking() {
       ? `<div class="rank-table-rank">${medals[i]}</div>`
       : `<div class="rank-table-rank" style="color:var(--text-muted);font-size:0.85rem">${i+1}</div>`;
 
-    const val     = computeRankValue(p, currentRankMetric);
-    const vittorie = parseInt(p.vittorie_squadra) || 0;
-    const hasSfide  = vittorie > 0 || (p.ultimi_risultati || []).length > 0;
-    const winPct    = hasSfide && parseInt(p.partite) > 0 ? Math.round(vittorie / parseInt(p.partite) * 100) : null;
+    const vittorie  = parseInt(p.vittorie_squadra) || 0;
+    const hasSfide   = vittorie > 0 || (p.ultimi_risultati || []).length > 0;
+    const winPct     = hasSfide && parseInt(p.partite) > 0 ? Math.round(vittorie / parseInt(p.partite) * 100) : null;
+    const sconfitte  = hasSfide ? Math.max(0, (parseInt(p.partite)||0) - vittorie) : null;
+
+    // Colonna V/N/P compatta
+    const vnpBadge = hasSfide
+      ? '<span style="color:#22c55e;font-weight:700">' + vittorie + 'V</span> <span style="color:#666680">0N</span> <span style="color:#ef4444">' + sconfitte + 'P</span>'
+      : '—';
 
     // Badge forma — pallini V/P/N
     const risultati = p.ultimi_risultati || [];
-    let formaBadge;
-    if (!risultati.length) {
-      const emptyOnly = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
-      formaBadge = '<div style="display:flex;gap:2px;justify-content:center">' + Array(5).fill(emptyOnly).join('') + '</div>';
-    } else {
-      const dot = r => {
-        if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span>';
-        if (r==='P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span>';
-        return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span>';
-      };
-      const empty = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
-      const emptyDots = Array(5-risultati.length).fill(empty).join('');
-      formaBadge = '<div style="display:flex;gap:2px;justify-content:center">' + emptyDots + risultati.map(dot).join('') + '</div>';
-    }
+    const dot = r => {
+      if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span>';
+      if (r==='P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span>';
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span>';
+    };
+    const emptyDot = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
+    const formaBadge = '<div style="display:flex;gap:2px;justify-content:center">' +
+      Array(Math.max(0, 5 - risultati.length)).fill(emptyDot).join('') +
+      risultati.map(dot).join('') + '</div>';
 
     const isActive = m => currentRankMetric === m;
 
@@ -167,15 +168,14 @@ function renderRanking() {
           <div class="rank-table-avatar" style="border-color:${pcolor}44;background:${pcolor}12">${p.emoji||'🎳'}</div>
           <div>
             <div class="rank-table-name">${p.name}</div>
-            ${p.nickname ? `<div class="rank-table-nick">${p.nickname.toUpperCase()}</div>` : ''}
+            ${p.nickname ? '<div class="rank-table-nick">' + p.nickname.toUpperCase() + '</div>' : ''}
           </div>
         </div>
-        <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}">${p.media ?? '—'}</div>
+        <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}" style="${isActive('media')?'':'color:var(--neon)'}">${p.media ?? '—'}</div>
         <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct+'%' : '—'}</div>
-        <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}">${p.record ?? '—'}</div>
+        <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}" style="${isActive('record')?'':'color:var(--neon3)'}">${p.record ?? '—'}</div>
         <div class="rank-table-val ${isActive('partite') ? 'active-val' : ''}">${p.partite ?? '—'}</div>
-        <div class="rank-table-val ${isActive('vitt') ? 'active-val' : 'color:var(--neon3 )'}"> ${hasSfide ? vittorie : '—'}</div>
-        <div class="rank-table-val ${isActive('sconf') ? 'active-val' : 'color:var(--neon2)'}"> ${hasSfide ? ((parseInt(p.partite)||0) - vittorie) : '—'}</div>
+        <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.75rem">${vnpBadge}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
       </div>`;
   }).join('');
@@ -690,3 +690,11 @@ function renderChemistry() {
 // ── INIT ─────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', loadStats);
+// Ordina cliccando sull'header della tabella
+function setRankMetricById(metric) {
+  currentRankMetric = metric;
+  document.querySelectorAll('.rank-metric').forEach(b => {
+    b.classList.toggle('active', b.dataset.metric === metric);
+  });
+  renderRanking();
+}
