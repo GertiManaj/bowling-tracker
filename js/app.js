@@ -114,7 +114,7 @@ function sortLeaderboard(field) {
 function getLbValue(p, field) {
   if (field === 'media')      return parseFloat(p.media)      || 0;
   if (field === 'record')     return parseInt(p.record)       || 0;
-  if (field === 'partite')    return parseInt(p.serate_con_squadra) || 0;
+  if (field === 'partite')    return parseInt(p.partite)      || 0;
   if (field === 'win_pct') {
     const scs  = parseInt(p.serate_con_squadra) || 0;
     const vitt = parseInt(p.vittorie_squadra) || 0;
@@ -162,7 +162,7 @@ function renderAllTimeLeaderboard() {
     <div>Giocatore</div>
     <div ${hStyle('media')}>Media ${arrow('media')}</div>
     <div ${hStyle('record')}>Record ${arrow('record')}</div>
-    <div ${hStyle('partite')} class="col-partite">Sfide ${arrow('partite')}</div>
+    <div ${hStyle('partite')} class="col-partite">Serate ${arrow('partite')}</div>
     <div ${hStyle('win_pct')}>% Vitt ${arrow('win_pct')}</div>
     <div ${hStyle('top_scorer')}>Top 🏆 ${arrow('top_scorer')}</div>
     <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>`;
@@ -224,7 +224,7 @@ function renderAllTimeLeaderboard() {
           <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
           <div>
             <div class="player-name">${p.name}</div>
-            <div class="player-tag">${p.serate_con_squadra||0} sfide · ${p.game_totali||0} game</div>
+            <div class="player-tag">${p.partite} serate · ${p.game_totali||0} game</div>
           </div>
         </div>
         <div class="stat-cell" style="${cellStyle('media') || 'color:'+nc}">
@@ -234,7 +234,7 @@ function renderAllTimeLeaderboard() {
           </div>
         </div>
         <div class="stat-cell best" style="${cellStyle('record')}">${p.record??'—'}</div>
-        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${parseInt(p.serate_con_squadra) || '—'}</div>
+        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${p.partite}</div>
         <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct+'%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
@@ -255,7 +255,7 @@ function renderAllTimeLeaderboard() {
         </div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
-        <div class="stat-cell col-partite">—</div>
+        <div class="stat-cell col-partite">0</div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
@@ -652,7 +652,7 @@ function addPlayerRow(team, selectedId = null, numGames = null) {
 
   // Crea input score per ogni game
   const gameInputs = Array.from({length: ng}, (_, i) =>
-    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="calcTotals()"/>`
+    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="calcTotals();validateScoreInput(this)"/>`
   ).join('');
 
   const row = document.createElement('div');
@@ -745,6 +745,38 @@ async function saveSession() {
   });
 
   const soloPlayers = getSoloPlayers();
+
+  // ── VALIDAZIONE 1: punteggi fuori range 0-300 ──
+  const allScoreInputs = document.querySelectorAll('#teamARows .score-input, #teamBRows .score-input, #soloRows input[type="number"]');
+  for (const input of allScoreInputs) {
+    if (!input.value) continue;
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0 || val > 300) {
+      showToast('Il punteggio deve essere tra 0 e 300', 'error');
+      btn.disabled = false; btn.textContent = 'Salva Partita';
+      input.focus();
+      input.style.borderColor = 'var(--neon2)';
+      setTimeout(() => input.style.borderColor = '', 2000);
+      return;
+    }
+  }
+
+  // ── VALIDAZIONE 2: stesso giocatore in entrambe le squadre ──
+  const playersA = new Set();
+  const playersB = new Set();
+  const playerNames = {};
+  document.querySelectorAll('#teamARows .player-row select').forEach(sel => {
+    if (sel.value) { playersA.add(sel.value); playerNames[sel.value] = sel.options[sel.selectedIndex]?.text || sel.value; }
+  });
+  document.querySelectorAll('#teamBRows .player-row select').forEach(sel => {
+    if (sel.value) { playersB.add(sel.value); playerNames[sel.value] = sel.options[sel.selectedIndex]?.text || sel.value; }
+  });
+  const duplicates = [...playersA].filter(id => playersB.has(id));
+  if (duplicates.length > 0) {
+    const names = duplicates.map(id => playerNames[id]).join(', ');
+    const ok = confirm(`⚠ Attenzione: ${names} è presente in entrambe le squadre.\n\nVuoi salvare comunque?`);
+    if (!ok) { btn.disabled = false; btn.textContent = 'Salva Partita'; return; }
+  }
 
   if (!teams.length && !soloPlayers.length) {
     showToast('Inserisci almeno un punteggio', 'error');

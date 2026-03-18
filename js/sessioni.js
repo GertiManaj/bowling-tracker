@@ -351,11 +351,28 @@ function addPlayerRow(team, selectedId = null, score = '') {
       <option value="">— Giocatore —</option>${opts}
     </select>
     <input type="number" class="form-input" placeholder="Score" min="0" max="300"
-      value="${score}" oninput="calcTotals()"/>
+      value="${score}" oninput="calcTotals();validateScoreInput(this)"/>
     <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
   document.getElementById(`team${team}Rows`).appendChild(row);
 }
 
+
+// ── VALIDAZIONE SCORE LIVE ────────────────
+function validateScoreInput(input) {
+  const val = parseInt(input.value);
+  if (input.value === '') {
+    input.style.borderColor = '';
+    return;
+  }
+  if (isNaN(val) || val < 0 || val > 300) {
+    input.style.borderColor = 'var(--neon2)';
+    input.title = 'Punteggio non valido (0-300)';
+  } else {
+    input.style.borderColor = 'var(--neon)';
+    input.title = '';
+    setTimeout(() => { if (input.style.borderColor === 'var(--neon)') input.style.borderColor = ''; }, 1000);
+  }
+}
 function addSoloRow(selectedId = null, score = '') {
   const opts = allPlayers.map(p =>
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
@@ -413,6 +430,45 @@ async function saveSession() {
   });
 
   const soloPlayers = getSoloPlayers();
+
+  // ── VALIDAZIONE 1: punteggi fuori range 0-300 ──
+  const allScoreInputs = document.querySelectorAll('#teamARows input[type="number"], #teamBRows input[type="number"], #soloRows input[type="number"]');
+  for (const input of allScoreInputs) {
+    if (!input.value) continue;
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0 || val > 300) {
+      showToast('Il punteggio deve essere tra 0 e 300', 'error');
+      input.focus();
+      input.style.borderColor = 'var(--neon2)';
+      setTimeout(() => input.style.borderColor = '', 2000);
+      return;
+    }
+  }
+
+  // ── VALIDAZIONE 2: stesso giocatore in entrambe le squadre ──
+  const playersA = new Set();
+  const playersB = new Set();
+  const playerNames = {};
+  document.querySelectorAll('#teamARows .score-row select').forEach(sel => {
+    if (sel.value) {
+      playersA.add(sel.value);
+      playerNames[sel.value] = sel.options[sel.selectedIndex]?.text || sel.value;
+    }
+  });
+  document.querySelectorAll('#teamBRows .score-row select').forEach(sel => {
+    if (sel.value) {
+      playersB.add(sel.value);
+      playerNames[sel.value] = sel.options[sel.selectedIndex]?.text || sel.value;
+    }
+  });
+  const duplicates = [...playersA].filter(id => playersB.has(id));
+  if (duplicates.length > 0) {
+    const names = duplicates.map(id => playerNames[id]).join(', ');
+    const ok = confirm(`⚠ Attenzione: ${names} è presente in entrambe le squadre.
+
+Vuoi salvare comunque?`);
+    if (!ok) return;
+  }
 
   if (!teams.length && !soloPlayers.length) {
     showToast('Inserisci almeno un punteggio', 'error');
@@ -509,4 +565,4 @@ document.addEventListener('keydown', e => {
 
 // ── INIT ─────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', loadAll); 
+document.addEventListener('DOMContentLoaded', loadAll);
