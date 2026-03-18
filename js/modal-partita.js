@@ -13,12 +13,10 @@ async function openModal() {
     return;
   }
   try {
-    // Carica giocatori se non già disponibili
-    if (!window.allPlayers || !window.allPlayers.length) {
-      window.allPlayers = await fetch(API_MODAL + '/players.php').then(r => r.json());
-    }
+    // Ricarica sempre i giocatori freschi
+    window.allPlayers = await fetch(API_MODAL + '/players.php').then(r => r.json());
   } catch (e) {
-    window.allPlayers = [];
+    window.allPlayers = window.allPlayers || [];
   }
 
   // Reset campi
