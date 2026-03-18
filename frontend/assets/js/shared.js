@@ -131,28 +131,3 @@ async function exportData() {
 
   if (btn) { btn.disabled = false; btn.textContent = '💾'; }
 }
-
-// ── COUNTER ANIMATO per hero-stat-value ──────
-// Chiamata da app.js, sessioni.js ecc. dopo aver settato i valori
-
-function animateHeroNumbers() {
-  document.querySelectorAll('.hero-stat-value').forEach(el => {
-    const raw = el.textContent.trim();
-    const num = parseFloat(raw.replace(/[^0-9.]/g, ''));
-    if (isNaN(num) || raw === '—' || raw === '') return;
-
-    const isFloat   = raw.includes('.');
-    const suffix    = raw.replace(/[0-9.]/g, '').trim();
-    const duration  = 700;
-    const start     = performance.now();
-
-    function update(now) {
-      const t    = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-      const val  = num * ease;
-      el.textContent = (isFloat ? val.toFixed(1) : Math.round(val)) + (suffix ? ' ' + suffix : '');
-      if (t < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
-  });
-}
