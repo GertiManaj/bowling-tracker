@@ -548,3 +548,132 @@ body.light .logo-title {
 }
 
 .calendar-day.empty { opacity: 0; pointer-events: none; }
+/* ============================================
+   HEADER ACTIONS — bottoni header unificati
+   (aggiunti da refactor shared header)
+   ============================================ */
+
+/* Wrapper bottoni a destra nell'header */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+
+/* Bottone extra (es. + Giocatore su giocatori.html) */
+.btn-header-extra {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: rgba(0, 245, 255, 0.1);
+  border: 1px solid rgba(0, 245, 255, 0.4);
+  color: var(--neon3);
+  padding: 0.55rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-header-extra:hover {
+  background: rgba(0, 245, 255, 0.18);
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Bottone condividi */
+.btn-share {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.45rem 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-share:hover {
+  border-color: var(--neon3);
+  color: var(--neon3);
+}
+
+/* Bottone login */
+.btn-login {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid rgba(232, 255, 0, 0.3);
+  color: var(--neon);
+  padding: 0.55rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-login:hover {
+  border-color: rgba(232, 255, 0, 0.6);
+  background: rgba(232, 255, 0, 0.06);
+}
+
+/* Bottone logout */
+.btn-logout {
+  margin-left: 0;
+}
+
+/* ── RESPONSIVE header-actions ── */
+@media (max-width: 640px) {
+  .header-actions {
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .btn-header-extra,
+  .btn-login,
+  .btn-logout {
+    font-size: 0.75rem;
+    padding: 0.42rem 0.8rem;
+    letter-spacing: 0.08em;
+  }
+
+  .btn-share {
+    font-size: 0.62rem;
+    padding: 0.4rem 0.7rem;
+  }
+}
+
+/* ── BOTTONE SCREENSHOT (📸 Salva foto/classifica/profilo) ──
+   Sostituisce tutti i bottoni screenshot inline-styled sparsi
+   nelle varie pagine. Unico stile coerente ovunque.          */
+.btn-screenshot {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.35rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-screenshot:hover {
+  border-color: var(--neon4);
+  color: var(--neon4);
+}
+.btn-screenshot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

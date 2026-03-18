@@ -4,7 +4,7 @@
 //  tra le pagine per 24 ore senza popup
 // ============================================
 
-const AUTH_API    = 'api/auth.php';
+const AUTH_API    = '../../api/auth.php';
 const TOKEN_KEY   = 'sz_auth_token';
 
 window.isLoggedIn = false;

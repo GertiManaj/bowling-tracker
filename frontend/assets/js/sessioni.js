@@ -2,7 +2,7 @@
 //  sessioni.js — Gestione sessioni
 // ============================================
 
-const API = 'api';
+const API = '../../api';
 
 let allSessions = [];
 let allPlayers  = [];

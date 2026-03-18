@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#e8ff00"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Strike Zone"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <title>🎳 Strike Zone — Giocatori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/giocatori.css"/>
+  <script src="../assets/js/shared.js"></script>
+</head>
+<body>
+
+<!-- data-extra-btn="giocatori" aggiunge il bottone + Giocatore nell'header -->
+<div id="app-header" data-active="giocatori" data-extra-btn="giocatori"></div>
+<script src="../assets/js/header.js"></script>
+
+<!-- ══ HERO BAR ══ -->
+<div class="hero-bar">
+  <div class="hero-bar-inner">
+    <div class="hero-stat">
+      <div class="hero-stat-label">Giocatori totali</div>
+      <div class="hero-stat-value neon" id="stat-totali">—</div>
+      <div class="hero-stat-sub">nel gruppo</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Media più alta</div>
+      <div class="hero-stat-value pink" id="stat-best-avg">—</div>
+      <div class="hero-stat-sub" id="stat-best-avg-name">caricamento...</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Record assoluto</div>
+      <div class="hero-stat-value cyan" id="stat-record">—</div>
+      <div class="hero-stat-sub" id="stat-record-name">caricamento...</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Partite totali</div>
+      <div class="hero-stat-value orange" id="stat-partite">—</div>
+      <div class="hero-stat-sub">punteggi registrati</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<main class="main-players">
+
+  <div class="search-bar">
+    <input type="text" class="form-input search-input" id="searchInput" placeholder="🔍  Cerca giocatore..." oninput="filterPlayers()"/>
+    <div class="sort-btns">
+      <button class="sort-btn active" onclick="sortBy('name', this)">A–Z</button>
+      <button class="sort-btn" onclick="sortBy('media', this)">Media ↓</button>
+      <button class="sort-btn" onclick="sortBy('record', this)">Record ↓</button>
+      <button class="sort-btn" onclick="sortBy('partite', this)">Partite ↓</button>
+    </div>
+  </div>
+
+  <div class="players-grid" id="players-grid">
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+    <div class="skeleton" style="height:200px;border-radius:8px"></div>
+  </div>
+
+</main>
+
+<footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
+
+<!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">➕ Nuovo Giocatore</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Avatar</label>
+        <div class="emoji-grid" id="emojiGrid"></div>
+        <input type="hidden" id="selectedEmoji" value="🎳"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Soprannome</label>
+        <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="savePlayer()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFERMA ELIMINAZIONE ══ -->
+<div class="modal-overlay" id="deleteOverlay" onclick="handleDeleteOverlayClick(event)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--neon2)">⚠ Elimina Giocatore</div>
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:1rem;line-height:1.5;color:var(--text)">
+        Stai per eliminare <strong id="deletePlayerName" style="color:var(--neon2)"></strong>.
+      </p>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem;font-family:'Share Tech Mono',monospace">
+        ⚠ Verranno eliminati anche tutti i suoi punteggi. Questa azione è irreversibile.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeDeleteModal()">Annulla</button>
+      <button class="btn-delete" id="btnDelete" onclick="confirmDelete()">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: NUOVA PARTITA ══ -->
+<div class="modal-overlay" id="sessionModalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🎳 Nuova Partita</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:0.8rem">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="sessionDate"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Luogo</label>
+          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° Game</label>
+          <select class="form-input" id="numGames" onchange="buildGameRows()">
+            <option value="1">1 game</option>
+            <option value="2" selected>2 game</option>
+            <option value="3">3 game</option>
+            <option value="4">4 game</option>
+            <option value="5">5 game</option>
+          </select>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-a-title">⚡ Squadra A</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
+          </div>
+          <div id="teamARows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-b-title">🔥 Squadra B</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
+          </div>
+          <div id="teamBRows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Non partecipano alla sfida</span>
+        </div>
+        <div class="team-section-body">
+          <div id="soloRows"></div>
+          <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (opzionale)</label>
+        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL LOGIN ══ -->
+<div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--neon)">🔐 Accedi</div>
+      <button class="modal-close" onclick="closeLoginModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.05em;margin-bottom:0.5rem">Inserisci la password per modificare i dati</p>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="off" style="-webkit-text-security:disc"/>
+      </div>
+      <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeLoginModal()">Annulla</button>
+      <button class="btn-primary" id="btnLoginSubmit" onclick="submitLogin()">Accedi</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/modal-nuova-partita.js"></script>
+<script src="../assets/js/giocatori.js"></script>
+<!-- Dopo giocatori.js: il modal "Nuova Partita" usa sessionModalOverlay invece di modalOverlay -->
+<script>
+// Su giocatori.html openModal() apre sessionModalOverlay per non
+// collidere con il modal giocatore (modalOverlay).
+// modal-nuova-partita.js definisce openModal() con modalOverlay:
+// qui la sovrascriviamo in modo che usi sessionModalOverlay.
+const _origOpen = openModal;
+async function openModal() {
+  if (!window.isLoggedIn) { openLoginModal(); return; }
+  try { allPlayers = await fetch('api/players.php').then(r => r.json()); } catch(e) { allPlayers = []; }
+  document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionLocation').value = '';
+  document.getElementById('sessionNotes').value    = '';
+  document.getElementById('teamAName').value       = '';
+  document.getElementById('teamBName').value       = '';
+  document.getElementById('numGames').value        = '2';
+  document.getElementById('totalA').textContent    = 'Totale: 0';
+  document.getElementById('totalB').textContent    = 'Totale: 0';
+  document.getElementById('soloRows').innerHTML    = '';
+  buildGameRows();
+  document.getElementById('sessionModalOverlay').classList.add('open');
+}
+function closeModal() {
+  // Chiude entrambi (giocatore e partita) in sicurezza
+  document.getElementById('modalOverlay')?.classList.remove('open');
+  document.getElementById('sessionModalOverlay')?.classList.remove('open');
+}
+function handleOverlayClick(e) {
+  if (e.target.classList.contains('modal-overlay')) closeModal();
+}
+</script>
+</body>
+</html>

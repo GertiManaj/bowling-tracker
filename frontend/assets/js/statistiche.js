@@ -2,7 +2,7 @@
 //  statistiche.js — Pagina Statistiche
 // ============================================
 
-const API = 'api';
+const API = '../../api';
 
 // Palette colori giocatori (ciclica)
 const PLAYER_COLORS = [

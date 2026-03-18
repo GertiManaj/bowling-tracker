@@ -2,7 +2,7 @@
 //  giocatori.js — Gestione giocatori
 // ============================================
 
-const API = 'api';
+const API = '../../api';
 
 // Colori accent ciclici per le card
 const CARD_COLORS = [

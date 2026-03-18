@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#e8ff00"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Strike Zone"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <title>🎳 Strike Zone — Benvenuto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <!-- shared.js: tema + SW (senza splash, non serve sulla welcome) -->
+  <script src="../assets/js/shared.js"></script>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-glow::before {
+      content: '';
+      position: absolute;
+      top: 20%; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(ellipse, rgba(232,255,0,0.06) 0%, transparent 70%);
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+      50%       { opacity: 1;   transform: translateX(-50%) scale(1.1); }
+    }
+
+    .welcome-card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 3rem 2.5rem;
+      width: 420px;
+      max-width: 95vw;
+      text-align: center;
+      box-shadow: 0 0 80px rgba(0,0,0,0.5);
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .welcome-pin   { font-size: 4rem; display: block; margin-bottom: 1rem; animation: wobble 2s ease-in-out infinite; }
+    .welcome-title { font-family: 'Black Han Sans', sans-serif; font-size: 2.2rem; color: var(--neon); text-shadow: 0 0 30px rgba(232,255,0,0.5); letter-spacing: 0.08em; margin-bottom: 0.3rem; }
+    .welcome-sub   { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2.5rem; }
+
+    .welcome-divider { height: 1px; background: var(--border); margin: 2rem 0; }
+    .welcome-label   { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.2rem; }
+
+    .choice-buttons { display: flex; flex-direction: column; gap: 0.8rem; }
+
+    .btn-admin {
+      background: var(--neon); color: #0a0a0f;
+      border: none; border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 0 20px rgba(232,255,0,0.3);
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    }
+    .btn-admin:hover { box-shadow: 0 0 40px rgba(232,255,0,0.5); transform: translateY(-2px); }
+
+    .btn-guest {
+      background: none; color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 600; font-size: 1rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    }
+    .btn-guest:hover { border-color: var(--text-muted); color: var(--text); transform: translateY(-2px); }
+
+    .admin-form           { display: none; flex-direction: column; gap: 0.8rem; margin-top: 0.5rem; }
+    .admin-form.visible   { display: flex; }
+
+    .password-wrap          { position: relative; }
+    .password-wrap input    { padding-right: 3rem; }
+    .btn-show-pass {
+      position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 0;
+    }
+
+    .error-msg {
+      display: none;
+      color: var(--neon2);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem; letter-spacing: 0.05em; text-align: left;
+    }
+
+    .btn-back {
+      background: none; border: none;
+      color: var(--text-muted);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.68rem; letter-spacing: 0.1em;
+      cursor: pointer; text-decoration: underline; margin-top: 0.3rem;
+    }
+    .btn-back:hover { color: var(--text); }
+
+    .welcome-stats { margin-top: 2rem; display: grid; grid-template-columns: repeat(3,1fr); gap: 0.5rem; }
+    .welcome-stat  { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.4rem; }
+    .welcome-stat-val { font-family: 'Black Han Sans', sans-serif; font-size: 1.2rem; color: var(--neon); }
+    .welcome-stat-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.2rem; }
+  </style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="welcome-card">
+
+  <span class="welcome-pin">🎳</span>
+  <div class="welcome-title">STRIKE ZONE</div>
+  <div class="welcome-sub">Bowling Tracker v1.0</div>
+
+  <div class="welcome-stats" id="welcomeStats">
+    <div class="welcome-stat">
+      <div class="welcome-stat-val" id="ws-sessioni">—</div>
+      <div class="welcome-stat-lbl">Serate</div>
+    </div>
+    <div class="welcome-stat">
+      <div class="welcome-stat-val" id="ws-record">—</div>
+      <div class="welcome-stat-lbl">Record</div>
+    </div>
+    <div class="welcome-stat">
+      <div class="welcome-stat-val" id="ws-media">—</div>
+      <div class="welcome-stat-lbl">Media</div>
+    </div>
+  </div>
+
+  <div class="welcome-divider"></div>
+
+  <div class="welcome-label">Come vuoi accedere?</div>
+
+  <div class="choice-buttons" id="choiceButtons">
+    <button class="btn-admin" onclick="showAdminForm()">🔐 Amministratore</button>
+    <button class="btn-guest" onclick="enterAsGuest()">👤 Entra come ospite</button>
+  </div>
+
+  <div class="admin-form" id="adminForm">
+    <div class="password-wrap">
+      <input type="password" class="form-input" id="welcomePassword" placeholder="Password amministratore"
+        autocomplete="new-password" oninput="document.getElementById('welcomeError').style.display='none'"/>
+      <button class="btn-show-pass" onclick="togglePassword()" id="btnShowPass">👁</button>
+    </div>
+    <div class="error-msg" id="welcomeError">Password errata — riprova</div>
+    <button class="btn-admin" id="btnWelcomeLogin" onclick="submitWelcomeLogin()">Accedi</button>
+    <button class="btn-back" onclick="showChoiceButtons()">← Torna indietro</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const AUTH_API  = '../../api/auth.php';
+const TOKEN_KEY = 'sz_auth_token';
+
+async function loadWelcomeStats() {
+  try {
+    const data = await fetch('../../api/stats.php').then(r => r.json());
+    document.getElementById('ws-sessioni').textContent = data.totale_sessioni || '0';
+    document.getElementById('ws-record').textContent   = data.record_assoluto || '—';
+    document.getElementById('ws-media').textContent    = data.media_gruppo    || '—';
+  } catch(e) {}
+}
+
+function showAdminForm() {
+  document.getElementById('choiceButtons').style.display = 'none';
+  document.getElementById('adminForm').classList.add('visible');
+  setTimeout(() => document.getElementById('welcomePassword').focus(), 100);
+}
+
+function showChoiceButtons() {
+  document.getElementById('adminForm').classList.remove('visible');
+  document.getElementById('choiceButtons').style.display = 'flex';
+  document.getElementById('welcomePassword').value = '';
+  document.getElementById('welcomeError').style.display = 'none';
+}
+
+function togglePassword() {
+  const inp = document.getElementById('welcomePassword');
+  const btn = document.getElementById('btnShowPass');
+  if (inp.type === 'password') { inp.type = 'text';     btn.textContent = '🙈'; }
+  else                         { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+function enterAsGuest() {
+  localStorage.removeItem(TOKEN_KEY);
+  window.location.href = 'index.html';
+}
+
+async function submitWelcomeLogin() {
+  const btn      = document.getElementById('btnWelcomeLogin');
+  const password = document.getElementById('welcomePassword').value;
+  const errEl    = document.getElementById('welcomeError');
+
+  if (!password) { errEl.textContent = 'Inserisci la password'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Accesso in corso...';
+  errEl.style.display = 'none';
+
+  try {
+    const res  = await fetch(`${AUTH_API}?action=login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      window.location.href = 'index.html';
+    } else {
+      errEl.textContent = 'Password errata — riprova'; errEl.style.display = 'block';
+      document.getElementById('welcomePassword').value = '';
+      document.getElementById('welcomePassword').focus();
+    }
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione'; errEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Accedi';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('adminForm').classList.contains('visible')) {
+    submitWelcomeLogin();
+  }
+});
+
+// Init
+loadWelcomeStats();
+
+// Se c'è già un token valido, mostra il bottone "Continua come admin"
+const existingToken = localStorage.getItem(TOKEN_KEY);
+if (existingToken) {
+  const choiceBtns   = document.getElementById('choiceButtons');
+  const continueBtn  = document.createElement('button');
+  continueBtn.className   = 'btn-admin';
+  continueBtn.style.cssText = 'background:none;border:1px solid rgba(232,255,0,0.4);color:var(--neon);box-shadow:none';
+  continueBtn.innerHTML   = '⚡ Continua come amministratore';
+  continueBtn.onclick     = () => { window.location.href = 'index.html'; };
+  choiceBtns.insertBefore(continueBtn, choiceBtns.firstChild);
+}
+</script>
+</body>
+</html>
