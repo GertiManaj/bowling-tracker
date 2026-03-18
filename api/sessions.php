@@ -19,8 +19,21 @@ if ($method === 'GET') {
     ')->fetchAll();
 
     foreach ($sessions as &$session) {
-        $s = $pdo->prepare('SELECT * FROM scores_detail WHERE date = ?');
-        $s->execute([$session['date']]);
+        // Carica punteggi per session_id (non per date, altrimenti sessioni stesso giorno si sovrappongono)
+        $s = $pdo->prepare('
+            SELECT
+                sc.id, sc.session_id, sc.player_id, sc.team_id, sc.score, sc.game_number,
+                p.name AS player_name, p.emoji,
+                t.name AS team_name,
+                se.date, se.location
+            FROM scores sc
+            JOIN players p  ON sc.player_id  = p.id
+            JOIN sessions se ON sc.session_id = se.id
+            LEFT JOIN teams t ON sc.team_id = t.id
+            WHERE sc.session_id = ?
+            ORDER BY sc.team_id, sc.game_number, sc.id
+        ');
+        $s->execute([$session['id']]);
         $session['scores'] = $s->fetchAll();
 
         $t = $pdo->prepare('SELECT id, name FROM teams WHERE session_id = ?');

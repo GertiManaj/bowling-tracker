@@ -185,9 +185,12 @@ function renderAllTimeLeaderboard() {
     const nc = i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text)';
 
     // Calcola valori colonne
-    const serate  = parseInt(p.partite) || 0;
+    const serate   = parseInt(p.partite) || 0;
     const vittorie = parseInt(p.vittorie_squadra) || 0;
-    const winPct  = serate > 0 ? Math.round(vittorie / serate * 100) : null;
+    // winPct: null se il giocatore non ha mai fatto sfide (nessun risultato V/P/N)
+    // Usa vittorie_squadra come numeratore — ma solo se ha almeno una sessione con squadra
+    const hasSfide = vittorie > 0 || (p.ultimi_risultati || []).length > 0;
+    const winPct   = hasSfide && serate > 0 ? Math.round(vittorie / serate * 100) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
     // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
@@ -196,7 +199,9 @@ function renderAllTimeLeaderboard() {
     const risultati = p.ultimi_risultati || [];
     let formaBadge = '';
     if (!risultati.length) {
-      formaBadge = '<span style="color:var(--text-muted);font-size:0.7rem;font-family:\'Share Tech Mono\',monospace">—</span>';
+      // Nessuna sfida mai: 5 pallini grigi vuoti
+      const emptyOnly = Array(5).fill('<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>').join('');
+      formaBadge = `<div style="display:flex;gap:2px;justify-content:center">${emptyOnly}</div>`;
     } else {
       const dots = risultati.map(r => {
         if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#000;font-size:0.55rem;font-weight:700;font-family:\'Share Tech Mono\',monospace">V</span>';
