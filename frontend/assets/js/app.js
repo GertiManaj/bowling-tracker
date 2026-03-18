@@ -3,7 +3,7 @@
 //  Tutta la logica JS separata dall'HTML
 // ============================================
 
-const API = '/api'; // percorso relativo alla cartella api/
+const API = 'api'; // percorso relativo alla cartella api/
 
 // ── UTILITY ─────────────────────────────────
 
@@ -162,7 +162,7 @@ function renderAllTimeLeaderboard() {
     <div>Giocatore</div>
     <div ${hStyle('media')}>Media ${arrow('media')}</div>
     <div ${hStyle('record')}>Record ${arrow('record')}</div>
-    <div ${hStyle('partite')} class="col-partite">Serate ${arrow('partite')}</div>
+    <div ${hStyle('partite')} class="col-partite">Sfide ${arrow('partite')}</div>
     <div ${hStyle('win_pct')}>% Vitt ${arrow('win_pct')}</div>
     <div ${hStyle('top_scorer')}>Top 🏆 ${arrow('top_scorer')}</div>
     <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>`;
@@ -186,6 +186,7 @@ function renderAllTimeLeaderboard() {
 
     // Calcola valori colonne
     const serate           = parseInt(p.partite) || 0;
+    const sfide            = parseInt(p.sfide) || 0;
     const vittorie         = parseInt(p.vittorie_squadra) || 0;
     const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
     const hasSfide         = serateConSquadra > 0;
@@ -234,7 +235,7 @@ function renderAllTimeLeaderboard() {
           </div>
         </div>
         <div class="stat-cell best" style="${cellStyle('record')}">${p.record??'—'}</div>
-        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${p.partite}</div>
+        <div class="stat-cell col-partite" style="${cellStyle('partite')}">${sfide > 0 ? sfide : '—'}</div>
         <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct+'%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>

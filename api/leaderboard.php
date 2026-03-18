@@ -14,11 +14,12 @@ $stmt = $pdo->query('
         p.name,
         p.nickname,
         p.emoji,
-        COUNT(DISTINCT sc.session_id)          AS partite,
-        COUNT(sc.id)                           AS game_totali,
-        ROUND(AVG(sc.score), 1)                AS media,
-        MAX(sc.score)                          AS record,
-        MIN(sc.score)                          AS minimo
+        COUNT(DISTINCT sc.session_id)                                    AS partite,
+        COUNT(DISTINCT CASE WHEN sc.team_id IS NOT NULL THEN sc.session_id END) AS sfide,
+        COUNT(sc.id)                                                     AS game_totali,
+        ROUND(AVG(sc.score), 1)                                          AS media,
+        MAX(sc.score)                                                    AS record,
+        MIN(sc.score)                                                    AS minimo
     FROM players p
     LEFT JOIN scores sc ON sc.player_id = p.id
     GROUP BY p.id
