@@ -1086,4 +1086,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLeaderboard();
   loadSessions();
   loadHof();
+
+  // Apri modal nuova partita se richiesto da altra pagina
+  if (new URLSearchParams(window.location.search).get('nuova') === '1') {
+    setTimeout(openModal, 1800);
+  }
 });

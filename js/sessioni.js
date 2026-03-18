@@ -274,6 +274,7 @@ function openAddModal() {
   document.getElementById('totalA').textContent        = 'Totale: 0';
   document.getElementById('totalB').textContent        = 'Totale: 0';
   document.getElementById('btnSave').textContent       = 'Salva';
+  if (document.getElementById('numGames')) document.getElementById('numGames').value = '2';
 
   addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
   addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
@@ -339,10 +340,41 @@ function handleOverlayClick(e) {
 
 // ── RIGHE GIOCATORI ──────────────────────────
 
-function addPlayerRow(team, selectedId = null, score = '') {
+function buildGameRows() {
+  ['A','B'].forEach(t => {
+    document.querySelectorAll(`#team${t}Rows .score-row`).forEach(row => {
+      const pid = row.querySelector('select')?.value;
+      const scores = row.querySelectorAll('input[type="number"]');
+      const firstScore = scores[0]?.value || '';
+      // ricostruisci la riga con il nuovo numero di game
+      const ng = parseInt(document.getElementById('numGames')?.value) || 1;
+      const opts = row.querySelector('select').innerHTML;
+      let inputs = '';
+      for (let i = 1; i <= ng; i++) {
+        const val = scores[i-1]?.value || '';
+        inputs += `<input type="number" class="form-input score-input" placeholder="G${i}" min="0" max="300" data-game="${i}" value="${val}" style="width:60px" oninput="calcTotals();validateScoreInput(this)"/>`;
+      }
+      row.innerHTML = `
+        <select class="form-input" onchange="calcTotals()"><option value="">— Giocatore —</option>${opts}</select>
+        ${inputs}
+        <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
+      if (pid) row.querySelector('select').value = pid;
+    });
+  });
+  calcTotals();
+}
+
+function addPlayerRow(team, selectedId = null, scores = []) {
+  const ng = parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
   ).join('');
+
+  let inputs = '';
+  for (let i = 1; i <= ng; i++) {
+    const val = Array.isArray(scores) ? (scores[i-1] || '') : (i === 1 ? scores : '');
+    inputs += `<input type="number" class="form-input score-input" placeholder="G${i}" min="0" max="300" data-game="${i}" value="${val}" style="width:60px" oninput="calcTotals();validateScoreInput(this)"/>`;
+  }
 
   const row = document.createElement('div');
   row.className = 'score-row';
@@ -350,8 +382,7 @@ function addPlayerRow(team, selectedId = null, score = '') {
     <select class="form-input" onchange="calcTotals()">
       <option value="">— Giocatore —</option>${opts}
     </select>
-    <input type="number" class="form-input" placeholder="Score" min="0" max="300"
-      value="${score}" oninput="calcTotals();validateScoreInput(this)"/>
+    ${inputs}
     <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
   document.getElementById(`team${team}Rows`).appendChild(row);
 }
@@ -422,9 +453,17 @@ async function saveSession() {
     const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
     const players = [];
     document.querySelectorAll(`#team${t}Rows .score-row`).forEach(row => {
-      const pid   = row.querySelector('select')?.value;
-      const score = row.querySelector('input[type="number"]')?.value;
-      if (pid && score) players.push({ player_id: parseInt(pid), score: parseInt(score) });
+      const pid = row.querySelector('select')?.value;
+      if (!pid) return;
+      row.querySelectorAll('input[type="number"].score-input').forEach(input => {
+        const gameNum = parseInt(input.dataset.game) || 1;
+        if (input.value) players.push({ player_id: parseInt(pid), score: parseInt(input.value), game_number: gameNum });
+      });
+      // fallback per input senza classe score-input
+      if (!row.querySelector('.score-input')) {
+        const score = row.querySelector('input[type="number"]')?.value;
+        if (score) players.push({ player_id: parseInt(pid), score: parseInt(score), game_number: 1 });
+      }
     });
     if (players.length > 0) teams.push({ name, players });
   });

@@ -202,7 +202,7 @@ initTheme();
 
     <div class="modal-body">
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:0.8rem">
         <div class="form-group">
           <label class="form-label">Data *</label>
           <input type="date" class="form-input" id="sessionDate"/>
@@ -210,6 +210,16 @@ initTheme();
         <div class="form-group">
           <label class="form-label">Luogo</label>
           <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° Game</label>
+          <select class="form-input" id="numGames" onchange="buildGameRows()">
+            <option value="1">1 game</option>
+            <option value="2" selected>2 game</option>
+            <option value="3">3 game</option>
+            <option value="4">4 game</option>
+            <option value="5">5 game</option>
+          </select>
         </div>
       </div>
 
