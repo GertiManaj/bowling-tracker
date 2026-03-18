@@ -120,7 +120,7 @@ initTheme();
       <a href="statistiche.html">Statistiche</a>
       <a href="giocatori.html">Giocatori</a>
     </nav>
-    <button class="btn-new-session auth-required" onclick="openAddModal()">+ Nuova Partita</button>
+    <button class="btn-new-session auth-required" onclick="openModal()">+ Nuova Partita</button>
     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
     <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
     <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
@@ -191,20 +191,18 @@ initTheme();
 
 <footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
 
-<!-- ══ MODAL: AGGIUNGI / MODIFICA SESSIONE ══ -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
-  <div class="modal" style="width:620px">
 
+<!-- ══ MODAL: NUOVA PARTITA ══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="modalTitle">🎳 Nuova Partita</div>
+      <div class="modal-title">🎳 Nuova Partita</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-
     <div class="modal-body">
-
       <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:0.8rem">
         <div class="form-group">
-          <label class="form-label">Data *</label>
+          <label class="form-label">Data</label>
           <input type="date" class="form-input" id="sessionDate"/>
         </div>
         <div class="form-group">
@@ -222,12 +220,10 @@ initTheme();
           </select>
         </div>
       </div>
-
-      <!-- Squadra A -->
       <div class="team-section">
         <div class="team-section-header">
           <span class="team-section-title team-a-title">⚡ Squadra A</span>
-          <span class="total-display" id="totalA">Totale: 0</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
         </div>
         <div class="team-section-body">
           <div class="form-group">
@@ -238,12 +234,10 @@ initTheme();
           <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
         </div>
       </div>
-
-      <!-- Squadra B -->
       <div class="team-section">
         <div class="team-section-header">
           <span class="team-section-title team-b-title">🔥 Squadra B</span>
-          <span class="total-display" id="totalB">Totale: 0</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
         </div>
         <div class="team-section-body">
           <div class="form-group">
@@ -254,8 +248,6 @@ initTheme();
           <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
         </div>
       </div>
-
-      <!-- Giocatori singoli -->
       <div class="team-section">
         <div class="team-section-header">
           <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
@@ -266,19 +258,15 @@ initTheme();
           <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
         </div>
       </div>
-
-            <div class="form-group">
+      <div class="form-group">
         <label class="form-label">Note (opzionale)</label>
         <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
       </div>
-
     </div>
-
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal()">Annulla</button>
-      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva</button>
+      <button class="btn-primary" id="btnSave" onclick="saveSessionModal()">Salva Partita</button>
     </div>
-
   </div>
 </div>
 
@@ -305,6 +293,7 @@ initTheme();
 </div>
 
 <div class="toast" id="toast"></div>
+<script src="js/modal-partita.js"></script>
 <script src="js/sessioni.js"></script>
 
 <!-- ══ MODAL LOGIN ══ -->

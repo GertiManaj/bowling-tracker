@@ -120,7 +120,7 @@ initTheme();
       <a href="statistiche.html">Statistiche</a>
       <a href="giocatori.html" class="active">Giocatori</a>
     </nav>
-    <button class="btn-new-session auth-required" onclick="window.location.href='index.html?nuova=1'">+ Nuova Partita</button>
+    <button class="btn-new-session auth-required" onclick="openModal()">+ Nuova Partita</button>
     <button class="btn-new-session auth-required" onclick="openAddModal()">+ Giocatore</button>
     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
     <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
@@ -258,6 +258,116 @@ initTheme();
 <div class="toast" id="toast"></div>
 
 <script src="js/giocatori.js"></script>
+
+
+<!-- ══ MODAL: NUOVA PARTITA ══ -->
+<div class="modal-overlay" id="sessionModalOverlay" onclick="if(event.target===this)closeSessionModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🎳 Nuova Partita</div>
+      <button class="modal-close" onclick="closeSessionModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:0.8rem">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" class="form-input" id="sessionDate"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Luogo</label>
+          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° Game</label>
+          <select class="form-input" id="numGames" onchange="buildGameRows()">
+            <option value="1">1 game</option>
+            <option value="2" selected>2 game</option>
+            <option value="3">3 game</option>
+            <option value="4">4 game</option>
+            <option value="5">5 game</option>
+          </select>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-a-title">⚡ Squadra A</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
+          </div>
+          <div id="teamARows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title team-b-title">🔥 Squadra B</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
+        </div>
+        <div class="team-section-body">
+          <div class="form-group">
+            <label class="form-label">Nome squadra</label>
+            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
+          </div>
+          <div id="teamBRows"></div>
+          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Non partecipano alla sfida</span>
+        </div>
+        <div class="team-section-body">
+          <div id="soloRows"></div>
+          <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (opzionale)</label>
+        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeSessionModal()">Annulla</button>
+      <button class="btn-primary" id="btnSave" onclick="saveSessionModal()">Salva Partita</button>
+    </div>
+  </div>
+</div>
+<script src="js/modal-partita.js"></script>
+<script>
+function openModal() {
+  document.getElementById('sessionModalOverlay').classList.add('open');
+  // usa le funzioni di modal-partita.js ma con overlay diverso
+  if (!window.allPlayers || !window.allPlayers.length) {
+    fetch('api/players.php').then(r => r.json()).then(data => {
+      window.allPlayers = data;
+      document.getElementById('numGames').value = '2';
+      buildGameRows();
+    });
+  } else {
+    document.getElementById('numGames').value = '2';
+    buildGameRows();
+  }
+  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionLocation').value = '';
+  document.getElementById('sessionNotes').value = '';
+  document.getElementById('teamAName').value = '';
+  document.getElementById('teamBName').value = '';
+  document.getElementById('totalA').textContent = 'Totale: 0';
+  document.getElementById('totalB').textContent = 'Totale: 0';
+  document.getElementById('soloRows').innerHTML = '';
+  document.getElementById('btnSave').textContent = 'Salva Partita';
+}
+function closeSessionModal() {
+  document.getElementById('sessionModalOverlay').classList.remove('open');
+}
+// Override closeModal per giocatori
+var _origCloseModal = typeof closeModal !== 'undefined' ? closeModal : null;
+</script>
 
 <!-- ══ MODAL LOGIN ══ -->
 <div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
