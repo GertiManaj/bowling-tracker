@@ -1,30 +1,38 @@
 <?php
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$file = __DIR__ . $path;
 
-// Serve il service worker con l'header speciale
-if ($path === '/service-worker.js' && file_exists($file)) {
-    header('Service-Worker-Allowed: /');
-    header('Content-Type: application/javascript');
-    readfile($file);
-    exit;
-}
-
-// Redirect root → welcome.html
+// ── Redirect root → welcome.html ─────────────────────────────
 if ($path === '/' || $path === '') {
-    header('Location: /welcome.html');
+    header('Location: /frontend/pages/welcome.html');
     exit;
 }
 
-// Serve tutti gli altri file statici
-if ($path !== '/' && file_exists($file) && !is_dir($file)) {
-    return false;
+// ── Redirect URL "corte" senza prefisso (compatibilità link vecchi) ──
+// es. /giocatori.html  →  /frontend/pages/giocatori.html
+$pages = ['index.html','sessioni.html','statistiche.html','giocatori.html','profilo.html','welcome.html'];
+$basename = basename($path);
+if (in_array($basename, $pages) && $path === '/' . $basename) {
+    header('Location: /frontend/pages/' . $basename);
+    exit;
 }
 
-$index = __DIR__ . '/welcome.html';
-if (file_exists($index)) {
-    include $index;
-} else {
-    http_response_code(404);
-    echo '404 Not Found';
+// ── Service Worker (deve stare alla root per il suo scope) ────
+if ($path === '/service-worker.js') {
+    $file = __DIR__ . '/service-worker.js';
+    if (file_exists($file)) {
+        header('Service-Worker-Allowed: /');
+        header('Content-Type: application/javascript');
+        readfile($file);
+        exit;
+    }
 }
+
+// ── Serve il file fisico se esiste ───────────────────────────
+$file = __DIR__ . $path;
+if (file_exists($file) && !is_dir($file)) {
+    return false; // lascia al built-in server di PHP
+}
+
+// ── Fallback 404 ─────────────────────────────────────────────
+http_response_code(404);
+echo '404 Not Found';
