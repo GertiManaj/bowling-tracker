@@ -121,7 +121,8 @@ initTheme();
       <a href="statistiche.html" class="active">Statistiche</a>
       <a href="giocatori.html">Giocatori</a>
     </nav>
-    <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema" style="margin-left:auto">☀️</button>
+    <button class="btn-new-session auth-required" onclick="window.location.href='index.html'" style="margin-right:0.3rem">+ Nuova Partita</button>
+    <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>
     <button onclick="shareLink()" style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.45rem 0.9rem;border-radius:4px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--neon3)';this.style.color='var(--neon3)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔗 Condividi</button>
     <button class="btn-new-session auth-hidden" id="btnLogin" onclick="openLoginModal()" style="background:none;border:1px solid rgba(232,255,0,0.3);color:var(--neon)">🔐 Accedi</button>
     <button class="btn-secondary auth-required" id="btnLogout" onclick="logout()" style="margin-left:0.3rem">Esci</button>
