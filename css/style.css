@@ -83,17 +83,18 @@ header {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 0.5rem;
   padding: 1.2rem 0;
 }
 
-.logo           { display: flex; align-items: center; gap: 0.8rem; }
+.logo           { display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
 .logo-pin       { font-size: 2rem; animation: wobble 3s ease-in-out infinite; }
 .logo-text      { display: flex; flex-direction: column; line-height: 1; }
 .logo-title     { font-family: 'Black Han Sans', sans-serif; font-size: 1.8rem; color: var(--neon); text-shadow: 0 0 20px rgba(232,255,0,0.6), 0 0 60px rgba(232,255,0,0.2); letter-spacing: 0.05em; }
 .logo-sub       { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.3em; text-transform: uppercase; }
 
-nav             { display: flex; gap: 0.3rem; }
+nav             { display: flex; gap: 0.3rem; margin-right: auto; }
 nav a           { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; color: var(--text-muted); padding: 0.5rem 1rem; border: 1px solid transparent; border-radius: 4px; transition: all 0.2s; }
 nav a:hover,
 nav a.active    { color: var(--neon); border-color: rgba(232,255,0,0.3); background: rgba(232,255,0,0.05); text-shadow: 0 0 12px rgba(232,255,0,0.5); }
