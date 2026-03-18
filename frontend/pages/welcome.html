@@ -173,12 +173,12 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const AUTH_API  = '../../api/auth.php';
+const AUTH_API  = '/api/auth.php';
 const TOKEN_KEY = 'sz_auth_token';
 
 async function loadWelcomeStats() {
   try {
-    const data = await fetch('../../api/stats.php').then(r => r.json());
+    const data = await fetch('/api/stats.php').then(r => r.json());
     document.getElementById('ws-sessioni').textContent = data.totale_sessioni || '0';
     document.getElementById('ws-record').textContent   = data.record_assoluto || '—';
     document.getElementById('ws-media').textContent    = data.media_gruppo    || '—';

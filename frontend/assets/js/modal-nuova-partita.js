@@ -5,7 +5,7 @@
 //  NON includere in index.html (usa app.js direttamente)
 // ============================================
 
-const API = 'api';
+const API = '/api';
 let allPlayers = [];
 
 // ── APRI MODAL ───────────────────────────────

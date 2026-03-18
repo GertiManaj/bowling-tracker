@@ -3,7 +3,7 @@
 //  Tutta la logica JS separata dall'HTML
 // ============================================
 
-const API = '../../api'; // percorso relativo alla cartella api/
+const API = '/api'; // percorso relativo alla cartella api/
 
 // ── UTILITY ─────────────────────────────────
 
