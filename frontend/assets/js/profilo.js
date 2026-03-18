@@ -1,8 +1,7 @@
 // ============================================
 //  profilo.js — Pagina Profilo Giocatore
 // ============================================
-
-const API = '/api';
+// Nota: const API è definita in modal-nuova-partita.js caricato prima
 
 
 

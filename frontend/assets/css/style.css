@@ -730,3 +730,55 @@ header nav {
   background: rgba(255,255,255,0.05);
   color: var(--text);
 }
+
+/* ============================================
+   FIX HEADER CENTRATO — sovrascrive justify-content
+   ============================================ */
+.header-inner {
+  justify-content: flex-start !important;
+  gap: 1rem !important;
+}
+
+/* Logo fisso, nav prende spazio con margin-right auto */
+.header-inner .logo {
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+.header-inner nav {
+  margin-right: auto;
+  flex-shrink: 0;
+}
+
+/* header-actions non va a capo */
+.header-actions {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+/* ============================================
+   FIX TOGGLE PILL — assicura che i btn stiano
+   DENTRO il wrapper .lb-toggle-wrap
+   ============================================ */
+.lb-toggle-wrap {
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.lb-toggle-wrap .lb-toggle-btn {
+  border: none !important;
+  background: none !important;
+  color: var(--text-muted) !important;
+}
+
+.lb-toggle-wrap .lb-toggle-btn.active {
+  background: var(--neon) !important;
+  color: #0a0a0f !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 10px rgba(232,255,0,0.3) !important;
+}
+
+.lb-toggle-wrap .lb-toggle-btn:not(.active):hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--text) !important;
+}
