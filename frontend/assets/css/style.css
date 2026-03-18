@@ -782,3 +782,25 @@ header nav {
   background: rgba(255,255,255,0.06) !important;
   color: var(--text) !important;
 }
+
+/* ============================================
+   CONTENITORI PAGINA — max-width uniforme
+   Tutte le pagine usano 1200px centrato
+   ============================================ */
+main,
+.main-sessioni,
+.main-players,
+.main-stats,
+.main-profilo {
+  max-width: 1200px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box;
+}
+
+/* Hero bar inner allineato uguale */
+.hero-bar-inner {
+  max-width: 1200px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
