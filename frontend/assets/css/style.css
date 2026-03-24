@@ -1255,8 +1255,7 @@ body {
 .modal-overlay {
   transition: opacity 0.2s;
 }
-.modal-overlay:not(.open) { opacity: 0; pointer-events: none; }
-.modal-overlay.open       { opacity: 1; }
+/* modal-overlay gestito dalle regole esistenti in style.css riga 244-245 */
 
 /* ── FOOTER — gradient text ── */
 footer {
