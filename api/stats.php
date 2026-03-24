@@ -85,7 +85,7 @@ $qUltimi = $pdo->prepare("
     FROM scores sc
     JOIN sessions se ON sc.session_id = se.id
     WHERE sc.team_id IS NOT NULL
-    ORDER BY sc.player_id, se.date DESC
+    ORDER BY sc.player_id, sc.session_id DESC
 ");
 $qUltimi->execute();
 $ultimiRaw = $qUltimi->fetchAll();
