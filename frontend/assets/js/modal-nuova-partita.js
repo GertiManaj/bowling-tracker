@@ -20,7 +20,6 @@ async function openModal() {
   document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
   document.getElementById('sessionLocation').value = '';
   document.getElementById('sessionNotes').value    = '';
-  document.getElementById('sessionCost').value     = '';
   document.getElementById('teamAName').value       = '';
   document.getElementById('teamBName').value       = '';
   document.getElementById('numGames').value        = '2';
@@ -52,6 +51,8 @@ function buildGameRows() {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
+  // Resetta editingId se presente (usato da sessioni.js)
+  if (typeof editingId !== 'undefined') editingId = null;
 }
 
 function handleOverlayClick(e) {
@@ -214,27 +215,36 @@ async function saveSession() {
     return;
   }
 
+  // editingId può essere definito da sessioni.js quando si modifica
+  const sessionEditId = (typeof editingId !== 'undefined' && editingId) ? editingId : null;
+
   try {
+    const payload = {
+      date,
+      location: document.getElementById('sessionLocation').value || 'Bowling',
+      notes:    document.getElementById('sessionNotes').value,
+      cost_per_game: (() => {
+        const v = document.getElementById('sessionCost')?.value;
+        return (v !== '' && v != null) ? parseFloat(v) : null;
+      })(),
+      teams,
+      solo_players: soloPlayers
+    };
+
+    if (sessionEditId) payload.id = sessionEditId;
+
     const res = await fetch(`${API}/sessions.php`, {
-      method: 'POST',
+      method:  sessionEditId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        date,
-        location: document.getElementById('sessionLocation').value || 'Bowling',
-        notes:    document.getElementById('sessionNotes').value,
-        cost_per_game: (() => {
-          const v = document.getElementById('sessionCost')?.value;
-          return (v !== '' && v != null) ? parseFloat(v) : null;
-        })(),
-        teams,
-        solo_players: soloPlayers
-      })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
 
     if (data.success || data.session_id) {
       closeModal();
-      showToast('Partita salvata!');
+      showToast(sessionEditId ? 'Sessione aggiornata!' : 'Partita salvata!');
+      // Resetta editingId se era una modifica
+      if (typeof editingId !== 'undefined') editingId = null;
       // Ricarica dati della pagina corrente
       if (typeof loadAll        === 'function') loadAll();
       if (typeof loadSessions   === 'function') loadSessions();
