@@ -31,6 +31,7 @@ const RANK_METRICS = {
   partite:       { label: 'Presenze',   fmt: v => v ?? '—',                       unit: '' },
   vitt:          { label: 'Vittorie',   fmt: v => v ?? '—',                       unit: '' },
   media_recente: { label: 'Forma',      fmt: v => v ?? '—',                       unit: '' },
+  saldo:         { label: '€ Pagato',   fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
 };
 
 const MEDAL_COLORS = ['#ffd700', '#c0c0d0', '#cd7f32'];
@@ -47,6 +48,7 @@ function computeRankValue(p, metric) {
   if (metric === 'media')   return parseFloat(p.media)   || null;
   if (metric === 'record')  return parseInt(p.record)    || null;
   if (metric === 'partite') return parseInt(p.serate_con_squadra) || null;
+  if (metric === 'saldo')   return p.saldo_pagamenti != null ? parseFloat(p.saldo_pagamenti) : null;
   return null;
 }
 
