@@ -134,59 +134,60 @@ foreach ($playerResults as $pid => $results) {
 }
 
 // Precalcola vittorie_squadra, pareggi e serate_con_squadra per ogni giocatore
-$vittorieMap = [];
-$pareggiMap  = [];
+// Usa il $teamTotalCache già calcolato sopra per evitare query ridondanti
+$vittorieMap      = [];
+$pareggiMap       = [];
 $serateSquadraMap = [];
+
 foreach ($leaderboard as $pl) {
     $pid = $pl['id'];
-
-    // Serate con squadra
-    $qSCS = $pdo->prepare("
-        SELECT COUNT(DISTINCT sc.session_id)
-        FROM scores sc
-        JOIN sessions se ON sc.session_id = se.id
-        WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
-        " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
-    ");
     $params = array_merge([$pid], $dateParams);
-    $qSCS->execute($params);
-    $serateSquadraMap[$pid] = (int)$qSCS->fetchColumn();
 
-    // Sessioni con squadra del giocatore (per calcolare V/N/P)
-    $qSess = $pdo->prepare("
+    // Serate con squadra (filtrate per periodo)
+    $qSCS = $pdo->prepare("
         SELECT DISTINCT sc.session_id, sc.team_id
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
         WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
         " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
     ");
-    $qSess->execute($params);
-    $sessRows = $qSess->fetchAll();
+    $qSCS->execute($params);
+    $sessRows = $qSCS->fetchAll();
+
+    // Deduplicazione: una riga per sessione (prende il primo team_id)
+    $sessMap = [];
+    foreach ($sessRows as $sr) {
+        $sid = $sr['session_id'];
+        if (!isset($sessMap[$sid])) $sessMap[$sid] = $sr['team_id'];
+    }
 
     $vittorie = 0;
     $pareggi  = 0;
-    foreach ($sessRows as $sr) {
-        $sid = $sr['session_id'];
-        $tid = $sr['team_id'];
 
-        // Totale mio team
-        $qMy = $pdo->prepare('SELECT SUM(score) FROM scores WHERE session_id = ? AND team_id = ?');
-        $qMy->execute([$sid, $tid]);
-        $myTot = (int)$qMy->fetchColumn();
+    foreach ($sessMap as $sid => $tid) {
+        // Usa il cache già calcolato se disponibile
+        $teamTotals = $teamTotalCache[$sid] ?? [];
 
-        // Totali tutti i team
-        $qAll = $pdo->prepare('SELECT SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
-        $qAll->execute([$sid]);
-        $allTots = array_column($qAll->fetchAll(), 'tot');
-        $maxTot  = $allTots ? max($allTots) : 0;
-        $winCnt  = count(array_filter($allTots, fn($t) => (int)$t === (int)$maxTot));
+        if (empty($teamTotals)) {
+            // Fallback: ricalcola
+            $qTT = $pdo->prepare('SELECT team_id, SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
+            $qTT->execute([$sid]);
+            foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+        }
+
+        if (empty($teamTotals) || !isset($teamTotals[$tid])) continue;
+
+        $myTot  = (int)$teamTotals[$tid];
+        $maxTot = max($teamTotals);
+        $winCnt = count(array_filter($teamTotals, fn($t) => (int)$t === $maxTot));
 
         if ($myTot === $maxTot && $winCnt > 1) $pareggi++;
         elseif ($myTot === $maxTot)             $vittorie++;
     }
 
-    $vittorieMap[$pid] = $vittorie;
-    $pareggiMap[$pid]  = $pareggi;
+    $vittorieMap[$pid]      = $vittorie;
+    $pareggiMap[$pid]       = $pareggi;
+    $serateSquadraMap[$pid] = count($sessMap);
 }
 
 // Inietta tutti i campi nella leaderboard
