@@ -44,6 +44,11 @@ function getDB(): PDO {
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
+
+            // Migration automatica
+            require_once __DIR__ . '/migration.php';
+            runMigrations($pdo);
+
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['error' => 'Connessione DB fallita: ' . $e->getMessage()]);

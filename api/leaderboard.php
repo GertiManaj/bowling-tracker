@@ -164,4 +164,75 @@ foreach ($players as &$player) {
     $player['ultimi_risultati'] = array_reverse($risultati);
 }
 
+// ── CALCOLO PAGAMENTI ─────────────────────────────────────────────────────
+// Logica: vinci = €0, perdi = costo×game×2, pareggio = costo×game, singolo = costo×game
+
+$qSessWithCost = $pdo->query('
+    SELECT id, cost_per_game FROM sessions
+    WHERE cost_per_game IS NOT NULL AND cost_per_game > 0
+');
+$sessWithCost = $qSessWithCost->fetchAll();
+
+$paymentMap = []; // player_id → totale pagato
+
+foreach ($sessWithCost as $sess) {
+    $sid  = $sess['id'];
+    $cost = floatval($sess['cost_per_game']);
+
+    // Giocatori in questa sessione con i loro game e team
+    $qPG = $pdo->prepare('
+        SELECT player_id, team_id, COUNT(*) AS num_games
+        FROM scores WHERE session_id = ?
+        GROUP BY player_id, team_id
+    ');
+    $qPG->execute([$sid]);
+    $playerGames = $qPG->fetchAll();
+
+    // Totali per team
+    $qTT = $pdo->prepare('
+        SELECT team_id, SUM(score) AS tot
+        FROM scores WHERE session_id = ? AND team_id IS NOT NULL
+        GROUP BY team_id
+    ');
+    $qTT->execute([$sid]);
+    $teamTotals = [];
+    foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+
+    $maxTot     = $teamTotals ? max($teamTotals) : 0;
+    $winnerCnt  = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
+    $isDraw     = $winnerCnt > 1;
+
+    foreach ($playerGames as $pg) {
+        $pid    = $pg['player_id'];
+        $tid    = $pg['team_id'];
+        $nG     = (int)$pg['num_games'];
+        $base   = $cost * $nG;
+
+        if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
+
+        if ($tid === null) {
+            // Singolo — paga solo i suoi game
+            $paymentMap[$pid] += $base;
+        } elseif ($isDraw) {
+            // Pareggio — paga i suoi game
+            $paymentMap[$pid] += $base;
+        } elseif (($teamTotals[$tid] ?? 0) === $maxTot) {
+            // Vittoria — paga €0
+            $paymentMap[$pid] += 0;
+        } else {
+            // Sconfitta — paga il doppio
+            $paymentMap[$pid] += $base * 2;
+        }
+    }
+}
+
+// Inietta saldo_pagamenti in ogni giocatore
+foreach ($players as &$player) {
+    $pid = $player['id'];
+    $player['saldo_pagamenti'] = isset($paymentMap[$pid])
+        ? round($paymentMap[$pid], 2)
+        : null;
+}
+unset($player);
+
 echo json_encode(array_values($players));

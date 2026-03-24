@@ -168,7 +168,7 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr 100px;gap:0.8rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 100px 100px;gap:0.8rem">
         <div class="form-group">
           <label class="form-label">Data</label>
           <input type="date" class="form-input" id="sessionDate"/>
@@ -186,6 +186,10 @@
             <option value="4">4 game</option>
             <option value="5">5 game</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">€ / game</label>
+          <input type="number" class="form-input" id="sessionCost" placeholder="es. 4" min="0" step="0.5"/>
         </div>
       </div>
       <!-- Squadra A -->

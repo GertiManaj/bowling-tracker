@@ -177,6 +177,9 @@ function renderRanking() {
         <div class="rank-table-val ${isActive('partite') ? 'active-val' : ''}">${parseInt(p.serate_con_squadra) > 0 ? p.serate_con_squadra : '—'}</div>
         <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.75rem">${vnpBadge}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
+        <div class="rank-table-val" style="${p.saldo_pagamenti === 0 ? 'color:var(--neon)' : p.saldo_pagamenti > 0 ? 'color:var(--neon2)' : 'color:var(--text-muted)'}">
+          ${p.saldo_pagamenti != null ? '€' + parseFloat(p.saldo_pagamenti).toFixed(2) : '—'}
+        </div>
       </div>`;
   }).join('');
 }

@@ -14,7 +14,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 // ── GET ──────────────────────────────────────
 if ($method === 'GET') {
     $sessions = $pdo->query('
-        SELECT id, date, location, notes FROM sessions
+        SELECT id, date, location, notes, cost_per_game FROM sessions
         ORDER BY date DESC
     ')->fetchAll();
 
@@ -57,8 +57,13 @@ if ($method === 'POST') {
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes) VALUES (?, ?, ?)');
-        $stmt->execute([$data['date'], $data['location'] ?? 'Bowling', $data['notes'] ?? null]);
+        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes, cost_per_game) VALUES (?, ?, ?, ?)');
+        $stmt->execute([
+            $data['date'],
+            $data['location'] ?? 'Bowling',
+            $data['notes'] ?? null,
+            isset($data['cost_per_game']) && $data['cost_per_game'] !== '' ? floatval($data['cost_per_game']) : null
+        ]);
         $sessionId = $pdo->lastInsertId();
 
         // Squadre
@@ -109,8 +114,14 @@ if ($method === 'PUT') {
     $pdo->beginTransaction();
     try {
         // 1. Aggiorna dati sessione
-        $pdo->prepare('UPDATE sessions SET date = ?, location = ?, notes = ? WHERE id = ?')
-            ->execute([$data['date'], $data['location'] ?? 'Bowling', $data['notes'] ?? null, $id]);
+        $pdo->prepare('UPDATE sessions SET date = ?, location = ?, notes = ?, cost_per_game = ? WHERE id = ?')
+            ->execute([
+                $data['date'],
+                $data['location'] ?? 'Bowling',
+                $data['notes'] ?? null,
+                isset($data['cost_per_game']) && $data['cost_per_game'] !== '' ? floatval($data['cost_per_game']) : null,
+                $id
+            ]);
 
         // 2. Elimina vecchi scores e teams
         $pdo->prepare('DELETE FROM scores WHERE session_id = ?')->execute([$id]);

@@ -20,6 +20,7 @@ async function openModal() {
   document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
   document.getElementById('sessionLocation').value = '';
   document.getElementById('sessionNotes').value    = '';
+  document.getElementById('sessionCost').value     = '';
   document.getElementById('teamAName').value       = '';
   document.getElementById('teamBName').value       = '';
   document.getElementById('numGames').value        = '2';
@@ -221,6 +222,10 @@ async function saveSession() {
         date,
         location: document.getElementById('sessionLocation').value || 'Bowling',
         notes:    document.getElementById('sessionNotes').value,
+        cost_per_game: (() => {
+          const v = document.getElementById('sessionCost')?.value;
+          return (v !== '' && v != null) ? parseFloat(v) : null;
+        })(),
         teams,
         solo_players: soloPlayers
       })

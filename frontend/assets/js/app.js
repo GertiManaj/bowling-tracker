@@ -122,6 +122,7 @@ function getLbValue(p, field) {
   }
   if (field === 'top_scorer') return parseInt(p.volte_top_scorer) || 0;
   if (field === 'forma')      return (p.ultimi_risultati || []).filter(r => r === 'V').length;
+  if (field === 'saldo')      return p.saldo_pagamenti != null ? parseFloat(p.saldo_pagamenti) : -1;
   return 0;
 }
 
@@ -141,7 +142,7 @@ function renderAllTimeLeaderboard() {
     return lbSortDir === 'desc' ? vb - va : va - vb;
   });
 
-  const cols = '48px 1fr 90px 80px 80px 80px 80px 80px';
+  const cols = '48px 1fr 90px 80px 80px 80px 70px 80px 72px';
 
   // Freccia indicatore ordinamento
   const arrow = (field) => {
@@ -165,7 +166,8 @@ function renderAllTimeLeaderboard() {
     <div ${hStyle('partite')} class="col-partite">Sfide ${arrow('partite')}</div>
     <div ${hStyle('win_pct')}>% Vitt ${arrow('win_pct')}</div>
     <div ${hStyle('top_scorer')}>Top 🏆 ${arrow('top_scorer')}</div>
-    <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>`;
+    <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>
+    <div ${hStyle('saldo')}>💶 ${arrow('saldo')}</div>`;
   document.getElementById('lb-header').style.gridTemplateColumns = cols;
 
   const maxM    = sorted.length ? Math.max(...sorted.map(p => parseFloat(p.media) || 0)) : 1;
@@ -239,6 +241,9 @@ function renderAllTimeLeaderboard() {
         <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct+'%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
+        <div class="stat-cell" style="${cellStyle('saldo') || (p.saldo_pagamenti === 0 ? 'color:var(--neon)' : p.saldo_pagamenti > 0 ? 'color:var(--neon2)' : '')}">
+          ${p.saldo_pagamenti != null ? '€' + p.saldo_pagamenti.toFixed(2) : '—'}
+        </div>
       </div>`;
   });
 

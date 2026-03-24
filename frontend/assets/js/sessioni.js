@@ -269,6 +269,8 @@ function openEditModal(id) {
   document.getElementById('sessionDate').value      = s.date;
   document.getElementById('sessionLocation').value  = s.location || '';
   document.getElementById('sessionNotes').value     = s.notes    || '';
+  const costEl = document.getElementById('sessionCost');
+  if (costEl) costEl.value = s.cost_per_game != null ? s.cost_per_game : '';
   document.getElementById('btnSave').textContent    = 'Aggiorna';
 
   // Determina numGames dalla sessione (massimo game_number trovato)
