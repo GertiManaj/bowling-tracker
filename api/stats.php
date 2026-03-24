@@ -130,7 +130,8 @@ foreach ($ultimiRaw as $r) {
 
 $playerTeamTotals = [];
 foreach ($playerResults as $pid => $results) {
-    $playerTeamTotals[$pid] = array_column($results, 'esito');
+    // La query ordina session_id DESC (recente→vecchio), invertiamo per avere vecchio→recente
+    $playerTeamTotals[$pid] = array_reverse(array_column($results, 'esito'));
 }
 
 // Precalcola vittorie_squadra, pareggi e serate_con_squadra per ogni giocatore
