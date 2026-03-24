@@ -140,9 +140,83 @@ foreach ($teammatesRaw as $t) {
     $teammates[] = $t;
 }
 
+// ── CALCOLO PAGAMENTI ─────────────────────────
+// Stessa logica di leaderboard.php ma filtrata per questo giocatore
+$qSessWithCost = $pdo->query('
+    SELECT id, cost_per_game FROM sessions
+    WHERE cost_per_game IS NOT NULL AND cost_per_game > 0
+');
+$sessWithCost = $qSessWithCost->fetchAll();
+
+$saldoTotale   = 0.0;
+$hasCostData   = false;
+$paymentDetail = []; // dettaglio per sessione
+
+foreach ($sessWithCost as $sess) {
+    $sid  = $sess['id'];
+    $cost = floatval($sess['cost_per_game']);
+
+    // Controlla se il giocatore era in questa sessione
+    $qPG = $pdo->prepare('
+        SELECT team_id, COUNT(*) AS num_games
+        FROM scores WHERE session_id = ? AND player_id = ?
+        GROUP BY team_id
+    ');
+    $qPG->execute([$sid, $id]);
+    $pgRow = $qPG->fetch();
+    if (!$pgRow) continue;
+
+    $hasCostData = true;
+    $tid  = $pgRow['team_id'];
+    $nG   = (int)$pgRow['num_games'];
+    $base = $cost * $nG;
+
+    // Totali team nella sessione
+    $qTT = $pdo->prepare('
+        SELECT team_id, SUM(score) AS tot
+        FROM scores WHERE session_id = ? AND team_id IS NOT NULL
+        GROUP BY team_id
+    ');
+    $qTT->execute([$sid]);
+    $teamTotals = [];
+    foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+
+    $pagato = 0.0;
+    if ($tid === null) {
+        // Singolo
+        $pagato = $base;
+        $esito  = 'singolo';
+    } else {
+        $maxTot    = $teamTotals ? max($teamTotals) : 0;
+        $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
+        $isDraw    = $winnerCnt > 1;
+        $myTot     = $teamTotals[$tid] ?? 0;
+
+        if ($isDraw) {
+            $pagato = $base;
+            $esito  = 'pareggio';
+        } elseif ($myTot === $maxTot) {
+            $pagato = 0.0;
+            $esito  = 'vittoria';
+        } else {
+            $pagato = $base * 2;
+            $esito  = 'sconfitta';
+        }
+    }
+
+    $saldoTotale += $pagato;
+    $paymentDetail[] = [
+        'session_id'    => $sid,
+        'cost_per_game' => $cost,
+        'num_games'     => $nG,
+        'pagato'        => round($pagato, 2),
+        'esito'         => $esito,
+    ];
+}
+
 echo json_encode([
-    'player'       => $player,
-    'stats'        => [
+    'player'          => $player,
+    'stats'           => [
         'serate'          => $serate,
         'game_totali'     => (int)$gameStats['game_totali'],
         'media_serata'    => $mediaSerata,
@@ -151,9 +225,11 @@ echo json_encode([
         'minimo_serata'   => $minimoSerata,
         'vittorie_squadra'=> (int)$vittorie,
         'volte_top_scorer'=> (int)$topScorer,
+        'saldo_pagamenti' => $hasCostData ? round($saldoTotale, 2) : null,
+        'payment_detail'  => $paymentDetail,
     ],
-    'media_gruppo' => (float)$mediaGruppo,
-    'history'      => $history,
-    'trend'        => $trend,
-    'teammates'    => $teammates,
+    'media_gruppo'    => (float)$mediaGruppo,
+    'history'         => $history,
+    'trend'           => $trend,
+    'teammates'       => $teammates,
 ]);

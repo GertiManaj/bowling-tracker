@@ -139,14 +139,15 @@ function renderRanking() {
       : `<div class="rank-table-rank" style="color:var(--text-muted);font-size:0.85rem">${i+1}</div>`;
 
     const vittorie         = parseInt(p.vittorie_squadra) || 0;
+    const pareggi          = parseInt(p.pareggi_squadra)  || 0;
     const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
     const hasSfide         = serateConSquadra > 0;
     const winPct           = hasSfide ? Math.round(vittorie / serateConSquadra * 100) : null;
-    const sconfitte        = hasSfide ? Math.max(0, serateConSquadra - vittorie) : null;
+    const sconfitte        = hasSfide ? Math.max(0, serateConSquadra - vittorie - pareggi) : null;
 
     // Colonna V/N/P
     const vnpBadge = hasSfide
-      ? '<span style="color:#22c55e;font-weight:700">' + vittorie + 'V</span> <span style="color:#666680">0N</span> <span style="color:#ef4444">' + sconfitte + 'P</span>'
+      ? '<span style="color:#22c55e;font-weight:700">' + vittorie + 'V</span> <span style="color:#666680">' + pareggi + 'N</span> <span style="color:#ef4444">' + sconfitte + 'P</span>'
       : '—';
 
     // Badge forma — pallini V/P/N

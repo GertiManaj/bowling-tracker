@@ -1,9 +1,8 @@
 // ============================================
 //  profilo.js — Pagina Profilo Giocatore
 // ============================================
-// Nota: const API è definita in modal-nuova-partita.js caricato prima
 
-
+const API = 'api';
 
 const PLAYER_COLORS = [
   '#e8ff00','#00f5ff','#ff6b35','#ff3cac',
@@ -118,7 +117,18 @@ function renderStatsGrid(data, color) {
       <div class="stat-card-label">Top scorer</div>
       <div class="stat-card-value" style="color:var(--neon3);text-shadow:0 0 15px var(--neon3)">${topScore}</div>
       <div class="stat-card-sub">volte miglior serata</div>
-    </div>`;
+    </div>
+    ${(() => {
+      const saldoVal = s.saldo_pagamenti != null ? s.saldo_pagamenti : null;
+      const saldoText = saldoVal != null ? '€' + parseFloat(saldoVal).toFixed(2) : '—';
+      const saldoColor = saldoVal === 0 ? 'var(--neon)' : saldoVal > 0 ? 'var(--neon2)' : 'var(--text-muted)';
+      const saldoSub = saldoVal === 0 ? 'hai vinto tutto 🏆' : saldoVal != null ? 'totale pagato' : 'nessuna sessione con costo';
+      return `<div class="stat-card" style="--accent-color:${saldoColor}">
+        <div class="stat-card-label">Totale pagato</div>
+        <div class="stat-card-value" style="color:${saldoColor};text-shadow:0 0 15px ${saldoColor}">${saldoText}</div>
+        <div class="stat-card-sub">${saldoSub}</div>
+      </div>`;
+    })()}`;
 }
 
 // ── GRAFICO TREND ────────────────────────────

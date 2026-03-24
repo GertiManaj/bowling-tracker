@@ -48,7 +48,6 @@ $recordHolder = $qRec->fetch();
 $qLb = $pdo->prepare("
     SELECT p.id, p.name, p.emoji, p.nickname,
            COUNT(DISTINCT sc.session_id)  AS partite,
-           COUNT(DISTINCT CASE WHEN sc.team_id IS NOT NULL THEN sc.session_id END) AS sfide,
            COUNT(sc.id)                   AS game_totali,
            ROUND(AVG(sc.score),1)         AS media,
            MAX(sc.score)                  AS record,
@@ -134,8 +133,9 @@ foreach ($playerResults as $pid => $results) {
     $playerTeamTotals[$pid] = array_column($results, 'esito');
 }
 
-// Precalcola vittorie_squadra e serate_con_squadra per ogni giocatore
+// Precalcola vittorie_squadra, pareggi e serate_con_squadra per ogni giocatore
 $vittorieMap = [];
+$pareggiMap  = [];
 $serateSquadraMap = [];
 foreach ($leaderboard as $pl) {
     $pid = $pl['id'];
@@ -152,24 +152,41 @@ foreach ($leaderboard as $pl) {
     $qSCS->execute($params);
     $serateSquadraMap[$pid] = (int)$qSCS->fetchColumn();
 
-    // Vittorie squadra (una per sessione, non per game)
-    $qVitt = $pdo->prepare("
-        SELECT COUNT(DISTINCT sc.session_id) AS vittorie
+    // Sessioni con squadra del giocatore (per calcolare V/N/P)
+    $qSess = $pdo->prepare("
+        SELECT DISTINCT sc.session_id, sc.team_id
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
-        WHERE sc.player_id = ?
-        AND sc.team_id IS NOT NULL
-        AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id AND s2.session_id = sc.session_id) = (
-            SELECT MAX(team_tot) FROM (
-                SELECT SUM(s3.score) AS team_tot FROM scores s3
-                WHERE s3.session_id = sc.session_id AND s3.team_id IS NOT NULL
-                GROUP BY s3.team_id
-            ) t
-        )
+        WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
         " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
     ");
-    $qVitt->execute($params);
-    $vittorieMap[$pid] = (int)$qVitt->fetchColumn();
+    $qSess->execute($params);
+    $sessRows = $qSess->fetchAll();
+
+    $vittorie = 0;
+    $pareggi  = 0;
+    foreach ($sessRows as $sr) {
+        $sid = $sr['session_id'];
+        $tid = $sr['team_id'];
+
+        // Totale mio team
+        $qMy = $pdo->prepare('SELECT SUM(score) FROM scores WHERE session_id = ? AND team_id = ?');
+        $qMy->execute([$sid, $tid]);
+        $myTot = (int)$qMy->fetchColumn();
+
+        // Totali tutti i team
+        $qAll = $pdo->prepare('SELECT SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
+        $qAll->execute([$sid]);
+        $allTots = array_column($qAll->fetchAll(), 'tot');
+        $maxTot  = $allTots ? max($allTots) : 0;
+        $winCnt  = count(array_filter($allTots, fn($t) => (int)$t === (int)$maxTot));
+
+        if ($myTot === $maxTot && $winCnt > 1) $pareggi++;
+        elseif ($myTot === $maxTot)             $vittorie++;
+    }
+
+    $vittorieMap[$pid] = $vittorie;
+    $pareggiMap[$pid]  = $pareggi;
 }
 
 // Inietta tutti i campi nella leaderboard
@@ -178,64 +195,8 @@ foreach ($leaderboard as &$p) {
     $p['media_recente']      = $recentMap[$pid] ?? null;
     $p['ultimi_risultati']   = $playerTeamTotals[$pid] ?? [];
     $p['vittorie_squadra']   = $vittorieMap[$pid] ?? 0;
+    $p['pareggi_squadra']    = $pareggiMap[$pid]  ?? 0;
     $p['serate_con_squadra'] = $serateSquadraMap[$pid] ?? 0;
-}
-unset($p);
-
-// ── CALCOLO PAGAMENTI (filtrato per periodo) ──────────────────────────────
-$qSessWithCost = $pdo->prepare("
-    SELECT se.id, se.cost_per_game
-    FROM sessions se
-    WHERE se.cost_per_game IS NOT NULL AND se.cost_per_game > 0
-    " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
-");
-$qSessWithCost->execute($dateParams);
-$sessWithCost = $qSessWithCost->fetchAll();
-
-$paymentMap = [];
-foreach ($sessWithCost as $sess) {
-    $sid  = $sess['id'];
-    $cost = floatval($sess['cost_per_game']);
-
-    $qPG = $pdo->prepare('
-        SELECT player_id, team_id, COUNT(*) AS num_games
-        FROM scores WHERE session_id = ?
-        GROUP BY player_id, team_id
-    ');
-    $qPG->execute([$sid]);
-    $playerGames = $qPG->fetchAll();
-
-    $qTT = $pdo->prepare('
-        SELECT team_id, SUM(score) AS tot
-        FROM scores WHERE session_id = ? AND team_id IS NOT NULL
-        GROUP BY team_id
-    ');
-    $qTT->execute([$sid]);
-    $teamTotals = [];
-    foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
-
-    $maxTot    = $teamTotals ? max($teamTotals) : 0;
-    $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
-    $isDraw    = $winnerCnt > 1;
-
-    foreach ($playerGames as $pg) {
-        $pid  = $pg['player_id'];
-        $tid  = $pg['team_id'];
-        $nG   = (int)$pg['num_games'];
-        $base = $cost * $nG;
-
-        if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
-
-        if ($tid === null)                               $paymentMap[$pid] += $base;
-        elseif ($isDraw)                                 $paymentMap[$pid] += $base;
-        elseif (($teamTotals[$tid] ?? 0) === $maxTot)   $paymentMap[$pid] += 0;
-        else                                             $paymentMap[$pid] += $base * 2;
-    }
-}
-
-foreach ($leaderboard as &$p) {
-    $pid = $p['id'];
-    $p['saldo_pagamenti'] = isset($paymentMap[$pid]) ? round($paymentMap[$pid], 2) : null;
 }
 unset($p);
 
