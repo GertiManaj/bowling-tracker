@@ -121,7 +121,7 @@ function renderRanking() {
   }).join('');
 
   // Aggiorna header colonna attiva
-  const colIds = { media:'thMedia', win_pct:'thWin', record:'thRecord', partite:'thPartite', vitt:'thVitt', media_recente:'thForma' };
+  const colIds = { media:'thMedia', win_pct:'thWin', record:'thRecord', partite:'thPartite', vitt:'thVitt', media_recente:'thForma', saldo:'thSaldo' };
   Object.values(colIds).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('active-col');
