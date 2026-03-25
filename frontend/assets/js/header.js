@@ -2,16 +2,17 @@
 //  header.js — Inietta header e splash
 // ============================================
 
-// ── HAMBURGER MENU — funzioni globali ────────
+var NAV_LINKS = [
+  { href: 'index.html',       label: 'Dashboard',   key: 'dashboard'   },
+  { href: 'sessioni.html',    label: 'Sessioni',     key: 'sessioni'    },
+  { href: 'statistiche.html', label: 'Statistiche',  key: 'statistiche' },
+  { href: 'giocatori.html',   label: 'Giocatori',    key: 'giocatori'   },
+];
+
 function toggleHamburgerMenu() {
   var menu = document.getElementById('hamburgerMenu');
   if (!menu) return;
-  var isOpen = menu.classList.contains('open');
-  if (isOpen) {
-    menu.classList.remove('open');
-  } else {
-    menu.classList.add('open');
-  }
+  menu.classList.toggle('open');
 }
 
 function closeHamburgerMenu() {
@@ -19,21 +20,7 @@ function closeHamburgerMenu() {
   if (menu) menu.classList.remove('open');
 }
 
-// Chiudi menu cliccando fuori
-document.addEventListener('click', function(e) {
-  var wrap = document.querySelector('.hamburger-wrap');
-  if (wrap && !wrap.contains(e.target)) closeHamburgerMenu();
-});
-
-// ── HEADER INJECTION ─────────────────────────
 (function () {
-
-  var NAV_LINKS = [
-    { href: 'index.html',       label: 'Dashboard',   key: 'dashboard'   },
-    { href: 'sessioni.html',    label: 'Sessioni',     key: 'sessioni'    },
-    { href: 'statistiche.html', label: 'Statistiche',  key: 'statistiche' },
-    { href: 'giocatori.html',   label: 'Giocatori',    key: 'giocatori'   },
-  ];
 
   function buildHTML(active, extraBtn) {
 
@@ -51,8 +38,7 @@ document.addEventListener('click', function(e) {
       '<div class="hamburger-wrap">' +
         '<button class="btn-hamburger" onclick="toggleHamburgerMenu()" title="Menu">☰</button>' +
         '<div class="hamburger-menu" id="hamburgerMenu">' +
-          // Sezione admin
-          '<div id="hamburgerAdminSection">' +
+          '<div id="hamburgerAdminSection" style="display:none">' +
             '<div class="hamburger-label">Azioni Admin</div>' +
             '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
             newGiocatoreBtn +
@@ -60,8 +46,7 @@ document.addEventListener('click', function(e) {
             '<div class="hamburger-divider"></div>' +
             '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
           '</div>' +
-          // Sezione ospite
-          '<div id="hamburgerGuestSection">' +
+          '<div id="hamburgerGuestSection" style="display:none">' +
             '<div class="hamburger-label">Menu</div>' +
             '<div class="hamburger-guest-msg">Non sei amministratore.<br>Accedi per gestire i dati.</div>' +
             '<button class="hamburger-item" onclick="openLoginModal();closeHamburgerMenu()">🔐 Accedi come Admin</button>' +
@@ -104,6 +89,15 @@ document.addEventListener('click', function(e) {
     placeholder.parentNode.removeChild(placeholder);
 
     if (typeof initTheme === 'function') initTheme();
+
+    // Ora che l'header è nel DOM, aggiorna subito l'UI auth
+    if (typeof applyAuthUI === 'function') applyAuthUI();
+
+    // Chiudi menu cliccando fuori — registrato DOPO che il DOM esiste
+    document.addEventListener('click', function(e) {
+      var wrap = document.querySelector('.hamburger-wrap');
+      if (wrap && !wrap.contains(e.target)) closeHamburgerMenu();
+    });
   }
 
   inject();
