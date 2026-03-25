@@ -269,37 +269,7 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
-<div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="gModalTitle">➕ Nuovo Giocatore</div>
-      <button class="modal-close" onclick="closeGModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Avatar</label>
-        <div class="emoji-grid" id="emojiGrid"></div>
-        <input type="hidden" id="selectedEmoji" value="🎳"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nome *</label>
-        <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Soprannome</label>
-        <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50"/>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeGModal()">Annulla</button>
-      <button class="btn-primary" id="btnSavePlayer" onclick="savePlayer()">Salva</button>
-    </div>
-  </div>
-</div>
-
 <script src="../assets/js/auth.js"></script>
-<script src="../assets/js/modal-giocatore.js"></script>
 <script src="../assets/js/screenshot.js"></script>
 <script src="../assets/js/app.js"></script>
 </body>
