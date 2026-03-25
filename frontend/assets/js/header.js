@@ -57,7 +57,7 @@ function updateHamburgerSections() {
         '<div class="hamburger-menu" id="hamburgerMenu">' +
           '<div class="hamburger-label">Azioni Admin</div>' +
           '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
-          newGiocatoreBtn +
+          '<button class="hamburger-item" onclick="openAddModal();closeHamburgerMenu()">➕ Nuovo Giocatore</button>' +
           '<button class="hamburger-item" onclick="exportData();closeHamburgerMenu()">💾 Backup Database</button>' +
           '<div class="hamburger-divider"></div>' +
           '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
