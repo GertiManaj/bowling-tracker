@@ -75,13 +75,14 @@ function applyAuthUI() {
     el.style.display = window.isLoggedIn ? 'none' : '';
   });
 
+  // Bottoni header Accedi / Esci
+  const btnLogin  = document.getElementById('btnLogin');
+  if (btnLogin)  btnLogin.style.display = window.isLoggedIn ? 'none' : '';
+
   // Bottoni modifica/elimina sessioni — solo admin
   document.querySelectorAll('.action-btn-wrap').forEach(el => {
     el.style.display = window.isLoggedIn ? '' : 'none';
   });
-
-  // Aggiorna sezioni hamburger (se già nel DOM)
-  if (typeof updateHamburgerSections === 'function') updateHamburgerSections();
 }
 
 // ── LOGIN ────────────────────────────────────

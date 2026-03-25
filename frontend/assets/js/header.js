@@ -11,6 +11,18 @@ var NAV_LINKS = [
 
 // ── HAMBURGER ────────────────────────────────
 function toggleHamburgerMenu() {
+  var loggedIn = window.isLoggedIn || false;
+
+  if (!loggedIn) {
+    // Non loggato → mostra toast errore
+    if (typeof showToast === 'function') {
+      showToast('Devi prima accedere come amministratore', 'error');
+    } else {
+      alert('Devi prima accedere come amministratore');
+    }
+    return;
+  }
+
   var menu = document.getElementById('hamburgerMenu');
   if (!menu) return;
   menu.classList.toggle('open');
@@ -21,13 +33,8 @@ function closeHamburgerMenu() {
   if (menu) menu.classList.remove('open');
 }
 
-// Aggiorna le sezioni del menu in base allo stato login
 function updateHamburgerSections() {
-  var loggedIn = window.isLoggedIn || false;
-  var adminEl  = document.getElementById('hamburgerAdminSection');
-  var guestEl  = document.getElementById('hamburgerGuestSection');
-  if (adminEl) adminEl.style.display = loggedIn ? 'block' : 'none';
-  if (guestEl) guestEl.style.display = loggedIn ? 'none'  : 'block';
+  // Nulla da fare — il menu è solo per admin, la visibilità è gestita da toggleHamburgerMenu
 }
 
 (function () {
@@ -48,19 +55,12 @@ function updateHamburgerSections() {
       '<div class="hamburger-wrap">' +
         '<button class="btn-hamburger" onclick="toggleHamburgerMenu()" title="Menu">☰</button>' +
         '<div class="hamburger-menu" id="hamburgerMenu">' +
-          '<div id="hamburgerAdminSection">' +
-            '<div class="hamburger-label">Azioni Admin</div>' +
-            '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
-            newGiocatoreBtn +
-            '<button class="hamburger-item" onclick="exportData();closeHamburgerMenu()">💾 Backup Database</button>' +
-            '<div class="hamburger-divider"></div>' +
-            '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
-          '</div>' +
-          '<div id="hamburgerGuestSection">' +
-            '<div class="hamburger-label">Menu</div>' +
-            '<div class="hamburger-guest-msg">Non sei amministratore.<br>Accedi per gestire i dati.</div>' +
-            '<button class="hamburger-item" onclick="openLoginModal();closeHamburgerMenu()">🔐 Accedi come Admin</button>' +
-          '</div>' +
+          '<div class="hamburger-label">Azioni Admin</div>' +
+          '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
+          newGiocatoreBtn +
+          '<button class="hamburger-item" onclick="exportData();closeHamburgerMenu()">💾 Backup Database</button>' +
+          '<div class="hamburger-divider"></div>' +
+          '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
         '</div>' +
       '</div>';
 
@@ -79,6 +79,7 @@ function updateHamburgerSections() {
           '<div class="header-actions">' +
             '<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>' +
             '<button class="btn-share" onclick="shareLink()">🔗 Condividi</button>' +
+            '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' +
             menuHtml +
           '</div>' +
         '</div>' +
@@ -98,9 +99,7 @@ function updateHamburgerSections() {
     placeholder.parentNode.removeChild(placeholder);
 
     if (typeof initTheme === 'function') initTheme();
-
-    // Aggiorna sezioni hamburger ora che il DOM esiste
-    updateHamburgerSections();
+    if (typeof applyAuthUI === 'function') applyAuthUI();
 
     // Chiudi menu cliccando fuori
     document.addEventListener('click', function(e) {
