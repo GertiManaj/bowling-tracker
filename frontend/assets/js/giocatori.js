@@ -122,7 +122,7 @@ function renderPlayers() {
           <div style="margin-left:auto;font-size:0.65rem;font-family:'Share Tech Mono',monospace;color:var(--text-muted);letter-spacing:0.1em">PROFILO →</div>
         </div>
         ${statsHtml}
-        <div class="player-card-actions action-btn-wrap">
+        <div class="player-card-actions action-btn-wrap" style="display:${window.isLoggedIn ? '' : 'none'}">
           <button class="player-action-btn edit" onclick="openEditModal(${p.id})">✏ Modifica</button>
           <button class="player-action-btn delete" onclick="openDeleteModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">✕ Elimina</button>
         </div>
@@ -156,6 +156,7 @@ function filterPlayers() {
 // ── MODAL ELIMINA ────────────────────────────
 
 function openDeleteModal(id, name) {
+  if (!window.isLoggedIn) { openLoginModal(); return; }
   deletingId = id;
   document.getElementById('deletePlayerName').textContent = name;
   document.getElementById('deleteOverlay').classList.add('open');
