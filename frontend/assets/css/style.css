@@ -1452,3 +1452,83 @@ body.light .skeleton {
     min-width: 200px;
   }
 }
+
+/* ── EMOJI GRID (modal giocatore — disponibile su tutte le pagine) ── */
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.4rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem;
+}
+
+.emoji-btn {
+  font-size: 1.3rem;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0.3rem;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+}
+
+.emoji-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--border);
+}
+
+.emoji-btn.selected {
+  border-color: var(--neon);
+  background: rgba(232,255,0,0.1);
+  box-shadow: 0 0 8px rgba(232,255,0,0.3);
+}
+
+@media (max-width: 640px) {
+  .emoji-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ── SELETTORE EMOJI (modale giocatore — tutte le pagine) ── */
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.4rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem;
+}
+
+.emoji-btn {
+  font-size: 1.3rem;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0.3rem;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+}
+
+.emoji-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--border);
+}
+
+.emoji-btn.selected {
+  border-color: var(--neon);
+  background: rgba(232,255,0,0.1);
+  box-shadow: 0 0 8px rgba(232,255,0,0.3);
+}
+
+@media (max-width: 640px) {
+  .emoji-grid { grid-template-columns: repeat(6, 1fr); }
+}
