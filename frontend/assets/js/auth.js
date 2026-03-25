@@ -81,10 +81,16 @@ function applyAuthUI() {
   if (btnLogin)  btnLogin.style.display  = window.isLoggedIn ? 'none' : '';
   if (btnLogout) btnLogout.style.display = window.isLoggedIn ? '' : 'none';
 
-  // Bottoni azione nelle card/tabelle
+  // Bottoni azione nelle card/tabelle (modifica/elimina)
   document.querySelectorAll('.action-btn-wrap').forEach(el => {
     el.style.display = window.isLoggedIn ? '' : 'none';
   });
+
+  // Sezioni hamburger menu
+  const adminSection = document.querySelector('.hamburger-admin-section');
+  const guestSection = document.querySelector('.hamburger-guest-section');
+  if (adminSection) adminSection.style.display = window.isLoggedIn ? '' : 'none';
+  if (guestSection) guestSection.style.display = window.isLoggedIn ? 'none' : '';
 }
 
 // ── LOGIN ────────────────────────────────────
