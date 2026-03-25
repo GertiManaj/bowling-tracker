@@ -108,8 +108,8 @@ function renderStatsGrid(data, color) {
       <div class="stat-card-sub">${pctVSq}% delle serate</div>
     </div>
     <div class="stat-card" style="--accent-color:var(--gold)">
-      <div class="stat-card-label">Record serata</div>
-      <div class="stat-card-value" style="color:var(--gold);text-shadow:0 0 15px rgba(255,215,0,0.4)">${s.record_serata ?? '—'}</div>
+      <div class="stat-card-label">Record personale</div>
+      <div class="stat-card-value" style="color:var(--gold);text-shadow:0 0 15px rgba(255,215,0,0.4)">${s.record_game ?? '—'}</div>
       <div class="stat-card-sub">Media game: ${s.media_game ?? '—'}</div>
     </div>
     <div class="stat-card" style="--accent-color:var(--neon3)">
