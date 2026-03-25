@@ -202,6 +202,52 @@ foreach ($leaderboard as &$p) {
 }
 unset($p);
 
+// ── CALCOLO PAGAMENTI (filtrato per periodo) ──────────────────────────────
+$qSessWithCost = $pdo->prepare("
+    SELECT se.id, se.cost_per_game
+    FROM sessions se
+    WHERE se.cost_per_game IS NOT NULL AND se.cost_per_game > 0
+    " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
+");
+$qSessWithCost->execute($dateParams);
+$sessWithCost = $qSessWithCost->fetchAll();
+
+$paymentMap = [];
+foreach ($sessWithCost as $sess) {
+    $sid  = $sess['id'];
+    $cost = floatval($sess['cost_per_game']);
+
+    $qPG = $pdo->prepare('SELECT player_id, team_id, COUNT(*) AS num_games FROM scores WHERE session_id = ? GROUP BY player_id, team_id');
+    $qPG->execute([$sid]);
+    $playerGames = $qPG->fetchAll();
+
+    $qTT = $pdo->prepare('SELECT team_id, SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
+    $qTT->execute([$sid]);
+    $teamTotals = [];
+    foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+
+    $maxTot    = $teamTotals ? max($teamTotals) : 0;
+    $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
+    $isDraw    = $winnerCnt > 1;
+
+    foreach ($playerGames as $pg) {
+        $pid  = $pg['player_id'];
+        $tid  = $pg['team_id'];
+        $nG   = (int)$pg['num_games'];
+        $base = $cost * $nG;
+        if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
+        if ($tid === null)                               $paymentMap[$pid] += $base;
+        elseif ($isDraw)                                 $paymentMap[$pid] += $base;
+        elseif (($teamTotals[$tid] ?? 0) === $maxTot)   $paymentMap[$pid] += 0;
+        else                                             $paymentMap[$pid] += $base * 2;
+    }
+}
+
+foreach ($leaderboard as &$p) {
+    $p['saldo_pagamenti'] = isset($paymentMap[$p['id']]) ? round($paymentMap[$p['id']], 2) : null;
+}
+unset($p);
+
 // ── TREND ────────────────────────────────────
 $qTr = $pdo->prepare("
     SELECT p.id AS player_id, p.name, p.emoji, se.date, sc.score
