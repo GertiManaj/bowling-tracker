@@ -973,15 +973,12 @@ async function suggestTeams() {
 
   try {
     const payload = { player_ids: [...suggestSelected], livelli: suggestLivelli };
-    const [res1, res2] = await Promise.all([
-      fetch(`${API}/suggest.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }),
-      fetch(`${API}/suggest.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }),
-    ]);
-    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
-    if (data1.error) { showToast(data1.error, 'error'); return; }
-    window._lastSuggestData  = data1;
-    window._lastSuggestData2 = data2;
-    renderSuggestResult(data1, data2);
+    const res  = await fetch(`${API}/suggest.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.error) { showToast(data.error, 'error'); return; }
+    window._lastSuggestData  = data.proposal1;
+    window._lastSuggestData2 = data.proposal2;
+    renderSuggestResult(data.proposal1, data.proposal2);
   } catch(e) {
     showToast('Errore nel calcolo', 'error');
   }
@@ -1003,10 +1000,9 @@ function renderSuggestResult(data1, data2) {
     const risultati = cached?.ultimi_risultati || [];
     const dots      = Array(Math.max(0,5-risultati.length)).fill(emptyDot).join('') + risultati.map(dot).join('');
     const media     = p.livello_manuale ? `~${p.livello_manuale}` : (p.media_storica > 0 ? p.media_storica : '—');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid var(--border)22;gap:0.3rem">
-      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap">${p.emoji||'🎳'} ${p.name}</div>
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid var(--border)22;gap:0.3rem;min-width:0">
+      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${p.emoji||'🎳'} ${p.name}</div>
       <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0">
-        <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--text-muted)">${media}</span>
         <div style="display:flex;gap:1px">${dots}</div>
       </div>
     </div>`;
@@ -1014,7 +1010,7 @@ function renderSuggestResult(data1, data2) {
 
   function proposalHtml(data, idx, label) {
     return `
-    <div class="suggest-proposal" id="proposal-${idx}" style="border:2px solid ${idx===1 ? 'var(--neon)' : 'var(--border)'};border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color 0.2s" onclick="selectProposal(${idx})">
+    <div class="suggest-proposal" id="proposal-${idx}" style="border:2px solid ${idx===1 ? 'var(--neon)' : 'var(--border)'};border-radius:8px;cursor:pointer;transition:border-color 0.2s" onclick="selectProposal(${idx})">
       <div style="background:var(--surface2);padding:0.35rem 0.6rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);letter-spacing:0.1em">${label}</span>
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:${data.diff < 20 ? 'var(--neon)' : 'var(--neon4)'}">Δ ${data.diff}</span>

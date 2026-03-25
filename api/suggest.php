@@ -137,14 +137,10 @@ foreach ($players as $p) {
 }
 
 // ── GENERA TUTTE LE COMBINAZIONI ─────────────
-// Divide i giocatori in 2 squadre il più equilibrate possibile
+// ── GENERA TUTTE LE COMBINAZIONI ─────────────
+$n    = count($playerIds);
+$half = intdiv($n, 2);
 
-$n     = count($playerIds);
-$half  = intdiv($n, 2);
-$best  = null;
-$bestDiff = PHP_FLOAT_MAX;
-
-// Genera tutte le combinazioni di metà giocatori per squadra A
 function combinations($arr, $k) {
     if ($k === 0) return [[]];
     if (empty($arr)) return [];
@@ -154,76 +150,106 @@ function combinations($arr, $k) {
     return array_merge($withFirst, $withoutFirst);
 }
 
-$combos = combinations($playerIds, $half);
+$combos    = combinations($playerIds, $half);
+$allCombos = [];
 
 foreach ($combos as $teamA_ids) {
     $teamB_ids = array_values(array_diff($playerIds, $teamA_ids));
-
-    // Punteggio medio squadra
     $scoreA = array_sum(array_map(fn($id) => $playerScores[$id]['score'], $teamA_ids)) / count($teamA_ids);
     $scoreB = array_sum(array_map(fn($id) => $playerScores[$id]['score'], $teamB_ids)) / count($teamB_ids);
     $diff   = abs($scoreA - $scoreB);
 
-    // Bonus chimica: se una squadra ha coppie con alta win%,
-    // penalizza leggermente per favorire squadre più equilibrate
-    $chemBonusA = 0;
-    $chemBonusB = 0;
-    for ($i = 0; $i < count($teamA_ids); $i++) {
-        for ($j = $i+1; $j < count($teamA_ids); $j++) {
-            $p1 = $teamA_ids[$i]; $p2 = $teamA_ids[$j];
-            $chemBonusA += ($chemMap[$p1][$p2] ?? 50) - 50;
-        }
-    }
-    for ($i = 0; $i < count($teamB_ids); $i++) {
-        for ($j = $i+1; $j < count($teamB_ids); $j++) {
-            $p1 = $teamB_ids[$i]; $p2 = $teamB_ids[$j];
-            $chemBonusB += ($chemMap[$p1][$p2] ?? 50) - 50;
-        }
-    }
-    // Penalità chimica sbilanciata
-    $chemPenalty = abs($chemBonusA - $chemBonusB) * 0.3;
-    $totalDiff   = $diff + $chemPenalty;
+    $chemBonusA = 0; $chemBonusB = 0;
+    for ($i = 0; $i < count($teamA_ids); $i++)
+        for ($j = $i+1; $j < count($teamA_ids); $j++)
+            $chemBonusA += ($chemMap[$teamA_ids[$i]][$teamA_ids[$j]] ?? 50) - 50;
+    for ($i = 0; $i < count($teamB_ids); $i++)
+        for ($j = $i+1; $j < count($teamB_ids); $j++)
+            $chemBonusB += ($chemMap[$teamB_ids[$i]][$teamB_ids[$j]] ?? 50) - 50;
 
-    if ($totalDiff < $bestDiff) {
-        $bestDiff = $totalDiff;
-        $best = [
-            'teamA' => $teamA_ids,
-            'teamB' => $teamB_ids,
-            'scoreA' => round($scoreA, 1),
-            'scoreB' => round($scoreB, 1),
-            'diff'   => round($diff, 1),
-        ];
+    $allCombos[] = [
+        'teamA'  => $teamA_ids,
+        'teamB'  => $teamB_ids,
+        'scoreA' => round($scoreA, 1),
+        'scoreB' => round($scoreB, 1),
+        'diff'   => round($diff, 1),
+        'total'  => $diff + abs($chemBonusA - $chemBonusB) * 0.3,
+    ];
+}
+
+// Ordina per equilibrio
+usort($allCombos, fn($a, $b) => $a['total'] <=> $b['total']);
+
+// Deduplica: normalizza teamA sempre in ordine crescente per confronto
+$seen = [];
+$unique = [];
+foreach ($allCombos as $c) {
+    $key = implode(',', array_merge(array_unique(array_merge(
+        array_map('strval', $c['teamA']),
+        array_map('strval', $c['teamB'])
+    ))));
+    $normA = $c['teamA']; sort($normA);
+    $normKey = implode(',', $normA);
+    if (!in_array($normKey, $seen)) {
+        $seen[] = $normKey;
+        $unique[] = $c;
     }
 }
 
-// Costruisci risposta con dati completi giocatori
-$result = [
-    'teamA' => array_map(fn($id) => $playerScores[$id], $best['teamA']),
-    'teamB' => array_map(fn($id) => $playerScores[$id], $best['teamB']),
-    'scoreA' => $best['scoreA'],
-    'scoreB' => $best['scoreB'],
-    'diff'   => $best['diff'],
-    'balanced' => $best['diff'] < 20,
-];
+// Prende top N e seleziona 2 diverse con casualità pesata
+$topN = min(6, count($unique));
+$pool = array_slice($unique, 0, $topN);
+$weights = array_map(fn($i) => $topN - $i, range(0, count($pool)-1));
+$totalW  = array_sum($weights);
 
-// Aggiungi chimica per ogni squadra
-foreach (['teamA', 'teamB'] as $team) {
-    $ids  = array_column($result[$team], 'id');
-    $pairs = [];
-    for ($i = 0; $i < count($ids); $i++) {
-        for ($j = $i+1; $j < count($ids); $j++) {
-            $p1 = $ids[$i]; $p2 = $ids[$j];
-            $pct = $chemMap[$p1][$p2] ?? null;
-            if ($pct !== null) {
-                $pairs[] = [
-                    'p1' => $playerScores[$p1]['name'],
-                    'p2' => $playerScores[$p2]['name'],
-                    'pct' => $pct,
-                ];
+function weightedPickPhp($pool, $weights, $totalW, $excludeKey = null) {
+    for ($attempt = 0; $attempt < 30; $attempt++) {
+        $rand = mt_rand(1, $totalW); $cum = 0;
+        foreach ($pool as $i => $combo) {
+            $cum += $weights[$i];
+            if ($rand <= $cum) {
+                $norm = $combo['teamA']; sort($norm);
+                $key  = implode(',', $norm);
+                if ($excludeKey === null || $key !== $excludeKey) return [$combo, $key];
+                break;
             }
         }
     }
-    $result[$team . '_chemistry'] = $pairs;
+    // fallback: prima diversa
+    foreach ($pool as $combo) {
+        $norm = $combo['teamA']; sort($norm);
+        $key  = implode(',', $norm);
+        if ($excludeKey === null || $key !== $excludeKey) return [$combo, $key];
+    }
+    return [$pool[0], ''];
 }
 
-echo json_encode($result);
+[$p1, $key1] = weightedPickPhp($pool, $weights, $totalW);
+[$p2, ]      = weightedPickPhp($pool, $weights, $totalW, $key1);
+
+function buildProposal($best, $playerScores, $chemMap) {
+    $result = [
+        'teamA'   => array_map(fn($id) => $playerScores[$id], $best['teamA']),
+        'teamB'   => array_map(fn($id) => $playerScores[$id], $best['teamB']),
+        'scoreA'  => $best['scoreA'],
+        'scoreB'  => $best['scoreB'],
+        'diff'    => $best['diff'],
+        'balanced'=> $best['diff'] < 20,
+    ];
+    foreach (['teamA','teamB'] as $team) {
+        $ids = array_column($result[$team], 'id'); $pairs = [];
+        for ($i = 0; $i < count($ids); $i++)
+            for ($j = $i+1; $j < count($ids); $j++) {
+                $pct = $chemMap[$ids[$i]][$ids[$j]] ?? null;
+                if ($pct !== null)
+                    $pairs[] = ['p1'=>$playerScores[$ids[$i]]['name'],'p2'=>$playerScores[$ids[$j]]['name'],'pct'=>$pct];
+            }
+        $result[$team.'_chemistry'] = $pairs;
+    }
+    return $result;
+}
+
+echo json_encode([
+    'proposal1' => buildProposal($p1, $playerScores, $chemMap),
+    'proposal2' => buildProposal($p2, $playerScores, $chemMap),
+]);
