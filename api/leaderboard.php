@@ -49,14 +49,29 @@ foreach ($players as &$player) {
         FROM scores sc
         WHERE sc.player_id = ?
         AND sc.team_id IS NOT NULL
-        AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id) = (
+        AND (
+            SELECT SUM(s2.score) FROM scores s2
+            WHERE s2.team_id = sc.team_id AND s2.session_id = sc.session_id
+        ) = (
             SELECT MAX(team_tot) FROM (
-                SELECT SUM(s3.score) AS team_tot
-                FROM scores s3
-                WHERE s3.session_id = sc.session_id
-                AND s3.team_id IS NOT NULL
+                SELECT SUM(s3.score) AS team_tot FROM scores s3
+                WHERE s3.session_id = sc.session_id AND s3.team_id IS NOT NULL
                 GROUP BY s3.team_id
             ) t
+        )
+        AND 1 = (
+            SELECT COUNT(*) FROM (
+                SELECT SUM(s4.score) AS team_tot FROM scores s4
+                WHERE s4.session_id = sc.session_id AND s4.team_id IS NOT NULL
+                GROUP BY s4.team_id
+            ) t2
+            WHERE t2.team_tot = (
+                SELECT MAX(team_tot) FROM (
+                    SELECT SUM(s5.score) AS team_tot FROM scores s5
+                    WHERE s5.session_id = sc.session_id AND s5.team_id IS NOT NULL
+                    GROUP BY s5.team_id
+                ) t3
+            )
         )
     ');
     $qVitt->execute([$id]);
