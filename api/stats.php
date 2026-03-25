@@ -212,7 +212,9 @@ $qSessWithCost = $pdo->prepare("
 $qSessWithCost->execute($dateParams);
 $sessWithCost = $qSessWithCost->fetchAll();
 
-$paymentMap = [];
+$paymentSfide   = []; // pagato nelle sfide
+$paymentSingolo = []; // pagato nelle partite singole
+
 foreach ($sessWithCost as $sess) {
     $sid  = $sess['id'];
     $cost = floatval($sess['cost_per_game']);
@@ -235,16 +237,47 @@ foreach ($sessWithCost as $sess) {
         $tid  = $pg['team_id'];
         $nG   = (int)$pg['num_games'];
         $base = $cost * $nG;
-        if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
-        if ($tid === null)                               $paymentMap[$pid] += $base;
-        elseif ($isDraw)                                 $paymentMap[$pid] += $base;
-        elseif (($teamTotals[$tid] ?? 0) === $maxTot)   $paymentMap[$pid] += 0;
-        else                                             $paymentMap[$pid] += $base * 2;
+
+        if ($tid === null) {
+            // Singolo
+            if (!isset($paymentSingolo[$pid])) $paymentSingolo[$pid] = 0.0;
+            $paymentSingolo[$pid] += $base;
+        } else {
+            // Sfida
+            if (!isset($paymentSfide[$pid])) $paymentSfide[$pid] = 0.0;
+            if ($isDraw)                                 $paymentSfide[$pid] += $base;
+            elseif (($teamTotals[$tid] ?? 0) === $maxTot) $paymentSfide[$pid] += 0;
+            else                                          $paymentSfide[$pid] += $base * 2;
+        }
     }
 }
 
+// Inietta i tre campi pagamento + num_partite_singolo
 foreach ($leaderboard as &$p) {
-    $p['saldo_pagamenti'] = isset($paymentMap[$p['id']]) ? round($paymentMap[$p['id']], 2) : null;
+    $pid = $p['id'];
+
+    // Conta partite singole (sessioni senza team)
+    $qSolo = $pdo->prepare("
+        SELECT COUNT(DISTINCT sc.session_id)
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        WHERE sc.player_id = ? AND sc.team_id IS NULL
+        " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
+    ");
+    $qSolo->execute(array_merge([$pid], $dateParams));
+    $p['partite_singolo'] = (int)$qSolo->fetchColumn();
+
+    $sfide   = isset($paymentSfide[$pid])   ? round($paymentSfide[$pid],   2) : null;
+    $singolo = isset($paymentSingolo[$pid]) ? round($paymentSingolo[$pid], 2) : 0.0;
+
+    // Se ha fatto sfide con costo ma non singolo → singolo = 0
+    // Se non ha mai avuto sessioni con costo → null
+    $hasCost = isset($paymentSfide[$pid]) || isset($paymentSingolo[$pid]);
+    $p['pagato_sfide']   = $hasCost ? ($sfide   ?? 0.0) : null;
+    $p['pagato_singolo'] = $hasCost ? $singolo          : null;
+    $p['pagato_totale']  = $hasCost ? round(($sfide ?? 0) + $singolo, 2) : null;
+    // mantieni anche saldo_pagamenti per compatibilità dashboard
+    $p['saldo_pagamenti'] = $p['pagato_totale'];
 }
 unset($p);
 
