@@ -1,219 +1,113 @@
 // ============================================
-//  giocatori.js — Gestione giocatori
+//  header.js — Inietta header e splash
 // ============================================
 
-
-
-// Colori accent ciclici per le card
-const CARD_COLORS = [
-  'var(--neon)',  'var(--neon3)', 'var(--neon4)',
-  'var(--neon2)', 'var(--gold)',  '#a78bfa',
-  '#34d399',     '#fb923c',      '#60a5fa'
+var NAV_LINKS = [
+  { href: 'index.html',       label: 'Dashboard',   key: 'dashboard'   },
+  { href: 'sessioni.html',    label: 'Sessioni',     key: 'sessioni'    },
+  { href: 'statistiche.html', label: 'Statistiche',  key: 'statistiche' },
+  { href: 'giocatori.html',   label: 'Giocatori',    key: 'giocatori'   },
 ];
 
-// Stato locale
+// ── HAMBURGER ────────────────────────────────
+function toggleHamburgerMenu() {
+  var loggedIn = window.isLoggedIn || false;
 
-let currentSort = 'name';
-let editingId   = null;
-let deletingId  = null;
-
-// ── UTILITY ──────────────────────────────────
-
-function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
-  t.className   = `toast ${type} show`;
-  setTimeout(() => t.className = 'toast', 3500);
-}
-
-// ── CARICA GIOCATORI ─────────────────────────
-
-async function loadPlayers() {
-  try {
-    allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
-    updateHeroBar();
-    renderPlayers();
-  } catch (e) {
-    console.error('Errore caricamento giocatori:', e);
-    document.getElementById('players-grid').innerHTML =
-      '<div class="empty-state"><span class="empty-state-icon">⚠️</span>Errore nel caricamento</div>';
-  }
-}
-
-function updateHeroBar() {
-  const withGames = allPlayers.filter(p => p.partite > 0);
-  const best      = withGames.reduce((a, b) => parseFloat(b.media) > parseFloat(a.media) ? b : a, withGames[0] || {});
-  const recordP   = withGames.reduce((a, b) => (b.record > a.record ? b : a), withGames[0] || {});
-  const totPartite = allPlayers.reduce((s, p) => s + parseInt(p.partite || 0), 0);
-
-  document.getElementById('stat-totali').textContent  = allPlayers.length;
-  document.getElementById('stat-partite').textContent = totPartite;
-
-  if (best?.media) {
-    document.getElementById('stat-best-avg').textContent      = best.media;
-    document.getElementById('stat-best-avg-name').textContent = `${best.emoji || '🎳'} ${best.name}`;
-  } else {
-    document.getElementById('stat-best-avg').textContent      = '—';
-    document.getElementById('stat-best-avg-name').textContent = 'nessuna partita';
-  }
-
-  if (recordP?.record) {
-    document.getElementById('stat-record').textContent      = recordP.record;
-    document.getElementById('stat-record-name').textContent = `${recordP.emoji || '🎳'} ${recordP.name}`;
-  } else {
-    document.getElementById('stat-record').textContent      = '—';
-    document.getElementById('stat-record-name').textContent = 'nessuna partita';
-  }
-}
-
-// ── RENDER GRIGLIA ───────────────────────────
-
-function renderPlayers() {
-  const query    = document.getElementById('searchInput').value.toLowerCase();
-  let   filtered = allPlayers.filter(p =>
-    p.name.toLowerCase().includes(query) ||
-    (p.nickname || '').toLowerCase().includes(query)
-  );
-
-  // Ordinamento
-  filtered = sortPlayers(filtered, currentSort);
-
-  const grid = document.getElementById('players-grid');
-
-  if (!filtered.length) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-state-icon">🎳</span>
-        ${query ? 'Nessun giocatore trovato' : 'Nessun giocatore — aggiungine uno!'}
-      </div>`;
+  if (!loggedIn) {
+    // Non loggato → mostra toast errore
+    if (typeof showToast === 'function') {
+      showToast('Devi prima accedere come amministratore', 'error');
+    } else {
+      alert('Devi prima accedere come amministratore');
+    }
     return;
   }
 
-  grid.innerHTML = filtered.map((p, i) => {
-    const color   = CARD_COLORS[i % CARD_COLORS.length];
-    const hasData = parseInt(p.partite) > 0;
-
-    const statsHtml = hasData ? `
-      <div class="player-card-stats">
-        <div class="player-stat-item">
-          <div class="player-stat-label">Media</div>
-          <div class="player-stat-value highlight" style="--accent:${color}">${p.media ?? '—'}</div>
-        </div>
-        <div class="player-stat-item">
-          <div class="player-stat-label">Record</div>
-          <div class="player-stat-value">${p.record ?? '—'}</div>
-        </div>
-        <div class="player-stat-item">
-          <div class="player-stat-label">Partite</div>
-          <div class="player-stat-value">${p.partite}</div>
-        </div>
-      </div>` : `
-      <div class="no-games-badge">Nessuna partita ancora</div>`;
-
-    return `
-      <div class="player-card" style="--accent:${color};animation-delay:${(i * 0.05).toFixed(2)}s">
-        <div class="player-card-stripe"></div>
-        <div class="player-card-header" onclick="window.location.href='profilo.html?id=${p.id}'" style="cursor:pointer" title="Vedi profilo">
-          <div class="player-card-avatar" style="border-color:${color}">${p.emoji || '🎳'}</div>
-          <div>
-            <div class="player-card-name">${p.name}</div>
-            <div class="player-card-nickname">${p.nickname || '&nbsp;'}</div>
-          </div>
-          <div style="margin-left:auto;font-size:0.65rem;font-family:'Share Tech Mono',monospace;color:var(--text-muted);letter-spacing:0.1em">PROFILO →</div>
-        </div>
-        ${statsHtml}
-        <div class="player-card-actions action-btn-wrap">
-          <button class="player-action-btn edit" onclick="openEditModal(${p.id})">✏ Modifica</button>
-          <button class="player-action-btn delete" onclick="openDeleteModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">✕ Elimina</button>
-        </div>
-      </div>`;
-  }).join('');
+  var menu = document.getElementById('hamburgerMenu');
+  if (!menu) return;
+  menu.classList.toggle('open');
 }
 
-// ── ORDINAMENTO ──────────────────────────────
-
-function sortPlayers(list, by) {
-  return [...list].sort((a, b) => {
-    if (by === 'name')    return a.name.localeCompare(b.name);
-    if (by === 'media')   return (parseFloat(b.media) || 0) - (parseFloat(a.media) || 0);
-    if (by === 'record')  return (parseInt(b.record)  || 0) - (parseInt(a.record)  || 0);
-    if (by === 'partite') return (parseInt(b.partite) || 0) - (parseInt(a.partite) || 0);
-    return 0;
-  });
+function closeHamburgerMenu() {
+  var menu = document.getElementById('hamburgerMenu');
+  if (menu) menu.classList.remove('open');
 }
 
-function sortBy(field, btn) {
-  currentSort = field;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderPlayers();
+function updateHamburgerSections() {
+  // Nulla da fare — il menu è solo per admin, la visibilità è gestita da toggleHamburgerMenu
 }
 
-function filterPlayers() {
-  renderPlayers();
-}
+(function () {
 
-// ── MODAL ELIMINA ────────────────────────────
+  function buildHTML(active, extraBtn) {
 
-function openDeleteModal(id, name) {
-  deletingId = id;
-  document.getElementById('deletePlayerName').textContent = name;
-  document.getElementById('deleteOverlay').classList.add('open');
-}
+    var navHtml = NAV_LINKS.map(function(l) {
+      return '<a href="' + l.href + '"' + (active === l.key ? ' class="active"' : '') + '>' + l.label + '</a>';
+    }).join('');
 
-function closeDeleteModal() {
-  document.getElementById('deleteOverlay').classList.remove('open');
-  deletingId = null;
-}
+    var newGiocatoreBtn = extraBtn === 'giocatori'
+      ? '<button class="hamburger-item" onclick="openAddModal();closeHamburgerMenu()">➕ Nuovo Giocatore</button>'
+      : '';
 
-function handleDeleteOverlayClick(e) {
-  if (e.target === document.getElementById('deleteOverlay')) closeDeleteModal();
-}
+    var splashHtml = '<div id="splashScreen" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.5s ease,visibility 0.5s ease"><div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem"><div style="font-size:4rem;animation:splashWobble 0.6s ease-in-out infinite">🎳</div><div style="text-align:center"><div style="font-family:\'Black Han Sans\',sans-serif;font-size:2.5rem;color:var(--neon);text-shadow:0 0 30px rgba(232,255,0,0.6);letter-spacing:0.1em">STRIKE ZONE</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.3em;text-transform:uppercase;margin-top:0.3rem">Bowling Tracker v1.0</div></div><div style="width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div id="splashBar" style="height:100%;width:0%;background:var(--neon);box-shadow:0 0 8px var(--neon);border-radius:2px;transition:width 1.2s ease"></div></div><div style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.2em" id="splashText">CARICAMENTO...</div></div></div><style>@keyframes splashWobble{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.1)}}</style>';
 
-async function confirmDelete() {
-  if (!deletingId) return;
+    var menuHtml =
+      '<div class="hamburger-wrap">' +
+        '<button class="btn-hamburger" onclick="toggleHamburgerMenu()" title="Menu">☰</button>' +
+        '<div class="hamburger-menu" id="hamburgerMenu">' +
+          '<div class="hamburger-label">Azioni Admin</div>' +
+          '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
+          '<button class="hamburger-item" onclick="openAddModal();closeHamburgerMenu()">➕ Nuovo Giocatore</button>' +
+          '<button class="hamburger-item" onclick="exportData();closeHamburgerMenu()">💾 Backup Database</button>' +
+          '<div class="hamburger-divider"></div>' +
+          '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
+        '</div>' +
+      '</div>';
 
-  const btn = document.getElementById('btnDelete');
-  btn.disabled    = true;
-  btn.textContent = 'Eliminazione...';
+    var headerHtml =
+      '<header>' +
+        '<div class="header-glow"></div>' +
+        '<div class="header-inner">' +
+          '<a href="index.html" class="logo" style="text-decoration:none">' +
+            '<div class="logo-pin">🎳</div>' +
+            '<div class="logo-text">' +
+              '<span class="logo-title">STRIKE ZONE</span>' +
+              '<span class="logo-sub">Bowling Tracker v1.0</span>' +
+            '</div>' +
+          '</a>' +
+          '<nav>' + navHtml + '</nav>' +
+          '<div class="header-actions">' +
+            '<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>' +
+            '<button class="btn-share" onclick="shareLink()">🔗 Condividi</button>' +
+            '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' +
+            menuHtml +
+          '</div>' +
+        '</div>' +
+      '</header>';
 
-  try {
-    const res  = await fetch(`${API}/players.php`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: deletingId })
+    return splashHtml + headerHtml;
+  }
+
+  function inject() {
+    var placeholder = document.getElementById('app-header');
+    if (!placeholder) return;
+
+    var active   = placeholder.getAttribute('data-active')   || '';
+    var extraBtn = placeholder.getAttribute('data-extra-btn') || '';
+
+    placeholder.insertAdjacentHTML('beforebegin', buildHTML(active, extraBtn));
+    placeholder.parentNode.removeChild(placeholder);
+
+    if (typeof initTheme === 'function') initTheme();
+    if (typeof applyAuthUI === 'function') applyAuthUI();
+
+    // Chiudi menu cliccando fuori
+    document.addEventListener('click', function(e) {
+      var wrap = document.querySelector('.hamburger-wrap');
+      if (wrap && !wrap.contains(e.target)) closeHamburgerMenu();
     });
-    const data = await res.json();
-
-    if (data.success) {
-      closeDeleteModal();
-      showToast('Giocatore eliminato');
-      await loadPlayers();
-    } else {
-      showToast(data.error || 'Errore', 'error');
-    }
-  } catch (e) {
-    showToast('Errore di connessione', 'error');
-    console.error(e);
   }
 
-  btn.disabled    = false;
-  btn.textContent = 'Elimina';
-}
+  inject();
 
-// ── TASTO ENTER nel form ─────────────────────
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    if (document.getElementById('modalOverlay').classList.contains('open')) savePlayer();
-    if (document.getElementById('deleteOverlay').classList.contains('open')) confirmDelete();
-  }
-  if (e.key === 'Escape') {
-    closeModal();
-    closeDeleteModal();
-  }
-});
-
-// ── INIT ─────────────────────────────────────
-
-document.addEventListener('DOMContentLoaded', loadPlayers);
+})();

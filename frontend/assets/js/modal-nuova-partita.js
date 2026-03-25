@@ -1,126 +1,265 @@
 // ============================================
-//  modal-giocatore.js
-//  Modal "Nuovo/Modifica Giocatore" — funziona
-//  su tutte le pagine che includono questo file
+//  modal-nuova-partita.js
+//  Funzioni modal "Nuova Partita" — identico alla dashboard
+//  Incluso in: sessioni.html, statistiche.html, giocatori.html
+//  NON includere in index.html (usa app.js direttamente)
 // ============================================
 
-const EMOJIS_G = [
-  '🎳','🐺','🦊','🐻','🦁','🐯','🦋','🐸',
-  '🦅','🐉','🦈','🐆','🦎','🐬','🦄','🐼',
-  '🐙','🐝','🦉','🦚','🦀','⚡','🔥','💎',
-  '🏆','👑','🎯','🚀','💥','🌟','🎪','🎭'
-];
+const API = '/api';
+let allPlayers = [];
 
-let _gEditingId = null;
-
-function buildEmojiGrid(selected) {
-  selected = selected || '🎳';
-  var grid = document.getElementById('emojiGrid');
-  if (!grid) return;
-  grid.innerHTML = EMOJIS_G.map(function(e) {
-    return '<button type="button" class="emoji-btn' + (e === selected ? ' selected' : '') +
-      '" onclick="selectEmoji(\'' + e + '\', this)">' + e + '</button>';
-  }).join('');
-  document.getElementById('selectedEmoji').value = selected;
-}
-
-function selectEmoji(emoji, btn) {
-  document.querySelectorAll('.emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
-  btn.classList.add('selected');
-  document.getElementById('selectedEmoji').value = emoji;
-}
-
-function openAddModal() {
+// ── APRI MODAL ───────────────────────────────
+async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
-  _gEditingId = null;
-  document.getElementById('gModalTitle').textContent   = '➕ Nuovo Giocatore';
-  document.getElementById('playerName').value          = '';
-  document.getElementById('playerNickname').value      = '';
-  document.getElementById('btnSavePlayer').textContent = 'Salva';
-  buildEmojiGrid('🎳');
-  document.getElementById('gModalOverlay').classList.add('open');
-  setTimeout(function() { document.getElementById('playerName').focus(); }, 100);
+  try {
+    allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
+  } catch (e) {
+    allPlayers = [];
+  }
+
+  document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionLocation').value = '';
+  document.getElementById('sessionNotes').value    = '';
+  document.getElementById('teamAName').value       = '';
+  document.getElementById('teamBName').value       = '';
+  document.getElementById('numGames').value        = '2';
+  document.getElementById('totalA').textContent    = 'Totale: 0';
+  document.getElementById('totalB').textContent    = 'Totale: 0';
+  document.getElementById('soloRows').innerHTML    = '';
+
+  buildGameRows();
+  document.getElementById('modalOverlay').classList.add('open');
 }
 
-function openEditModal(id) {
-  if (!window.isLoggedIn) { openLoginModal(); return; }
-  // allPlayers potrebbe essere definito in giocatori.js o dobbiamo fetcharlo
-  var players = (typeof allPlayers !== 'undefined') ? allPlayers : [];
-  var p = players.find(function(x) { return x.id === id; });
-  if (!p) return;
-
-  _gEditingId = id;
-  document.getElementById('gModalTitle').textContent   = '✏ Modifica Giocatore';
-  document.getElementById('playerName').value          = p.name;
-  document.getElementById('playerNickname').value      = p.nickname || '';
-  document.getElementById('btnSavePlayer').textContent = 'Aggiorna';
-  buildEmojiGrid(p.emoji || '🎳');
-  document.getElementById('gModalOverlay').classList.add('open');
-  setTimeout(function() { document.getElementById('playerName').focus(); }, 100);
+// ── COSTRUISCE RIGHE GIOCATORI ───────────────
+function buildGameRows() {
+  const numGames = parseInt(document.getElementById('numGames').value) || 1;
+  ['A', 'B'].forEach(team => {
+    const container = document.getElementById(`team${team}Rows`);
+    const selected = [];
+    container.querySelectorAll('.player-row').forEach(row => {
+      selected.push(row.querySelector('select')?.value || '');
+    });
+    container.innerHTML = '';
+    const count = Math.max(selected.length, 3);
+    for (let i = 0; i < count; i++) {
+      addPlayerRow(team, selected[i] || null, numGames);
+    }
+  });
+  calcTotals();
 }
 
-function closeGModal() {
-  document.getElementById('gModalOverlay').classList.remove('open');
-  _gEditingId = null;
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  // Resetta editingId se presente (usato da sessioni.js)
+  if (typeof editingId !== 'undefined') editingId = null;
 }
 
-function handleGModalOverlayClick(e) {
-  if (e.target === document.getElementById('gModalOverlay')) closeGModal();
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
 
-async function savePlayer() {
-  var btn      = document.getElementById('btnSavePlayer');
-  var name     = document.getElementById('playerName').value.trim();
-  var nickname = document.getElementById('playerNickname').value.trim();
-  var emoji    = document.getElementById('selectedEmoji').value;
+// ── AGGIUNGI RIGA GIOCATORE ──────────────────
+function addPlayerRow(team, selectedId = null, numGames = null) {
+  const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
+  const opts = allPlayers.map(p =>
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
 
-  if (!name) {
-    if (typeof showToast === 'function') showToast('Il nome è obbligatorio', 'error');
-    document.getElementById('playerName').focus();
+  const gameInputs = Array.from({length: ng}, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="calcTotals();validateScoreInput(this)"/>`
+  ).join('');
+
+  const row = document.createElement('div');
+  row.className = 'player-row';
+  row.style.cssText = `display:grid;grid-template-columns:1fr ${Array(ng).fill('70px').join(' ')} 32px;gap:0.4rem;align-items:center;margin-bottom:0.4rem`;
+  row.innerHTML = `
+    <select class="form-input" onchange="calcTotals()">
+      <option value="">— Giocatore —</option>${opts}
+    </select>
+    ${gameInputs}
+    <button class="btn-remove" onclick="this.parentElement.remove();calcTotals()" title="Rimuovi">✕</button>`;
+
+  document.getElementById(`team${team}Rows`).appendChild(row);
+}
+
+// ── AGGIUNGI RIGA SINGOLO ────────────────────
+function addSoloRow(selectedId = null, numGames = null) {
+  const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
+  const opts = allPlayers.map(p =>
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
+  const gameInputs = Array.from({length: ng}, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}"/>`
+  ).join('');
+
+  const row = document.createElement('div');
+  row.className = 'player-row solo-row';
+  row.style.cssText = `display:grid;grid-template-columns:1fr ${Array(ng).fill('70px').join(' ')} 32px;gap:0.4rem;align-items:center;margin-bottom:0.4rem`;
+  row.innerHTML = `
+    <select class="form-input">
+      <option value="">— Giocatore —</option>${opts}
+    </select>
+    ${gameInputs}
+    <button class="btn-remove" onclick="this.parentElement.remove()" title="Rimuovi">✕</button>`;
+  document.getElementById('soloRows').appendChild(row);
+}
+
+// ── GIOCATORI SINGOLI ────────────────────────
+function getSoloPlayers() {
+  const solo = [];
+  document.querySelectorAll('#soloRows .solo-row').forEach(row => {
+    const pid = row.querySelector('select')?.value;
+    if (!pid) return;
+    row.querySelectorAll('.score-input').forEach(input => {
+      const gameNum = parseInt(input.dataset.game);
+      const score   = input.value;
+      if (score) solo.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
+    });
+  });
+  return solo;
+}
+
+// ── CALCOLA TOTALI ───────────────────────────
+function calcTotals() {
+  ['A', 'B'].forEach(t => {
+    let tot = 0;
+    document.querySelectorAll(`#team${t}Rows .score-input`).forEach(i => {
+      if (i.value) tot += parseInt(i.value) || 0;
+    });
+    document.getElementById(`total${t}`).textContent = `Totale: ${tot}`;
+  });
+}
+
+// ── VALIDAZIONE SCORE LIVE ───────────────────
+function validateScoreInput(input) {
+  const val = parseInt(input.value);
+  if (input.value === '') { input.style.borderColor = ''; return; }
+  if (isNaN(val) || val < 0 || val > 300) {
+    input.style.borderColor = 'var(--neon2)';
+    input.title = 'Punteggio non valido (0-300)';
+  } else {
+    input.style.borderColor = 'var(--neon)';
+    input.title = '';
+    setTimeout(() => { if (input.style.borderColor === 'var(--neon)') input.style.borderColor = ''; }, 1000);
+  }
+}
+
+// ── SALVA SESSIONE ───────────────────────────
+async function saveSession() {
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.textContent = 'Salvataggio...';
+
+  const date = document.getElementById('sessionDate').value;
+  if (!date) {
+    showToast('Inserisci la data', 'error');
+    btn.disabled = false; btn.textContent = 'Salva Partita';
     return;
   }
 
-  btn.disabled    = true;
-  btn.textContent = 'Salvataggio...';
+  const numGames = parseInt(document.getElementById('numGames').value) || 1;
+  const teams = [];
+  ['A', 'B'].forEach(t => {
+    const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
+    const players = [];
+    document.querySelectorAll(`#team${t}Rows .player-row`).forEach(row => {
+      const pid = row.querySelector('select')?.value;
+      if (!pid) return;
+      row.querySelectorAll('.score-input').forEach(input => {
+        const gameNum = parseInt(input.dataset.game);
+        const score   = input.value;
+        if (score) players.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
+      });
+    });
+    if (players.length > 0) teams.push({ name, players });
+  });
+
+  const soloPlayers = getSoloPlayers();
+
+  // Validazione 0-300
+  const allScoreInputs = document.querySelectorAll('#teamARows .score-input, #teamBRows .score-input, #soloRows .score-input');
+  for (const input of allScoreInputs) {
+    if (!input.value) continue;
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0 || val > 300) {
+      showToast('Il punteggio deve essere tra 0 e 300', 'error');
+      btn.disabled = false; btn.textContent = 'Salva Partita';
+      input.focus();
+      input.style.borderColor = 'var(--neon2)';
+      setTimeout(() => input.style.borderColor = '', 2000);
+      return;
+    }
+  }
+
+  // Validazione giocatore duplicato
+  const playersA = new Set();
+  const playersB = new Set();
+  const playerNames = {};
+  document.querySelectorAll('#teamARows .player-row select').forEach(sel => {
+    if (sel.value) { playersA.add(sel.value); playerNames[sel.value] = sel.options[sel.selectedIndex]?.text || sel.value; }
+  });
+  document.querySelectorAll('#teamBRows .player-row select').forEach(sel => {
+    if (sel.value) { playersB.add(sel.value); playerNames[sel.value] = sel.options[sel.selectedIndex]?.text || sel.value; }
+  });
+  const duplicates = [...playersA].filter(id => playersB.has(id));
+  if (duplicates.length > 0) {
+    const names = duplicates.map(id => playerNames[id]).join(', ');
+    const ok = confirm(`⚠ Attenzione: ${names} è presente in entrambe le squadre.\n\nVuoi salvare comunque?`);
+    if (!ok) { btn.disabled = false; btn.textContent = 'Salva Partita'; return; }
+  }
+
+  if (!teams.length && !soloPlayers.length) {
+    showToast('Inserisci almeno un punteggio', 'error');
+    btn.disabled = false; btn.textContent = 'Salva Partita';
+    return;
+  }
+
+  // editingId può essere definito da sessioni.js quando si modifica
+  const sessionEditId = (typeof editingId !== 'undefined' && editingId) ? editingId : null;
 
   try {
-    var method  = _gEditingId ? 'PUT' : 'POST';
-    var payload = _gEditingId
-      ? { id: _gEditingId, name: name, nickname: nickname, emoji: emoji }
-      : { name: name, nickname: nickname, emoji: emoji };
+    const payload = {
+      date,
+      location: document.getElementById('sessionLocation').value || 'Bowling',
+      notes:    document.getElementById('sessionNotes').value,
+      cost_per_game: (() => {
+        const v = document.getElementById('sessionCost')?.value;
+        return (v !== '' && v != null) ? parseFloat(v) : null;
+      })(),
+      teams,
+      solo_players: soloPlayers
+    };
 
-    var res  = await fetch('/api/players.php', {
-      method:  method,
+    if (sessionEditId) payload.id = sessionEditId;
+
+    const res = await fetch(`${API}/sessions.php`, {
+      method:  sessionEditId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload)
+      body: JSON.stringify(payload)
     });
-    var data = await res.json();
+    const data = await res.json();
 
-    if (data.success) {
-      closeGModal();
-      if (typeof showToast === 'function')
-        showToast(_gEditingId ? name + ' aggiornato!' : name + ' aggiunto al gruppo!');
-      // Ricarica se la funzione esiste nella pagina
-      if (typeof loadPlayers    === 'function') loadPlayers();
-      if (typeof loadLeaderboard=== 'function') loadLeaderboard();
+    if (data.success || data.session_id) {
+      closeModal();
+      showToast(sessionEditId ? 'Sessione aggiornata!' : 'Partita salvata!');
+      // Resetta editingId se era una modifica
+      if (typeof editingId !== 'undefined') editingId = null;
+      // Ricarica dati della pagina corrente
       if (typeof loadAll        === 'function') loadAll();
+      if (typeof loadSessions   === 'function') loadSessions();
+      if (typeof loadLeaderboard=== 'function') loadLeaderboard();
       if (typeof loadStats      === 'function') loadStats();
+      if (typeof loadHof        === 'function') loadHof();
+      if (typeof loadPlayers    === 'function') loadPlayers();
     } else {
-      if (typeof showToast === 'function') showToast(data.error || 'Errore nel salvataggio', 'error');
+      showToast(data.error || 'Errore nel salvataggio', 'error');
     }
-  } catch(e) {
-    if (typeof showToast === 'function') showToast('Errore di connessione', 'error');
+  } catch (e) {
+    showToast('Errore di connessione', 'error');
     console.error(e);
   }
 
-  btn.disabled    = false;
-  btn.textContent = _gEditingId ? 'Aggiorna' : 'Salva';
+  btn.disabled = false;
+  btn.textContent = 'Salva Partita';
 }
-
-// Enter per salvare
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && document.getElementById('gModalOverlay')?.classList.contains('open')) {
-    savePlayer();
-  }
-  if (e.key === 'Escape') closeGModal();
-});
