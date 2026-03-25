@@ -75,20 +75,20 @@ function applyAuthUI() {
     el.style.display = window.isLoggedIn ? 'none' : '';
   });
 
-  // Bottoni header
+  // Bottoni header login/logout
   const btnLogin  = document.getElementById('btnLogin');
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogin)  btnLogin.style.display  = window.isLoggedIn ? 'none' : '';
   if (btnLogout) btnLogout.style.display = window.isLoggedIn ? '' : 'none';
 
-  // Bottoni azione nelle card/tabelle (modifica/elimina)
+  // Bottoni modifica/elimina sessioni — solo admin
   document.querySelectorAll('.action-btn-wrap').forEach(el => {
     el.style.display = window.isLoggedIn ? '' : 'none';
   });
 
-  // Sezioni hamburger menu
-  const adminSection = document.querySelector('.hamburger-admin-section');
-  const guestSection = document.querySelector('.hamburger-guest-section');
+  // Sezioni hamburger menu per ID (non nascondere il menu in sé)
+  const adminSection = document.getElementById('hamburgerAdminSection');
+  const guestSection = document.getElementById('hamburgerGuestSection');
   if (adminSection) adminSection.style.display = window.isLoggedIn ? '' : 'none';
   if (guestSection) guestSection.style.display = window.isLoggedIn ? 'none' : '';
 }
