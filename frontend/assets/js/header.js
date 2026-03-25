@@ -9,6 +9,7 @@ var NAV_LINKS = [
   { href: 'giocatori.html',   label: 'Giocatori',    key: 'giocatori'   },
 ];
 
+// ── HAMBURGER ────────────────────────────────
 function toggleHamburgerMenu() {
   var menu = document.getElementById('hamburgerMenu');
   if (!menu) return;
@@ -18,6 +19,15 @@ function toggleHamburgerMenu() {
 function closeHamburgerMenu() {
   var menu = document.getElementById('hamburgerMenu');
   if (menu) menu.classList.remove('open');
+}
+
+// Aggiorna le sezioni del menu in base allo stato login
+function updateHamburgerSections() {
+  var loggedIn = window.isLoggedIn || false;
+  var adminEl  = document.getElementById('hamburgerAdminSection');
+  var guestEl  = document.getElementById('hamburgerGuestSection');
+  if (adminEl) adminEl.style.display = loggedIn ? 'block' : 'none';
+  if (guestEl) guestEl.style.display = loggedIn ? 'none'  : 'block';
 }
 
 (function () {
@@ -38,7 +48,7 @@ function closeHamburgerMenu() {
       '<div class="hamburger-wrap">' +
         '<button class="btn-hamburger" onclick="toggleHamburgerMenu()" title="Menu">☰</button>' +
         '<div class="hamburger-menu" id="hamburgerMenu">' +
-          '<div id="hamburgerAdminSection" style="display:none">' +
+          '<div id="hamburgerAdminSection">' +
             '<div class="hamburger-label">Azioni Admin</div>' +
             '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
             newGiocatoreBtn +
@@ -46,7 +56,7 @@ function closeHamburgerMenu() {
             '<div class="hamburger-divider"></div>' +
             '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
           '</div>' +
-          '<div id="hamburgerGuestSection" style="display:none">' +
+          '<div id="hamburgerGuestSection">' +
             '<div class="hamburger-label">Menu</div>' +
             '<div class="hamburger-guest-msg">Non sei amministratore.<br>Accedi per gestire i dati.</div>' +
             '<button class="hamburger-item" onclick="openLoginModal();closeHamburgerMenu()">🔐 Accedi come Admin</button>' +
@@ -69,7 +79,6 @@ function closeHamburgerMenu() {
           '<div class="header-actions">' +
             '<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>' +
             '<button class="btn-share" onclick="shareLink()">🔗 Condividi</button>' +
-            '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' +
             menuHtml +
           '</div>' +
         '</div>' +
@@ -90,10 +99,10 @@ function closeHamburgerMenu() {
 
     if (typeof initTheme === 'function') initTheme();
 
-    // Ora che l'header è nel DOM, aggiorna subito l'UI auth
-    if (typeof applyAuthUI === 'function') applyAuthUI();
+    // Aggiorna sezioni hamburger ora che il DOM esiste
+    updateHamburgerSections();
 
-    // Chiudi menu cliccando fuori — registrato DOPO che il DOM esiste
+    // Chiudi menu cliccando fuori
     document.addEventListener('click', function(e) {
       var wrap = document.querySelector('.hamburger-wrap');
       if (wrap && !wrap.contains(e.target)) closeHamburgerMenu();
