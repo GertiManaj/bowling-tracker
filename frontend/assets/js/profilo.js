@@ -1,8 +1,7 @@
 // ============================================
 //  profilo.js — Pagina Profilo Giocatore
+//  Nota: const API definita in modal-nuova-partita.js
 // ============================================
-
-const API = 'api';
 
 const PLAYER_COLORS = [
   '#e8ff00','#00f5ff','#ff6b35','#ff3cac',
