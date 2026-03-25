@@ -972,17 +972,16 @@ async function suggestTeams() {
   btn.textContent = '⏳ Calcolo in corso...';
 
   try {
-    const res  = await fetch(`${API}/suggest.php`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ player_ids: [...suggestSelected], livelli: suggestLivelli })
-    });
-    const data = await res.json();
-
-    if (data.error) { showToast(data.error, 'error'); return; }
-
-    window._lastSuggestData = data;
-    renderSuggestResult(data);
+    const payload = { player_ids: [...suggestSelected], livelli: suggestLivelli };
+    const [res1, res2] = await Promise.all([
+      fetch(`${API}/suggest.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }),
+      fetch(`${API}/suggest.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }),
+    ]);
+    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+    if (data1.error) { showToast(data1.error, 'error'); return; }
+    window._lastSuggestData  = data1;
+    window._lastSuggestData2 = data2;
+    renderSuggestResult(data1, data2);
   } catch(e) {
     showToast('Errore nel calcolo', 'error');
   }
@@ -991,81 +990,74 @@ async function suggestTeams() {
   btn.textContent = `🎯 Suggerisci squadre (${suggestSelected.size} giocatori)`;
 }
 
-function renderSuggestResult(data) {
-  const tColors = ['var(--neon)', 'var(--neon2)'];
-  const balanced = data.diff < 20;
+function renderSuggestResult(data1, data2) {
+  const dot = r => {
+    if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#22c55e;color:#000;font-size:0.38rem;font-weight:700">V</span>';
+    if (r==='P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.38rem;font-weight:700">P</span>';
+    return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#555570;color:#fff;font-size:0.38rem;font-weight:700">N</span>';
+  };
+  const emptyDot = '<span style="display:inline-flex;width:11px;height:11px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
 
-  function teamHtml(team, players, score, color, chem) {
-    const chemHtml = chem.length
-      ? `<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border)">` +
-        chem.map(c => `
-          <div style="font-size:0.65rem;font-family:'Share Tech Mono',monospace;color:var(--text-muted);margin-bottom:0.15rem">
-            ${c.p1} + ${c.p2}:
-            <span style="color:${c.pct >= 60 ? 'var(--neon)' : c.pct >= 40 ? 'var(--neon3)' : 'var(--neon4)'}">
-              ${c.pct}% win
-            </span>
-          </div>`).join('') + `</div>`
-      : '';
-
-    const dot = r => {
-      if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#22c55e;color:#000;font-size:0.42rem;font-weight:700">V</span>';
-      if (r === 'P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.42rem;font-weight:700">P</span>';
-      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#555570;color:#fff;font-size:0.42rem;font-weight:700">N</span>';
-    };
-    const emptyDot = '<span style="display:inline-flex;width:13px;height:13px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
-
-    return `
-      <div style="border:1px solid ${color}44;border-radius:8px;overflow:hidden;flex:1;min-width:0">
-        <!-- Header squadra -->
-        <div style="background:${color}18;padding:0.6rem 0.8rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${color}33">
-          <span style="font-family:'Black Han Sans',sans-serif;font-size:0.85rem;color:${color};letter-spacing:0.08em">${team}</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:${color};font-weight:700">${score}</span>
-        </div>
-        <!-- Lista giocatori -->
-        <div style="padding:0.4rem 0.8rem">
-          ${players.map(p => {
-            const cached    = (window.cachedPlayers || []).find(cp => cp.id === p.id);
-            const risultati = cached?.ultimi_risultati || [];
-            const allDots   = Array(Math.max(0, 5 - risultati.length)).fill(emptyDot).join('') + risultati.map(dot).join('');
-            const mediaStr  = p.livello_manuale
-              ? `<span style="color:var(--neon3);font-size:0.68rem">~${p.livello_manuale}</span>`
-              : `<span style="color:var(--text-muted);font-size:0.68rem">${p.media_storica > 0 ? p.media_storica : '—'}</span>`;
-            return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border)22">
-              <div>
-                <div style="font-size:0.9rem;font-weight:700;font-family:'Barlow Condensed',sans-serif">${p.emoji||'🎳'} ${p.name}</div>
-                <div style="font-family:'Share Tech Mono',monospace;margin-top:0.1rem">${mediaStr}</div>
-              </div>
-              <div style="display:flex;gap:2px;flex-shrink:0;margin-left:0.4rem">${allDots}</div>
-            </div>`;
-          }).join('')}
-          ${chemHtml}
-        </div>
-      </div>`;
+  function playerLine(p) {
+    const cached    = (window.cachedPlayers || []).find(cp => cp.id === p.id);
+    const risultati = cached?.ultimi_risultati || [];
+    const dots      = Array(Math.max(0,5-risultati.length)).fill(emptyDot).join('') + risultati.map(dot).join('');
+    const media     = p.livello_manuale ? `~${p.livello_manuale}` : (p.media_storica > 0 ? p.media_storica : '—');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid var(--border)22;gap:0.3rem">
+      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap">${p.emoji||'🎳'} ${p.name}</div>
+      <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--text-muted)">${media}</span>
+        <div style="display:flex;gap:1px">${dots}</div>
+      </div>
+    </div>`;
   }
 
+  function proposalHtml(data, idx, label) {
+    return `
+    <div class="suggest-proposal" id="proposal-${idx}" style="border:2px solid ${idx===1 ? 'var(--neon)' : 'var(--border)'};border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color 0.2s" onclick="selectProposal(${idx})">
+      <div style="background:var(--surface2);padding:0.35rem 0.6rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);letter-spacing:0.1em">${label}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:${data.diff < 20 ? 'var(--neon)' : 'var(--neon4)'}">Δ ${data.diff}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:0.35rem 0.5rem;border-right:1px solid var(--border)">
+          <div style="font-family:'Black Han Sans',sans-serif;font-size:0.68rem;color:var(--neon);margin-bottom:0.2rem">⚡ A <span style="font-size:0.58rem;color:var(--text-muted)">${data.scoreA}</span></div>
+          ${data.teamA.map(playerLine).join('')}
+        </div>
+        <div style="padding:0.35rem 0.5rem">
+          <div style="font-family:'Black Han Sans',sans-serif;font-size:0.68rem;color:var(--neon2);margin-bottom:0.2rem">🔥 B <span style="font-size:0.58rem;color:var(--text-muted)">${data.scoreB}</span></div>
+          ${data.teamB.map(playerLine).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window._selectedProposal = 1;
+
   document.getElementById('suggestResult').innerHTML = `
-    <div style="background:${balanced ? 'rgba(232,255,0,0.05)' : 'rgba(255,107,53,0.05)'};border:1px solid ${balanced ? 'rgba(232,255,0,0.2)' : 'rgba(255,107,53,0.2)'};border-radius:6px;padding:0.5rem 0.8rem;margin-bottom:0.8rem;font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:${balanced ? 'var(--neon)' : 'var(--neon4)'}">
-      ${balanced ? '✅ Squadre equilibrate' : '⚠ Leggero squilibrio'} — differenza media: ${data.diff}
+    <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.4rem">
+      ${proposalHtml(data1, 1, 'PROPOSTA 1')}
+      ${proposalHtml(data2, 2, 'PROPOSTA 2')}
     </div>
-    <div style="display:flex;flex-direction:column;gap:0.6rem">
-      ${teamHtml('⚡ Squadra A', data.teamA, data.scoreA, tColors[0], data.teamA_chemistry)}
-      ${teamHtml('🔥 Squadra B', data.teamB, data.scoreB, tColors[1], data.teamB_chemistry)}
-    </div>
-    <button onclick="useSuggestedTeams()" class="btn-primary" style="width:100%;margin-top:0.8rem;font-size:0.78rem;padding:0.5rem">
-      ✓ Usa queste squadre per la nuova partita
+    <button onclick="useSuggestedTeams()" class="btn-primary" style="width:100%;margin-top:0.5rem;font-size:0.78rem;padding:0.45rem">
+      ✓ Usa la proposta selezionata
     </button>`;
 }
 
+function selectProposal(idx) {
+  window._selectedProposal = idx;
+  document.querySelectorAll('.suggest-proposal').forEach((el, i) => {
+    el.style.borderColor = (i + 1) === idx ? 'var(--neon)' : 'var(--border)';
+  });
+}
+
 function useSuggestedTeams() {
-  // Apre il modal nuova partita con le squadre già preimpostate
-  const result = document.getElementById('suggestResult');
-  if (!result) return;
+  const idx = window._selectedProposal || 1;
+  const resultData = idx === 2 ? window._lastSuggestData2 : window._lastSuggestData;
 
   openModal().then(() => {
     document.getElementById('teamARows').innerHTML = '';
     document.getElementById('teamBRows').innerHTML = '';
-    const resultData = window._lastSuggestData;
     if (resultData) {
       resultData.teamA.forEach(p => addPlayerRow('A', p.id));
       resultData.teamB.forEach(p => addPlayerRow('B', p.id));
