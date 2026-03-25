@@ -11,14 +11,6 @@ const CARD_COLORS = [
   '#34d399',     '#fb923c',      '#60a5fa'
 ];
 
-// Lista emoji disponibili nel selettore
-const EMOJIS = [
-  '🎳','🐺','🦊','🐻','🦁','🐯','🦋','🐸',
-  '🦅','🐉','🦈','🐆','🦎','🐬','🦄','🐼',
-  '🦊','🐙','🦁','🐝','🦉','🦚','🐺','🦀',
-  '⚡','🔥','💎','🏆','👑','🎯','🚀','💥'
-];
-
 // Stato locale
 
 let currentSort = 'name';
@@ -159,108 +151,6 @@ function sortBy(field, btn) {
 
 function filterPlayers() {
   renderPlayers();
-}
-
-// ── SELETTORE EMOJI ──────────────────────────
-
-function buildEmojiGrid(selected = '🎳') {
-  document.getElementById('emojiGrid').innerHTML = EMOJIS.map(e => `
-    <button
-      type="button"
-      class="emoji-btn${e === selected ? ' selected' : ''}"
-      onclick="selectEmoji('${e}', this)"
-    >${e}</button>
-  `).join('');
-  document.getElementById('selectedEmoji').value = selected;
-}
-
-function selectEmoji(emoji, btn) {
-  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  document.getElementById('selectedEmoji').value = emoji;
-}
-
-// ── MODAL AGGIUNGI ───────────────────────────
-
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modalTitle').textContent    = '➕ Nuovo Giocatore';
-  document.getElementById('playerName').value          = '';
-  document.getElementById('playerNickname').value      = '';
-  document.getElementById('btnSave').textContent       = 'Salva';
-  buildEmojiGrid('🎳');
-  document.getElementById('modalOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('playerName').focus(), 100);
-}
-
-// ── MODAL MODIFICA ───────────────────────────
-
-function openEditModal(id) {
-  const p = allPlayers.find(x => x.id === id);
-  if (!p) return;
-
-  editingId = id;
-  document.getElementById('modalTitle').textContent    = '✏ Modifica Giocatore';
-  document.getElementById('playerName').value          = p.name;
-  document.getElementById('playerNickname').value      = p.nickname || '';
-  document.getElementById('btnSave').textContent       = 'Aggiorna';
-  buildEmojiGrid(p.emoji || '🎳');
-  document.getElementById('modalOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('playerName').focus(), 100);
-}
-
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-}
-
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
-}
-
-// ── SALVA (aggiungi o modifica) ──────────────
-
-async function savePlayer() {
-  const btn      = document.getElementById('btnSave');
-  const name     = document.getElementById('playerName').value.trim();
-  const nickname = document.getElementById('playerNickname').value.trim();
-  const emoji    = document.getElementById('selectedEmoji').value;
-
-  if (!name) {
-    showToast('Il nome è obbligatorio', 'error');
-    document.getElementById('playerName').focus();
-    return;
-  }
-
-  btn.disabled    = true;
-  btn.textContent = 'Salvataggio...';
-
-  try {
-    const method  = editingId ? 'PUT' : 'POST';
-    const payload = editingId
-      ? { id: editingId, name, nickname, emoji }
-      : { name, nickname, emoji };
-
-    const res  = await fetch(`${API}/players.php`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      closeModal();
-      showToast(editingId ? `${name} aggiornato!` : `${name} aggiunto al gruppo!`);
-      await loadPlayers();
-    } else {
-      showToast(data.error || 'Errore nel salvataggio', 'error');
-    }
-  } catch (e) {
-    showToast('Errore di connessione', 'error');
-    console.error(e);
-  }
-
-  btn.disabled    = false;
-  btn.textContent = editingId ? 'Aggiorna' : 'Salva';
 }
 
 // ── MODAL ELIMINA ────────────────────────────

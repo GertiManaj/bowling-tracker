@@ -74,11 +74,11 @@
 <footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
 
 <!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+<div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="modalTitle">➕ Nuovo Giocatore</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-title" id="gModalTitle">➕ Nuovo Giocatore</div>
+      <button class="modal-close" onclick="closeGModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -96,8 +96,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
-      <button class="btn-primary" id="btnSave" onclick="savePlayer()">Salva</button>
+      <button class="btn-secondary" onclick="closeGModal()">Annulla</button>
+      <button class="btn-primary" id="btnSavePlayer" onclick="savePlayer()">Salva</button>
     </div>
   </div>
 </div>
@@ -231,38 +231,8 @@
 <div class="toast" id="toast"></div>
 
 <script src="../assets/js/auth.js"></script>
+<script src="../assets/js/modal-giocatore.js"></script>
 <script src="../assets/js/modal-nuova-partita.js"></script>
 <script src="../assets/js/giocatori.js"></script>
-<!-- Dopo giocatori.js: il modal "Nuova Partita" usa sessionModalOverlay invece di modalOverlay -->
-<script>
-// Su giocatori.html openModal() apre sessionModalOverlay per non
-// collidere con il modal giocatore (modalOverlay).
-// modal-nuova-partita.js definisce openModal() con modalOverlay:
-// qui la sovrascriviamo in modo che usi sessionModalOverlay.
-const _origOpen = openModal;
-async function openModal() {
-  if (!window.isLoggedIn) { openLoginModal(); return; }
-  try { allPlayers = await fetch('/api/players.php').then(r => r.json()); } catch(e) { allPlayers = []; }
-  document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
-  document.getElementById('sessionLocation').value = '';
-  document.getElementById('sessionNotes').value    = '';
-  document.getElementById('teamAName').value       = '';
-  document.getElementById('teamBName').value       = '';
-  document.getElementById('numGames').value        = '2';
-  document.getElementById('totalA').textContent    = 'Totale: 0';
-  document.getElementById('totalB').textContent    = 'Totale: 0';
-  document.getElementById('soloRows').innerHTML    = '';
-  buildGameRows();
-  document.getElementById('sessionModalOverlay').classList.add('open');
-}
-function closeModal() {
-  // Chiude entrambi (giocatore e partita) in sicurezza
-  document.getElementById('modalOverlay')?.classList.remove('open');
-  document.getElementById('sessionModalOverlay')?.classList.remove('open');
-}
-function handleOverlayClick(e) {
-  if (e.target.classList.contains('modal-overlay')) closeModal();
-}
-</script>
 </body>
 </html>
