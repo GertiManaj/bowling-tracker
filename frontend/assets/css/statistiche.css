@@ -435,27 +435,31 @@
     border-radius: 8px;
     overflow-x: auto;
   }
-  
+
+  .rank-table-inner {
+    min-width: 1300px;
+  }
+
   .rank-table-header {
     display: grid;
-    grid-template-columns: 36px 1fr 70px 68px 62px 52px 52px 52px 72px 72px 72px 90px 80px;
-    padding: 0.6rem 1rem;
+    grid-template-columns: 36px 140px 65px 65px 58px 52px 55px 52px 70px 68px 68px 90px 75px;
+    padding: 0.6rem 0.8rem;
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.55rem;
-    letter-spacing: 0.12em;
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  
+
   .rank-col { text-align: center; }
   .rank-col.active-col { color: var(--neon); }
-  
+
   .rank-table-row {
     display: grid;
-    grid-template-columns: 36px 1fr 70px 68px 62px 52px 52px 52px 72px 72px 72px 90px 80px;
-    padding: 0.7rem 1rem;
+    grid-template-columns: 36px 140px 65px 65px 58px 52px 55px 52px 70px 68px 68px 90px 75px;
+    padding: 0.7rem 0.8rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
     transition: background 0.15s;
