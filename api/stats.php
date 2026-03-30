@@ -267,6 +267,9 @@ foreach ($leaderboard as &$p) {
     $qSolo->execute(array_merge([$pid], $dateParams));
     $p['partite_singolo'] = (int)$qSolo->fetchColumn();
 
+    // Conta sessioni con squadra (sfide)
+    $p['partite_sfide'] = $serateSquadraMap[$pid] ?? 0;
+
     $sfide   = isset($paymentSfide[$pid])   ? round($paymentSfide[$pid],   2) : null;
     $singolo = isset($paymentSingolo[$pid]) ? round($paymentSingolo[$pid], 2) : 0.0;
 

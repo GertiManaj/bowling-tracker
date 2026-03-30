@@ -26,16 +26,16 @@ let currentRankMetric = 'media';
 
 const RANK_METRICS = {
   media:          { label: 'Media',        fmt: v => v ?? '—',                                          unit: '' },
+  record:         { label: 'Record',       fmt: v => v ?? '—',                                          unit: '' },
   win_pct:        { label: '% Vittorie',   fmt: v => v != null ? v + '%' : '—',                        unit: '%' },
-  record:         { label: 'Top Score',    fmt: v => v ?? '—',                                          unit: '' },
-  sfide:          { label: 'Sfide',        fmt: v => v ?? '—',                                          unit: '' },
-  partite_singolo:{ label: 'Singolo',      fmt: v => v ?? '—',                                          unit: '' },
-  vitt:           { label: 'Vittorie',     fmt: v => v ?? '—',                                          unit: '' },
-  media_recente:  { label: 'Forma',        fmt: v => v ?? '—',                                          unit: '' },
+  sfide:          { label: 'N° Sfide',     fmt: v => v ?? '—',                                          unit: '' },
+  partite_sfide:  { label: 'G. Sfide',     fmt: v => v ?? '—',                                          unit: '' },
+  partite_singolo:{ label: 'G. Solo',      fmt: v => v ?? '—',                                          unit: '' },
   pagato_sfide:   { label: '€ Sfide',      fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
-  pagato_singolo: { label: '€ Singolo',    fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
+  pagato_singolo: { label: '€ Solo',       fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
   pagato_totale:  { label: '€ Totale',     fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
-  saldo:          { label: '€ Pagato',     fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
+  vitt:           { label: 'V/N/P',        fmt: v => v ?? '—',                                          unit: '' },
+  media_recente:  { label: 'Forma',        fmt: v => v ?? '—',                                          unit: '' },
 };
 
 const MEDAL_COLORS = ['#ffd700', '#c0c0d0', '#cd7f32'];
@@ -52,7 +52,8 @@ function computeRankValue(p, metric) {
   if (metric === 'media')          return parseFloat(p.media) || null;
   if (metric === 'record')         return parseInt(p.record) || null;
   if (metric === 'sfide')          return parseInt(p.serate_con_squadra) || null;
-  if (metric === 'partite_singolo')return parseInt(p.partite_singolo) || null;
+  if (metric === 'partite_sfide')  return parseInt(p.partite_sfide) || null;
+  if (metric === 'partite_singolo')return parseInt(p.partite_singolo) ?? 0;
   if (metric === 'partite')        return parseInt(p.serate_con_squadra) || null;
   if (metric === 'pagato_sfide')   return p.pagato_sfide   != null ? parseFloat(p.pagato_sfide)   : null;
   if (metric === 'pagato_singolo') return p.pagato_singolo != null ? parseFloat(p.pagato_singolo) : null;
@@ -131,10 +132,10 @@ function renderRanking() {
 
   // Aggiorna header colonna attiva
   const colIds = {
-    media:'thMedia', win_pct:'thWin', record:'thRecord',
-    sfide:'thSfide', partite_singolo:'thSingolo',
+    media:'thMedia', record:'thRecord', win_pct:'thWin',
+    sfide:'thSfide', partite_sfide:'thPartiteSfide', partite_singolo:'thSingolo',
+    pagato_sfide:'thPagatoSfide', pagato_singolo:'thPagatoSingolo', pagato_totale:'thPagatoTotale',
     vitt:'thVitt', media_recente:'thForma',
-    pagato_sfide:'thPagatoSfide', pagato_singolo:'thPagatoSingolo', pagato_totale:'thPagatoTotale'
   };
   Object.values(colIds).forEach(id => {
     const el = document.getElementById(id);
@@ -178,13 +179,6 @@ function renderRanking() {
 
     const isActive = m => currentRankMetric === m;
 
-    const fmtEur = (v, zero) => {
-      if (v == null) return '—';
-      const n = parseFloat(v);
-      const color = n === 0 ? 'var(--neon)' : 'var(--neon2)';
-      return `<span style="color:${color}">€${n.toFixed(2)}</span>`;
-    };
-
     return `
       <div class="rank-table-row" style="animation-delay:${(i*0.05).toFixed(2)}s">
         ${rankEl}
@@ -198,13 +192,12 @@ function renderRanking() {
         <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}" style="${isActive('media')?'':'color:var(--neon)'}">${p.media ?? '—'}</div>
         <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct+'%' : '—'}</div>
         <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}" style="${isActive('record')?'':'color:var(--neon3)'}">${p.record ?? '—'}</div>
-        <div class="rank-table-val ${isActive('sfide') ? 'active-val' : ''}">${serateConSquadra || '—'}</div>
-        <div class="rank-table-val ${isActive('partite_singolo') ? 'active-val' : ''}">${parseInt(p.partite_singolo) || 0}</div>
+        <div class="rank-table-val ${isActive('partite') ? 'active-val' : ''}">${parseInt(p.serate_con_squadra) > 0 ? p.serate_con_squadra : '—'}</div>
         <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.75rem">${vnpBadge}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
-        <div class="rank-table-val ${isActive('pagato_sfide') ? 'active-val' : ''}">${fmtEur(p.pagato_sfide)}</div>
-        <div class="rank-table-val ${isActive('pagato_singolo') ? 'active-val' : ''}">${fmtEur(p.pagato_singolo)}</div>
-        <div class="rank-table-val ${isActive('pagato_totale') ? 'active-val' : ''}" style="font-weight:700">${fmtEur(p.pagato_totale)}</div>
+        <div class="rank-table-val" style="${p.saldo_pagamenti === 0 ? 'color:var(--neon)' : p.saldo_pagamenti > 0 ? 'color:var(--neon2)' : 'color:var(--text-muted)'}">
+          ${p.saldo_pagamenti != null ? '€' + parseFloat(p.saldo_pagamenti).toFixed(2) : '—'}
+        </div>
       </div>`;
   }).join('');
 }

@@ -78,16 +78,17 @@
     <div class="rank-controls">
       <span class="chart-hint">Ordina per:</span>
       <div class="metric-btns">
-        <button class="metric-btn rank-metric active" data-metric="media"          onclick="setRankMetric(this)">Media</button>
-        <button class="metric-btn rank-metric"        data-metric="win_pct"        onclick="setRankMetric(this)">% Vitt</button>
-        <button class="metric-btn rank-metric"        data-metric="record"         onclick="setRankMetric(this)">Record</button>
-        <button class="metric-btn rank-metric"        data-metric="sfide"          onclick="setRankMetric(this)">Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_singolo" onclick="setRankMetric(this)">Singolo</button>
-        <button class="metric-btn rank-metric"        data-metric="vitt"           onclick="setRankMetric(this)">V/N/P</button>
-        <button class="metric-btn rank-metric"        data-metric="media_recente"  onclick="setRankMetric(this)">Forma</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_sfide"   onclick="setRankMetric(this)">€ Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_singolo" onclick="setRankMetric(this)">€ Singolo</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_totale"  onclick="setRankMetric(this)">€ Totale</button>
+        <button class="metric-btn rank-metric active" data-metric="media"           onclick="setRankMetric(this)">Media</button>
+        <button class="metric-btn rank-metric"        data-metric="record"          onclick="setRankMetric(this)">Record</button>
+        <button class="metric-btn rank-metric"        data-metric="win_pct"         onclick="setRankMetric(this)">% Vitt</button>
+        <button class="metric-btn rank-metric"        data-metric="sfide"           onclick="setRankMetric(this)">Sfide</button>
+        <button class="metric-btn rank-metric"        data-metric="partite_sfide"   onclick="setRankMetric(this)">G.Sfide</button>
+        <button class="metric-btn rank-metric"        data-metric="partite_singolo" onclick="setRankMetric(this)">G.Solo</button>
+        <button class="metric-btn rank-metric"        data-metric="pagato_sfide"    onclick="setRankMetric(this)">€ Sfide</button>
+        <button class="metric-btn rank-metric"        data-metric="pagato_singolo"  onclick="setRankMetric(this)">€ Solo</button>
+        <button class="metric-btn rank-metric"        data-metric="pagato_totale"   onclick="setRankMetric(this)">€ Tot</button>
+        <button class="metric-btn rank-metric"        data-metric="vitt"            onclick="setRankMetric(this)">V/N/P</button>
+        <button class="metric-btn rank-metric"        data-metric="media_recente"   onclick="setRankMetric(this)">Forma</button>
       </div>
     </div>
     <div class="podium-wrap" id="podiumWrap"></div>
@@ -95,18 +96,27 @@
       <div class="rank-table-header">
         <div>#</div>
         <div>Giocatore</div>
-        <div class="rank-col" id="thMedia"        style="cursor:pointer" onclick="setRankMetricById('media')">Media ↕</div>
-        <div class="rank-col" id="thWin"          style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
-        <div class="rank-col" id="thRecord"       style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕</div>
-        <div class="rank-col" id="thSfide"        style="cursor:pointer" onclick="setRankMetricById('sfide')">Sfide ↕</div>
-        <div class="rank-col" id="thSingolo"      style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">Singolo ↕</div>
-        <div class="rank-col" id="thVitt"         style="cursor:pointer" onclick="setRankMetricById('vitt')">V/N/P ↕</div>
-        <div class="rank-col" id="thForma"        style="cursor:pointer" onclick="setRankMetricById('media_recente')">Forma ↕</div>
-        <div class="rank-col" id="thPagatoSfide"  style="cursor:pointer" onclick="setRankMetricById('pagato_sfide')">€ Sfide ↕</div>
-        <div class="rank-col" id="thPagatoSingolo" style="cursor:pointer" onclick="setRankMetricById('pagato_singolo')">€ Singolo ↕</div>
-        <div class="rank-col" id="thPagatoTotale" style="cursor:pointer" onclick="setRankMetricById('pagato_totale')">€ Totale ↕</div>
+        <div class="rank-col" id="thMedia"         style="cursor:pointer" onclick="setRankMetricById('media')">Media ↕</div>
+        <div class="rank-col" id="thRecord"        style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕</div>
+        <div class="rank-col" id="thWin"           style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
+        <div class="rank-col" id="thSfide"         style="cursor:pointer" onclick="setRankMetricById('sfide')">Sfide ↕</div>
+        <div class="rank-col" id="thPartiteSfide"  style="cursor:pointer" onclick="setRankMetricById('partite_sfide')">G.Sfide ↕</div>
+        <div class="rank-col" id="thSingolo"       style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">G.Solo ↕</div>
+        <div class="rank-col" id="thPagatoSfide"   style="cursor:pointer" onclick="setRankMetricById('pagato_sfide')">€ Sfide ↕</div>
+        <div class="rank-col" id="thPagatoSingolo" style="cursor:pointer" onclick="setRankMetricById('pagato_singolo')">€ Solo ↕</div>
+        <div class="rank-col" id="thPagatoTotale"  style="cursor:pointer" onclick="setRankMetricById('pagato_totale')">€ Tot ↕</div>
+        <div class="rank-col" id="thVitt"          style="cursor:pointer" onclick="setRankMetricById('vitt')">V/N/P ↕</div>
+        <div class="rank-col" id="thForma"         style="cursor:pointer" onclick="setRankMetricById('media_recente')">Forma ↕</div>
       </div>
       <div id="rankTableBody"></div>
+      <!-- Legenda pallini -->
+      <div style="display:flex;align-items:center;gap:1rem;padding:0.6rem 1rem;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);flex-wrap:wrap">
+        <span style="letter-spacing:0.1em">FORMA (ULTIMI 5):</span>
+        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span> Vittoria</span>
+        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span> Sconfitta</span>
+        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span> Pareggio</span>
+        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span> Nessun dato</span>
+      </div>
     </div>
   </div>
 
