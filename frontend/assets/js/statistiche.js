@@ -277,7 +277,8 @@ async function loadStats() {
     const params = new URLSearchParams();
     if (currentFrom) params.set('from', currentFrom);
     if (currentTo)   params.set('to',   currentTo);
-    const url = `${API}/stats.php${params.toString() ? '?' + params : ''}`;
+    const paramStr = params.toString();
+    const url = '/api/stats.php' + (paramStr ? '?' + paramStr : '');
 
     statsData = await fetch(url).then(r => r.json());
 
