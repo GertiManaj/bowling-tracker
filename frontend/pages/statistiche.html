@@ -12,7 +12,7 @@
   <title>🎳 Strike Zone — Statistiche</title>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
-  <link rel="stylesheet" href="../assets/css/statistiche.css?v=2"/>
+  <link rel="stylesheet" href="../assets/css/statistiche.css?v=3"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="../assets/js/shared.js"></script>
 </head>
@@ -82,8 +82,8 @@
         <button class="metric-btn rank-metric"        data-metric="record"          onclick="setRankMetric(this)">Record</button>
         <button class="metric-btn rank-metric"        data-metric="win_pct"         onclick="setRankMetric(this)">% Vitt</button>
         <button class="metric-btn rank-metric"        data-metric="sfide"           onclick="setRankMetric(this)">Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_sfide"   onclick="setRankMetric(this)">G.Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_singolo" onclick="setRankMetric(this)">G.Solo</button>
+        <button class="metric-btn rank-metric"        data-metric="partite_sfide"   onclick="setRankMetric(this)">Part.</button>
+        <button class="metric-btn rank-metric"        data-metric="partite_singolo" onclick="setRankMetric(this)">Solo</button>
         <button class="metric-btn rank-metric"        data-metric="pagato_sfide"    onclick="setRankMetric(this)">€ Sfide</button>
         <button class="metric-btn rank-metric"        data-metric="pagato_singolo"  onclick="setRankMetric(this)">€ Solo</button>
         <button class="metric-btn rank-metric"        data-metric="pagato_totale"   onclick="setRankMetric(this)">€ Tot</button>
@@ -100,8 +100,8 @@
         <div class="rank-col" id="thRecord"        style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕</div>
         <div class="rank-col" id="thWin"           style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
         <div class="rank-col" id="thSfide"         style="cursor:pointer" onclick="setRankMetricById('sfide')">Sfide ↕</div>
-        <div class="rank-col" id="thPartiteSfide"  style="cursor:pointer" onclick="setRankMetricById('partite_sfide')">G.Sfide ↕</div>
-        <div class="rank-col" id="thSingolo"       style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">G.Solo ↕</div>
+        <div class="rank-col" id="thPartiteSfide"  style="cursor:pointer" onclick="setRankMetricById('partite_sfide')">Part. ↕</div>
+        <div class="rank-col" id="thSingolo"       style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">Solo ↕</div>
         <div class="rank-col" id="thPagatoSfide"   style="cursor:pointer" onclick="setRankMetricById('pagato_sfide')">€ Sfide ↕</div>
         <div class="rank-col" id="thPagatoSingolo" style="cursor:pointer" onclick="setRankMetricById('pagato_singolo')">€ Solo ↕</div>
         <div class="rank-col" id="thPagatoTotale"  style="cursor:pointer" onclick="setRankMetricById('pagato_totale')">€ Tot ↕</div>

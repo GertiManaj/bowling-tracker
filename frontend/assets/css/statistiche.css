@@ -445,6 +445,7 @@
   .rank-table-header {
     display: grid;
     grid-template-columns: 36px 130px repeat(11, auto);
+    gap: 0.5rem;
     padding: 0.6rem 0.8rem;
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
@@ -461,6 +462,7 @@
   .rank-table-row {
     display: grid;
     grid-template-columns: 36px 130px repeat(11, auto);
+    gap: 0.5rem;
     padding: 0.65rem 0.8rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
