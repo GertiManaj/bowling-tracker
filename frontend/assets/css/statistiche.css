@@ -434,23 +434,26 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .rank-table-inner {
-    min-width: 1300px;
+    min-width: 1280px;
+    width: max-content;
   }
 
   .rank-table-header {
     display: grid;
-    grid-template-columns: 36px 140px 65px 65px 58px 52px 55px 52px 70px 68px 68px 90px 75px;
+    grid-template-columns: 36px 130px 62px 62px 55px 50px 52px 50px 68px 66px 66px 88px 72px;
     padding: 0.6rem 0.8rem;
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.52rem;
-    letter-spacing: 0.1em;
+    font-size: 0.5rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
+    width: 100%;
   }
 
   .rank-col { text-align: center; }
@@ -458,12 +461,13 @@
 
   .rank-table-row {
     display: grid;
-    grid-template-columns: 36px 140px 65px 65px 58px 52px 55px 52px 70px 68px 68px 90px 75px;
-    padding: 0.7rem 0.8rem;
+    grid-template-columns: 36px 130px 62px 62px 55px 50px 52px 50px 68px 66px 66px 88px 72px;
+    padding: 0.65rem 0.8rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
     transition: background 0.15s;
     animation: fadeInUp 0.4s ease both;
+    width: 100%;
   }
   
   .rank-table-row:last-child { border-bottom: none; }
