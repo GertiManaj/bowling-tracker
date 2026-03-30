@@ -411,7 +411,7 @@ $qMostWins = $pdo->prepare("
             GROUP BY s3.team_id
         ) mx
     )
-    $dateWhere
+    " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
     GROUP BY p.id
     ORDER BY vittorie DESC
     LIMIT 1
