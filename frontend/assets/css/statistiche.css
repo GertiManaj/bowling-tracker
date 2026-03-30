@@ -444,16 +444,15 @@
 
   .rank-table-header {
     display: grid;
-    grid-template-columns: 36px 130px 62px 62px 55px 50px 52px 50px 68px 66px 66px 88px 72px;
+    grid-template-columns: 36px 130px repeat(11, auto);
     padding: 0.6rem 0.8rem;
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.5rem;
+    font-size: 0.52rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
-    width: 100%;
   }
 
   .rank-col { text-align: center; }
@@ -461,13 +460,12 @@
 
   .rank-table-row {
     display: grid;
-    grid-template-columns: 36px 130px 62px 62px 55px 50px 52px 50px 68px 66px 66px 88px 72px;
+    grid-template-columns: 36px 130px repeat(11, auto);
     padding: 0.65rem 0.8rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
     transition: background 0.15s;
     animation: fadeInUp 0.4s ease both;
-    width: 100%;
   }
   
   .rank-table-row:last-child { border-bottom: none; }
