@@ -1344,12 +1344,6 @@ body.light .skeleton {
   animation: shimmer 1.5s infinite;
 }
 
-/* ── COLONNA PAGAMENTI ── */
-.rank-table-header,
-.rank-table-row {
-  grid-template-columns: 44px 1fr 80px 70px 72px 60px 120px 90px 72px !important;
-}
-
 /* Verde = ha vinto (€0), Rosa = ha pagato */
 .saldo-vinto  { color: var(--neon);  }
 .saldo-pagato { color: var(--neon2); }
