@@ -178,6 +178,12 @@ function renderRanking() {
       risultati.map(dot).join('') + '</div>';
 
     const isActive = m => currentRankMetric === m;
+    const eur = v => {
+      if (v == null) return '—';
+      const n = parseFloat(v);
+      const c = n === 0 ? 'var(--neon)' : 'var(--neon2)';
+      return '<span style="color:' + c + '">€' + n.toFixed(2) + '</span>';
+    };
 
     return `
       <div class="rank-table-row" style="animation-delay:${(i*0.05).toFixed(2)}s">
@@ -195,9 +201,9 @@ function renderRanking() {
         <div class="rank-table-val ${isActive('sfide') ? 'active-val' : ''}">${serateConSquadra || '—'}</div>
         <div class="rank-table-val ${isActive('partite_sfide') ? 'active-val' : ''}">${parseInt(p.partite_sfide) || 0}</div>
         <div class="rank-table-val ${isActive('partite_singolo') ? 'active-val' : ''}">${p.partite_singolo != null ? parseInt(p.partite_singolo) : 0}</div>
-        <div class="rank-table-val ${isActive('pagato_sfide') ? 'active-val' : ''}">${p.pagato_sfide != null ? '<span style="color:' + (parseFloat(p.pagato_sfide)===0?'var(--neon)':'var(--neon2)') + '">€' + parseFloat(p.pagato_sfide).toFixed(2) + '</span>' : '—'}</div>
-        <div class="rank-table-val ${isActive('pagato_singolo') ? 'active-val' : ''}">${p.pagato_singolo != null ? '<span style="color:' + (parseFloat(p.pagato_singolo)===0?'var(--neon)':'var(--neon2)') + '">€' + parseFloat(p.pagato_singolo).toFixed(2) + '</span>' : '—'}</div>
-        <div class="rank-table-val ${isActive('pagato_totale') ? 'active-val' : ''}" style="font-weight:700">${p.pagato_totale != null ? '<span style="color:' + (parseFloat(p.pagato_totale)===0?'var(--neon)':'var(--neon2)') + '">€' + parseFloat(p.pagato_totale).toFixed(2) + '</span>' : '—'}</div>
+        <div class="rank-table-val ${isActive('pagato_sfide') ? 'active-val' : ''}">${eur(p.pagato_sfide)}</div>
+        <div class="rank-table-val ${isActive('pagato_singolo') ? 'active-val' : ''}">${eur(p.pagato_singolo)}</div>
+        <div class="rank-table-val ${isActive('pagato_totale') ? 'active-val' : ''}" style="font-weight:700">${eur(p.pagato_totale)}</div>
         <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem">${vnpBadge}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
       </div>`;
