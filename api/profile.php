@@ -162,25 +162,21 @@ foreach ($teammatesRaw as $t) {
 // ── CALCOLO PAGAMENTI ─────────────────────────
 // Stessa logica di leaderboard.php ma filtrata per questo giocatore
 $qSessWithCost = $pdo->query('
-    SELECT id, cost_per_game FROM sessions
+    SELECT id, cost_per_game, COALESCE(mode, \'teams\') AS mode FROM sessions
     WHERE cost_per_game IS NOT NULL AND cost_per_game > 0
 ');
 $sessWithCost = $qSessWithCost->fetchAll();
 
 $saldoTotale   = 0.0;
 $hasCostData   = false;
-$paymentDetail = []; // dettaglio per sessione
+$paymentDetail = [];
 
 foreach ($sessWithCost as $sess) {
     $sid  = $sess['id'];
     $cost = floatval($sess['cost_per_game']);
+    $mode = $sess['mode'];
 
-    // Controlla se il giocatore era in questa sessione
-    $qPG = $pdo->prepare('
-        SELECT team_id, COUNT(*) AS num_games
-        FROM scores WHERE session_id = ? AND player_id = ?
-        GROUP BY team_id
-    ');
+    $qPG = $pdo->prepare('SELECT team_id, COUNT(*) AS num_games FROM scores WHERE session_id = ? AND player_id = ? GROUP BY team_id');
     $qPG->execute([$sid, $id]);
     $pgRow = $qPG->fetch();
     if (!$pgRow) continue;
@@ -190,47 +186,55 @@ foreach ($sessWithCost as $sess) {
     $nG   = (int)$pgRow['num_games'];
     $base = $cost * $nG;
 
-    // Totali team nella sessione
-    $qTT = $pdo->prepare('
-        SELECT team_id, SUM(score) AS tot
-        FROM scores WHERE session_id = ? AND team_id IS NOT NULL
-        GROUP BY team_id
-    ');
-    $qTT->execute([$sid]);
-    $teamTotals = [];
-    foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+    if ($mode === 'ffa') {
+        // Punteggio totale del giocatore
+        $qMyScore = $pdo->prepare('SELECT SUM(score) FROM scores WHERE session_id = ? AND player_id = ?');
+        $qMyScore->execute([$sid, $id]);
+        $myScore = (int)$qMyScore->fetchColumn();
 
-    $pagato = 0.0;
-    if ($tid === null) {
-        // Singolo
-        $pagato = $base;
-        $esito  = 'singolo';
-    } else {
-        $maxTot    = $teamTotals ? max($teamTotals) : 0;
-        $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
-        $isDraw    = $winnerCnt > 1;
-        $myTot     = $teamTotals[$tid] ?? 0;
+        // Tutti i punteggi
+        $qAll = $pdo->prepare('SELECT player_id, SUM(score) AS ptot, COUNT(*) AS ngames FROM scores WHERE session_id = ? GROUP BY player_id');
+        $qAll->execute([$sid]);
+        $allScores = $qAll->fetchAll();
+        $maxScore  = max(array_column($allScores, 'ptot'));
+        $winnersN  = count(array_filter($allScores, fn($p) => (int)$p['ptot'] === $maxScore));
+        $nPlayers  = count($allScores);
 
-        if ($isDraw) {
-            $pagato = $base;
-            $esito  = 'pareggio';
-        } elseif ($myTot === $maxTot) {
+        // Trova i game del vincitore
+        $winnerRow  = array_values(array_filter($allScores, fn($p) => (int)$p['ptot'] === $maxScore))[0];
+        $winnerBase = $cost * (int)$winnerRow['ngames'];
+        $quota      = ($nPlayers > 1) ? $winnerBase / ($nPlayers - 1) : 0;
+
+        if ($winnersN === 1 && $myScore === $maxScore) {
             $pagato = 0.0;
-            $esito  = 'vittoria';
+            $esito  = 'vittoria_ffa';
         } else {
-            $pagato = $base * 2;
-            $esito  = 'sconfitta';
+            $pagato = $base + $quota;
+            $esito  = 'sconfitta_ffa';
+        }
+    } else {
+        $qTT = $pdo->prepare('SELECT team_id, SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
+        $qTT->execute([$sid]);
+        $teamTotals = [];
+        foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+
+        $pagato = 0.0;
+        if ($tid === null) {
+            $pagato = $base;
+            $esito  = 'singolo';
+        } else {
+            $maxTot    = $teamTotals ? max($teamTotals) : 0;
+            $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
+            $isDraw    = $winnerCnt > 1;
+            $myTot     = $teamTotals[$tid] ?? 0;
+            if ($isDraw)              { $pagato = $base;     $esito = 'pareggio'; }
+            elseif ($myTot === $maxTot) { $pagato = 0.0;      $esito = 'vittoria'; }
+            else                      { $pagato = $base * 2; $esito = 'sconfitta'; }
         }
     }
 
     $saldoTotale += $pagato;
-    $paymentDetail[] = [
-        'session_id'    => $sid,
-        'cost_per_game' => $cost,
-        'num_games'     => $nG,
-        'pagato'        => round($pagato, 2),
-        'esito'         => $esito,
-    ];
+    $paymentDetail[] = ['session_id' => $sid, 'cost_per_game' => $cost, 'num_games' => $nG, 'pagato' => round($pagato, 2), 'esito' => $esito];
 }
 
 echo json_encode([

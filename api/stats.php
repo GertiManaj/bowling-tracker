@@ -198,13 +198,36 @@ foreach ($leaderboard as &$p) {
     $p['ultimi_risultati']   = $playerTeamTotals[$pid] ?? [];
     $p['vittorie_squadra']   = $vittorieMap[$pid] ?? 0;
     $p['pareggi_squadra']    = $pareggiMap[$pid]  ?? 0;
-    $p['serate_con_squadra'] = $serateSquadraMap[$pid] ?? 0;
+    // serate_con_squadra = sessioni teams + sessioni ffa
+    $qFFA = $pdo->prepare("
+        SELECT COUNT(DISTINCT sc.session_id)
+        FROM scores sc JOIN sessions se ON sc.session_id=se.id
+        WHERE sc.player_id=? AND se.mode='ffa'
+        " . ($dateWhere ? str_replace('WHERE','AND',$dateWhere) : '') . "
+    ");
+    $qFFA->execute(array_merge([$pid], $dateParams));
+    $ffaSessions = (int)$qFFA->fetchColumn();
+    $p['serate_con_squadra'] = ($serateSquadraMap[$pid] ?? 0) + $ffaSessions;
+
+    // Vittorie FFA (solo il primo, nessun pareggio)
+    $qVFFA = $pdo->prepare("
+        SELECT COUNT(DISTINCT sc.session_id)
+        FROM scores sc JOIN sessions se ON sc.session_id=se.id
+        WHERE sc.player_id=? AND se.mode='ffa'
+        AND (SELECT SUM(score) FROM scores WHERE session_id=sc.session_id AND player_id=?)
+          = (SELECT MAX(ptot) FROM (SELECT player_id, SUM(score) AS ptot FROM scores WHERE session_id=sc.session_id GROUP BY player_id) pt)
+        AND 1=(SELECT COUNT(*) FROM (SELECT player_id, SUM(score) AS ptot FROM scores WHERE session_id=sc.session_id GROUP BY player_id) pt2
+               WHERE pt2.ptot=(SELECT MAX(ptot3) FROM (SELECT player_id,SUM(score) AS ptot3 FROM scores WHERE session_id=sc.session_id GROUP BY player_id) pt3))
+        " . ($dateWhere ? str_replace('WHERE','AND',$dateWhere) : '') . "
+    ");
+    $qVFFA->execute(array_merge([$pid, $pid], $dateParams));
+    $p['vittorie_squadra'] = ($p['vittorie_squadra'] ?? 0) + (int)$qVFFA->fetchColumn();
 }
 unset($p);
 
 // ── CALCOLO PAGAMENTI (filtrato per periodo) ──────────────────────────────
 $qSessWithCost = $pdo->prepare("
-    SELECT se.id, se.cost_per_game
+    SELECT se.id, se.cost_per_game, COALESCE(se.mode, 'teams') AS mode
     FROM sessions se
     WHERE se.cost_per_game IS NOT NULL AND se.cost_per_game > 0
     " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
@@ -218,33 +241,62 @@ $paymentSingolo = [];
 foreach ($sessWithCost as $sess) {
     $sid  = $sess['id'];
     $cost = floatval($sess['cost_per_game']);
+    $mode = $sess['mode'] ?? 'teams';
 
     $qPG = $pdo->prepare('SELECT player_id, team_id, COUNT(*) AS num_games FROM scores WHERE session_id = ? GROUP BY player_id, team_id');
     $qPG->execute([$sid]);
     $playerGames = $qPG->fetchAll();
 
-    $qTT = $pdo->prepare('SELECT team_id, SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
-    $qTT->execute([$sid]);
-    $teamTotals = [];
-    foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+    if ($mode === 'ffa') {
+        // ── FFA: il primo non paga, gli altri pagano base + quota del primo ──
+        $playerTotals = [];
+        foreach ($playerGames as $pg) {
+            $pid = $pg['player_id'];
+            $nG  = (int)$pg['num_games'];
+            $qPT = $pdo->prepare('SELECT SUM(score) FROM scores WHERE session_id = ? AND player_id = ?');
+            $qPT->execute([$sid, $pid]);
+            $playerTotals[$pid] = ['score' => (int)$qPT->fetchColumn(), 'games' => $nG];
+        }
+        $maxScore = max(array_column($playerTotals, 'score'));
+        $winnersN = count(array_filter($playerTotals, fn($p) => $p['score'] === $maxScore));
+        $nPlayers = count($playerTotals);
+        $winnerPid   = array_key_first(array_filter($playerTotals, fn($p) => $p['score'] === $maxScore));
+        $winnerBase  = $cost * ($playerTotals[$winnerPid]['games'] ?? 1);
+        $quota       = ($nPlayers > 1) ? $winnerBase / ($nPlayers - 1) : 0;
 
-    $maxTot    = $teamTotals ? max($teamTotals) : 0;
-    $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
-    $isDraw    = $winnerCnt > 1;
-
-    foreach ($playerGames as $pg) {
-        $pid  = $pg['player_id'];
-        $tid  = $pg['team_id'];
-        $nG   = (int)$pg['num_games'];
-        $base = $cost * $nG;
-        if ($tid === null) {
-            if (!isset($paymentSingolo[$pid])) $paymentSingolo[$pid] = 0.0;
-            $paymentSingolo[$pid] += $base;
-        } else {
+        foreach ($playerTotals as $pid => $pt) {
             if (!isset($paymentSfide[$pid])) $paymentSfide[$pid] = 0.0;
-            if ($isDraw)                                    $paymentSfide[$pid] += $base;
-            elseif (($teamTotals[$tid] ?? 0) === $maxTot)  $paymentSfide[$pid] += 0;
-            else                                            $paymentSfide[$pid] += $base * 2;
+            $base = $cost * $pt['games'];
+            if ($winnersN === 1 && $pt['score'] === $maxScore) {
+                $paymentSfide[$pid] += 0;
+            } else {
+                $paymentSfide[$pid] += $base + $quota;
+            }
+        }
+    } else {
+        $qTT = $pdo->prepare('SELECT team_id, SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
+        $qTT->execute([$sid]);
+        $teamTotals = [];
+        foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
+
+        $maxTot    = $teamTotals ? max($teamTotals) : 0;
+        $winnerCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTot));
+        $isDraw    = $winnerCnt > 1;
+
+        foreach ($playerGames as $pg) {
+            $pid  = $pg['player_id'];
+            $tid  = $pg['team_id'];
+            $nG   = (int)$pg['num_games'];
+            $base = $cost * $nG;
+            if ($tid === null) {
+                if (!isset($paymentSingolo[$pid])) $paymentSingolo[$pid] = 0.0;
+                $paymentSingolo[$pid] += $base;
+            } else {
+                if (!isset($paymentSfide[$pid])) $paymentSfide[$pid] = 0.0;
+                if ($isDraw)                                    $paymentSfide[$pid] += $base;
+                elseif (($teamTotals[$tid] ?? 0) === $maxTot)  $paymentSfide[$pid] += 0;
+                else                                            $paymentSfide[$pid] += $base * 2;
+            }
         }
     }
 }

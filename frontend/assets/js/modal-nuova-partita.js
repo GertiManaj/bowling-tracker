@@ -26,6 +26,10 @@ async function openModal() {
   document.getElementById('totalA').textContent    = 'Totale: 0';
   document.getElementById('totalB').textContent    = 'Totale: 0';
   document.getElementById('soloRows').innerHTML    = '';
+  const costEl = document.getElementById('sessionCost');
+  if (costEl) costEl.value = '';
+  const ffaCheck = document.getElementById('ffaMode');
+  if (ffaCheck) { ffaCheck.checked = false; setFFAMode(false); }
 
   buildGameRows();
   document.getElementById('modalOverlay').classList.add('open');
@@ -51,8 +55,19 @@ function buildGameRows() {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
-  // Resetta editingId se presente (usato da sessioni.js)
   if (typeof editingId !== 'undefined') editingId = null;
+  const ffaCheck = document.getElementById('ffaMode');
+  if (ffaCheck) { ffaCheck.checked = false; setFFAMode(false); }
+}
+
+// ── MODALITÀ TUTTI CONTRO TUTTI ──────────────
+function setFFAMode(active) {
+  const teamsSection = document.getElementById('teamsSection');
+  const soloSection  = document.getElementById('soloSection');
+  const ffaNote      = document.getElementById('ffaNote');
+  if (teamsSection) teamsSection.style.display = active ? 'none' : '';
+  if (soloSection)  soloSection.style.display  = active ? '' : '';
+  if (ffaNote)      ffaNote.style.display      = active ? '' : 'none';
 }
 
 function handleOverlayClick(e) {
@@ -227,6 +242,7 @@ async function saveSession() {
         const v = document.getElementById('sessionCost')?.value;
         return (v !== '' && v != null) ? parseFloat(v) : null;
       })(),
+      mode: document.getElementById('ffaMode')?.checked ? 'ffa' : 'teams',
       teams,
       solo_players: soloPlayers
     };

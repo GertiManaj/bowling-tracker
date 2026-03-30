@@ -14,7 +14,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 // ── GET ──────────────────────────────────────
 if ($method === 'GET') {
     $sessions = $pdo->query('
-        SELECT id, date, location, notes, cost_per_game FROM sessions
+        SELECT id, date, location, notes, cost_per_game, mode FROM sessions
         ORDER BY date DESC
     ')->fetchAll();
 
@@ -57,12 +57,13 @@ if ($method === 'POST') {
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes, cost_per_game) VALUES (?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes, cost_per_game, mode) VALUES (?, ?, ?, ?, ?)');
         $stmt->execute([
             $data['date'],
             $data['location'] ?? 'Bowling',
             $data['notes'] ?? null,
-            isset($data['cost_per_game']) && $data['cost_per_game'] !== '' ? floatval($data['cost_per_game']) : null
+            isset($data['cost_per_game']) && $data['cost_per_game'] !== '' ? floatval($data['cost_per_game']) : null,
+            $data['mode'] ?? 'teams'
         ]);
         $sessionId = $pdo->lastInsertId();
 
@@ -114,12 +115,13 @@ if ($method === 'PUT') {
     $pdo->beginTransaction();
     try {
         // 1. Aggiorna dati sessione
-        $pdo->prepare('UPDATE sessions SET date = ?, location = ?, notes = ?, cost_per_game = ? WHERE id = ?')
+        $pdo->prepare('UPDATE sessions SET date = ?, location = ?, notes = ?, cost_per_game = ?, mode = ? WHERE id = ?')
             ->execute([
                 $data['date'],
                 $data['location'] ?? 'Bowling',
                 $data['notes'] ?? null,
                 isset($data['cost_per_game']) && $data['cost_per_game'] !== '' ? floatval($data['cost_per_game']) : null,
+                $data['mode'] ?? 'teams',
                 $id
             ]);
 
