@@ -226,8 +226,7 @@ foreach ($sessWithCost as $sess) {
         if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
 
         if ($tid === null) {
-            // Singolo — paga solo i suoi game
-            $paymentMap[$pid] += $base;
+            // Singolo — non conta nella classifica dashboard
         } elseif ($isDraw) {
             // Pareggio — paga i suoi game
             $paymentMap[$pid] += $base;
