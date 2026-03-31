@@ -281,38 +281,31 @@ function openEditModal(id) {
   document.getElementById('teamARows').innerHTML = '';
   document.getElementById('teamBRows').innerHTML = '';
   document.getElementById('soloRows').innerHTML  = '';
+  const ffaRowsEl = document.getElementById('ffaRows');
+  if (ffaRowsEl) ffaRowsEl.innerHTML = '';
   document.getElementById('totalA').textContent  = 'Totale: 0';
   document.getElementById('totalB').textContent  = 'Totale: 0';
 
+  // Imposta modalità FFA se necessario
+  const isFFA = (s.mode === 'ffa');
+  const ffaCheck = document.getElementById('ffaMode');
+  if (ffaCheck) { ffaCheck.checked = isFFA; setFFAMode(isFFA); }
+
   const teams  = s.teams  || [];
   const scores = s.scores || [];
-
-  // Raggruppa scores per team_name, poi per player_id
-  const byTeam = {};
-  teams.forEach(t => { byTeam[t.name] = {}; });
-  scores.forEach(sc => {
-    if (!sc.team_name || !byTeam[sc.team_name]) return;
-    const pid = sc.player_id;
-    if (!byTeam[sc.team_name][pid]) {
-      byTeam[sc.team_name][pid] = { player_id: pid, games: [] };
-    }
-    byTeam[sc.team_name][pid].games.push({ game_number: sc.game_number || 1, score: sc.score });
-  });
-
-  // Determina il numero di game dalla sessione
   const numGames = parseInt(document.getElementById('numGames').value) || 1;
 
-  const teamNames = Object.keys(byTeam);
-
-  // Squadra A
-  const nameA = teamNames[0] || '';
-  document.getElementById('teamAName').value = nameA;
-  const playersA = Object.values(byTeam[nameA] || {});
-  if (playersA.length) {
-    playersA.forEach(p => {
-      addPlayerRow('A', p.player_id, numGames);
-      // Precompila i punteggi nei campi appena creati
-      const rows = document.querySelectorAll('#teamARows .player-row');
+  if (isFFA) {
+    // ── Modalità FFA: tutti i giocatori senza team vanno in ffaRows ──
+    const ffaByPlayer = {};
+    scores.forEach(sc => {
+      if (sc.team_name) return; // salta eventuali con team
+      if (!ffaByPlayer[sc.player_id]) ffaByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
+      ffaByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+    });
+    Object.values(ffaByPlayer).forEach(p => {
+      addFFARow(p.player_id, numGames);
+      const rows = document.querySelectorAll('#ffaRows .ffa-row');
       const lastRow = rows[rows.length - 1];
       p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
@@ -320,43 +313,71 @@ function openEditModal(id) {
       });
     });
   } else {
-    addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
-  }
+    // ── Modalità Teams ──
+    const byTeam = {};
+    teams.forEach(t => { byTeam[t.name] = {}; });
+    scores.forEach(sc => {
+      if (!sc.team_name || !byTeam[sc.team_name]) return;
+      const pid = sc.player_id;
+      if (!byTeam[sc.team_name][pid]) byTeam[sc.team_name][pid] = { player_id: pid, games: [] };
+      byTeam[sc.team_name][pid].games.push({ game_number: sc.game_number || 1, score: sc.score });
+    });
 
-  // Squadra B
-  const nameB = teamNames[1] || '';
-  document.getElementById('teamBName').value = nameB;
-  const playersB = Object.values(byTeam[nameB] || {});
-  if (playersB.length) {
-    playersB.forEach(p => {
-      addPlayerRow('B', p.player_id, numGames);
-      const rows = document.querySelectorAll('#teamBRows .player-row');
+    const teamNames = Object.keys(byTeam);
+
+    // Squadra A
+    const nameA = teamNames[0] || '';
+    document.getElementById('teamAName').value = nameA;
+    const playersA = Object.values(byTeam[nameA] || {});
+    if (playersA.length) {
+      playersA.forEach(p => {
+        addPlayerRow('A', p.player_id, numGames);
+        const rows = document.querySelectorAll('#teamARows .player-row');
+        const lastRow = rows[rows.length - 1];
+        p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+          const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+          if (input) input.value = g.score;
+        });
+      });
+    } else {
+      addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
+    }
+
+    // Squadra B
+    const nameB = teamNames[1] || '';
+    document.getElementById('teamBName').value = nameB;
+    const playersB = Object.values(byTeam[nameB] || {});
+    if (playersB.length) {
+      playersB.forEach(p => {
+        addPlayerRow('B', p.player_id, numGames);
+        const rows = document.querySelectorAll('#teamBRows .player-row');
+        const lastRow = rows[rows.length - 1];
+        p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+          const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+          if (input) input.value = g.score;
+        });
+      });
+    } else {
+      addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
+    }
+
+    // Giocatori singoli (non partecipano alla sfida)
+    const soloScores = scores.filter(sc => !sc.team_name);
+    const soloByPlayer = {};
+    soloScores.forEach(sc => {
+      if (!soloByPlayer[sc.player_id]) soloByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
+      soloByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+    });
+    Object.values(soloByPlayer).forEach(p => {
+      addSoloRow(p.player_id, numGames);
+      const rows = document.querySelectorAll('#soloRows .solo-row');
       const lastRow = rows[rows.length - 1];
       p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
         if (input) input.value = g.score;
       });
     });
-  } else {
-    addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
   }
-
-  // Giocatori singoli
-  const soloScores = scores.filter(sc => !sc.team_name);
-  const soloByPlayer = {};
-  soloScores.forEach(sc => {
-    if (!soloByPlayer[sc.player_id]) soloByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
-    soloByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
-  });
-  Object.values(soloByPlayer).forEach(p => {
-    addSoloRow(p.player_id, numGames);
-    const rows = document.querySelectorAll('#soloRows .solo-row');
-    const lastRow = rows[rows.length - 1];
-    p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
-      const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
-      if (input) input.value = g.score;
-    });
-  });
 
   calcTotals();
   document.getElementById('modalOverlay').classList.add('open');
