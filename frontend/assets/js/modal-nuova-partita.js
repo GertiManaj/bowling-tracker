@@ -5,7 +5,7 @@
 //  NON includere in index.html (usa app.js direttamente)
 // ============================================
 
-if (typeof API === 'undefined') var API = '/api';
+try { API; } catch(e) { var API = '/api'; }
 let allPlayers = [];
 
 // ── APRI MODAL ───────────────────────────────
