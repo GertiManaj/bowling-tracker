@@ -79,61 +79,65 @@ foreach ($players as &$player) {
     $qVitt->execute([$id]);
     $vittorie_teams = (int)$qVitt->fetchColumn();
 
-    // ── VITTORIE FFA ──
-    $qVittFFA = $pdo->prepare('
+    // ── VITTORIE FFA (usa team __FFA__) ──
+    $qVittFFA = $pdo->prepare("
         SELECT COUNT(DISTINCT sc.session_id) AS vittorie
         FROM scores sc
-        JOIN sessions se ON sc.session_id = se.id
+        JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ?
-        AND sc.team_id IS NULL
-        AND se.mode = \'ffa\'
+        AND t.name = '__FFA__'
         AND (
-            SELECT SUM(score) FROM scores
-            WHERE session_id = sc.session_id AND player_id = ?
+            SELECT SUM(s2.score) FROM scores s2
+            JOIN teams t2 ON s2.team_id = t2.id
+            WHERE s2.session_id = sc.session_id AND s2.player_id = ?
+            AND t2.name = '__FFA__'
         ) = (
             SELECT MAX(ptot) FROM (
-                SELECT player_id, SUM(score) AS ptot
-                FROM scores WHERE session_id = sc.session_id
-                GROUP BY player_id
+                SELECT s3.player_id, SUM(s3.score) AS ptot
+                FROM scores s3 JOIN teams t3 ON s3.team_id = t3.id
+                WHERE s3.session_id = sc.session_id AND t3.name = '__FFA__'
+                GROUP BY s3.player_id
             ) pt
         )
         AND 1 = (
             SELECT COUNT(*) FROM (
-                SELECT player_id, SUM(score) AS ptot
-                FROM scores WHERE session_id = sc.session_id
-                GROUP BY player_id
+                SELECT s4.player_id, SUM(s4.score) AS ptot
+                FROM scores s4 JOIN teams t4 ON s4.team_id = t4.id
+                WHERE s4.session_id = sc.session_id AND t4.name = '__FFA__'
+                GROUP BY s4.player_id
             ) pt2
             WHERE pt2.ptot = (
                 SELECT MAX(ptot3) FROM (
-                    SELECT player_id, SUM(score) AS ptot3
-                    FROM scores WHERE session_id = sc.session_id
-                    GROUP BY player_id
+                    SELECT s5.player_id, SUM(s5.score) AS ptot3
+                    FROM scores s5 JOIN teams t5 ON s5.team_id = t5.id
+                    WHERE s5.session_id = sc.session_id AND t5.name = '__FFA__'
+                    GROUP BY s5.player_id
                 ) pt3
             )
         )
-    ');
+    ");
     $qVittFFA->execute([$id, $id]);
     $vittorie_ffa = (int)$qVittFFA->fetchColumn();
 
     $player['vittorie_squadra'] = $vittorie_teams + $vittorie_ffa;
 
     // ── SERATE CON SQUADRA (teams normali, escluso FFA) ──
-    $qSS = $pdo->prepare('
+    $qSS = $pdo->prepare("
         SELECT COUNT(DISTINCT sc.session_id)
         FROM scores sc
         JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ? AND t.name != '__FFA__'
-    ');
+    ");
     $qSS->execute([$id]);
     $serateTeams = (int)$qSS->fetchColumn();
 
     // ── SERATE FFA ──
-    $qSFFA = $pdo->prepare('
+    $qSFFA = $pdo->prepare("
         SELECT COUNT(DISTINCT sc.session_id)
         FROM scores sc
         JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ? AND t.name = '__FFA__'
-    ');
+    ");
     $qSFFA->execute([$id]);
     $sérateFFA = (int)$qSFFA->fetchColumn();
 
@@ -161,15 +165,17 @@ foreach ($players as &$player) {
     $player['volte_top_scorer'] = (int)$qTop->fetchColumn();
 
     // ── ULTIMI 5 RISULTATI (V/P/N) — teams + ffa ──
-    $qSess = $pdo->prepare('
+    $qSess = $pdo->prepare("
         SELECT DISTINCT sc.session_id, se.mode
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
+        LEFT JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ?
-        AND (sc.team_id IS NOT NULL OR se.mode = \'ffa\')
+        AND sc.team_id IS NOT NULL
+        AND (t.name != '__FFA__' OR se.mode = 'ffa')
         ORDER BY sc.session_id DESC
         LIMIT 5
-    ');
+    ");
     $qSess->execute([$id]);
     $lastSessions = $qSess->fetchAll();
 
@@ -180,17 +186,17 @@ foreach ($players as &$player) {
 
         if ($mode === 'ffa') {
             // Punteggio totale del giocatore (solo game FFA, non singoli)
-            $qMyTot = $pdo->prepare('SELECT SUM(sc.score) FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND sc.player_id=? AND t.name='__FFA__'');
+            $qMyTot = $pdo->prepare("SELECT SUM(sc.score) FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND sc.player_id=? AND t.name='__FFA__'");
             $qMyTot->execute([$sessId, $id]);
             $myTot = (int)$qMyTot->fetchColumn();
 
             // Max tra tutti i giocatori FFA
-            $qMax = $pdo->prepare('SELECT MAX(ptot) FROM (SELECT sc.player_id, SUM(sc.score) AS ptot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id) pt');
+            $qMax = $pdo->prepare("SELECT MAX(ptot) FROM (SELECT sc.player_id, SUM(sc.score) AS ptot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id) pt");
             $qMax->execute([$sessId]);
             $maxTot = (int)$qMax->fetchColumn();
 
             // Quanti hanno il massimo
-            $qCnt = $pdo->prepare('SELECT COUNT(*) FROM (SELECT sc.player_id, SUM(sc.score) AS ptot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id HAVING SUM(sc.score)=?) pt');
+            $qCnt = $pdo->prepare("SELECT COUNT(*) FROM (SELECT sc.player_id, SUM(sc.score) AS ptot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id HAVING SUM(sc.score)=?) pt");
             $qCnt->execute([$sessId, $maxTot]);
             $cntMax = (int)$qCnt->fetchColumn();
 
@@ -254,7 +260,7 @@ foreach ($sessWithCost as $sess) {
 
     if ($mode === 'ffa') {
         // ── FFA: solo giocatori con team __FFA__, singoli pagano separatamente ──
-        $qFFAPG = $pdo->prepare('SELECT sc.player_id, COUNT(*) AS num_games, SUM(sc.score) AS total_score FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id');
+        $qFFAPG = $pdo->prepare("SELECT sc.player_id, COUNT(*) AS num_games, SUM(sc.score) AS total_score FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id");
         $qFFAPG->execute([$sid]);
         $ffaPlayers = $qFFAPG->fetchAll();
 
