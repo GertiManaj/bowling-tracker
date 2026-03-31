@@ -231,11 +231,26 @@
       </div>
       <!-- Giocatori singoli -->
       </div><!-- /teamsSection -->
+
+      <!-- ══ SEZIONE FFA ══ -->
+      <div id="ffaSection" style="display:none">
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title" style="color:var(--neon)">🏆 Tutti contro tutti</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo non paga</span>
+        </div>
+        <div class="team-section-body">
+          <div id="ffaRows"></div>
+          <button class="btn-add-player" onclick="addFFARow()">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      </div><!-- /ffaSection -->
+
       <div id="soloSection">
       <div class="team-section">
         <div class="team-section-header">
           <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Non partecipano alla sfida</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)" id="soloSectionNote">Non partecipano alla sfida</span>
         </div>
         <div class="team-section-body">
           <div id="soloRows"></div>

@@ -89,6 +89,14 @@ if ($method === 'POST') {
             $sc->execute([$sessionId, $player['player_id'], $player['score'], $gameNumber]);
         }
 
+        // Giocatori FFA (tutti contro tutti, team_id = NULL come i singoli)
+        foreach (($data['ffa_players'] ?? []) as $player) {
+            if (empty($player['player_id']) || !isset($player['score'])) continue;
+            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+            $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
+            $sc->execute([$sessionId, $player['player_id'], $player['score'], $gameNumber]);
+        }
+
         $pdo->commit();
         http_response_code(201);
         echo json_encode(['success' => true, 'session_id' => $sessionId]);
@@ -145,6 +153,14 @@ if ($method === 'PUT') {
 
         // 4. Ricrea giocatori singoli
         foreach (($data['solo_players'] ?? []) as $player) {
+            if (empty($player['player_id']) || !isset($player['score'])) continue;
+            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+            $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
+            $sc->execute([$id, $player['player_id'], $player['score'], $gameNumber]);
+        }
+
+        // 5. Ricrea giocatori FFA
+        foreach (($data['ffa_players'] ?? []) as $player) {
             if (empty($player['player_id']) || !isset($player['score'])) continue;
             $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
             $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');

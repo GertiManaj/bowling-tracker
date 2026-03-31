@@ -5,7 +5,7 @@
 //  NON includere in index.html (usa app.js direttamente)
 // ============================================
 
-const API = '/api';
+if (typeof API === 'undefined') var API = '/api';
 let allPlayers = [];
 
 // ── APRI MODAL ───────────────────────────────
@@ -28,6 +28,8 @@ async function openModal() {
   document.getElementById('soloRows').innerHTML    = '';
   const costEl = document.getElementById('sessionCost');
   if (costEl) costEl.value = '';
+  const ffaRows = document.getElementById('ffaRows');
+  if (ffaRows) ffaRows.innerHTML = '';
   const ffaCheck = document.getElementById('ffaMode');
   if (ffaCheck) { ffaCheck.checked = false; setFFAMode(false); }
 
@@ -56,20 +58,72 @@ function buildGameRows() {
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   if (typeof editingId !== 'undefined') editingId = null;
+  const ffaRows = document.getElementById('ffaRows');
+  if (ffaRows) ffaRows.innerHTML = '';
+  const ffaRowsC = document.getElementById('ffaRows');
+  if (ffaRowsC) ffaRowsC.innerHTML = '';
   const ffaCheck = document.getElementById('ffaMode');
   if (ffaCheck) { ffaCheck.checked = false; setFFAMode(false); }
 }
 
 // ── MODALITÀ TUTTI CONTRO TUTTI ──────────────
 function setFFAMode(active) {
-  const teamsSection = document.getElementById('teamsSection');
-  const soloSection  = document.getElementById('soloSection');
-  const ffaNote      = document.getElementById('ffaNote');
-  // In FFA: nascondi squadre, mostra solo singoli
-  // In Teams: mostra squadre, mostra singoli (giocatori che non partecipano alla sfida)
-  if (teamsSection) teamsSection.style.display = active ? 'none' : 'block';
+  const teamsSection   = document.getElementById('teamsSection');
+  const ffaSection     = document.getElementById('ffaSection');
+  const soloSection    = document.getElementById('soloSection');
+  const ffaNote        = document.getElementById('ffaNote');
+  const soloNote       = document.getElementById('soloSectionNote');
+
+  if (teamsSection) teamsSection.style.display = active ? 'none'   : 'block';
+  if (ffaSection)   ffaSection.style.display   = active ? 'block'  : 'none';
   if (soloSection)  soloSection.style.display  = 'block'; // sempre visibile
   if (ffaNote)      ffaNote.style.display      = active ? 'inline' : 'none';
+  if (soloNote)     soloNote.textContent       = active
+    ? 'Non partecipano al FFA — pagano solo i loro game'
+    : 'Non partecipano alla sfida';
+
+  // Reset righe FFA quando si disattiva
+  if (!active) {
+    const ffaRows = document.getElementById('ffaRows');
+    if (ffaRows) ffaRows.innerHTML = '';
+  }
+}
+
+// ── AGGIUNGI RIGA FFA ────────────────────────
+function addFFARow(selectedId = null, numGames = null) {
+  const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
+  const opts = allPlayers.map(p =>
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
+  const gameInputs = Array.from({length: ng}, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="validateScoreInput(this)"/>`
+  ).join('');
+
+  const row = document.createElement('div');
+  row.className = 'player-row ffa-row';
+  row.style.cssText = `display:grid;grid-template-columns:1fr ${Array(ng).fill('70px').join(' ')} 32px;gap:0.4rem;align-items:center;margin-bottom:0.4rem`;
+  row.innerHTML = `
+    <select class="form-input">
+      <option value="">— Giocatore —</option>${opts}
+    </select>
+    ${gameInputs}
+    <button class="btn-remove" onclick="this.parentElement.remove()" title="Rimuovi">✕</button>`;
+  document.getElementById('ffaRows').appendChild(row);
+}
+
+// ── RACCOGLIE GIOCATORI FFA ──────────────────
+function getFFAPlayers() {
+  const ffa = [];
+  document.querySelectorAll('#ffaRows .ffa-row').forEach(row => {
+    const pid = row.querySelector('select')?.value;
+    if (!pid) return;
+    row.querySelectorAll('.score-input').forEach(input => {
+      const gameNum = parseInt(input.dataset.game);
+      const score   = input.value;
+      if (score) ffa.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
+    });
+  });
+  return ffa;
 }
 
 function handleOverlayClick(e) {
@@ -176,8 +230,9 @@ async function saveSession() {
   }
 
   const numGames = parseInt(document.getElementById('numGames').value) || 1;
+  const isFFA = document.getElementById('ffaMode')?.checked;
   const teams = [];
-  ['A', 'B'].forEach(t => {
+  if (!isFFA) ['A', 'B'].forEach(t => {
     const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
     const players = [];
     document.querySelectorAll(`#team${t}Rows .player-row`).forEach(row => {
@@ -192,10 +247,11 @@ async function saveSession() {
     if (players.length > 0) teams.push({ name, players });
   });
 
-  const soloPlayers = getSoloPlayers();
+  const ffaPlayers   = isFFA ? getFFAPlayers() : [];
+  const soloPlayers  = getSoloPlayers();
 
   // Validazione 0-300
-  const allScoreInputs = document.querySelectorAll('#teamARows .score-input, #teamBRows .score-input, #soloRows .score-input');
+  const allScoreInputs = document.querySelectorAll('#teamARows .score-input, #teamBRows .score-input, #ffaRows .score-input, #soloRows .score-input');
   for (const input of allScoreInputs) {
     if (!input.value) continue;
     const val = parseInt(input.value);
@@ -226,7 +282,7 @@ async function saveSession() {
     if (!ok) { btn.disabled = false; btn.textContent = 'Salva Partita'; return; }
   }
 
-  if (!teams.length && !soloPlayers.length) {
+  if (!teams.length && !ffaPlayers.length && !soloPlayers.length) {
     showToast('Inserisci almeno un punteggio', 'error');
     btn.disabled = false; btn.textContent = 'Salva Partita';
     return;
@@ -244,8 +300,9 @@ async function saveSession() {
         const v = document.getElementById('sessionCost')?.value;
         return (v !== '' && v != null) ? parseFloat(v) : null;
       })(),
-      mode: document.getElementById('ffaMode')?.checked ? 'ffa' : 'teams',
+      mode: isFFA ? 'ffa' : 'teams',
       teams,
+      ffa_players:  ffaPlayers,
       solo_players: soloPlayers
     };
 
