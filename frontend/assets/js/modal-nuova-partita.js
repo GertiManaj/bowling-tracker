@@ -65,8 +65,10 @@ function setFFAMode(active) {
   const teamsSection = document.getElementById('teamsSection');
   const soloSection  = document.getElementById('soloSection');
   const ffaNote      = document.getElementById('ffaNote');
+  // In FFA: nascondi squadre, mostra solo singoli
+  // In Teams: mostra squadre, mostra singoli (giocatori che non partecipano alla sfida)
   if (teamsSection) teamsSection.style.display = active ? 'none' : 'block';
-  if (soloSection)  soloSection.style.display  = active ? 'block' : 'none';
+  if (soloSection)  soloSection.style.display  = 'block'; // sempre visibile
   if (ffaNote)      ffaNote.style.display      = active ? 'inline' : 'none';
 }
 
