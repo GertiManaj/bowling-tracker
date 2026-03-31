@@ -117,14 +117,27 @@ foreach ($players as &$player) {
 
     $player['vittorie_squadra'] = $vittorie_teams + $vittorie_ffa;
 
-    // ── SERATE CON SQUADRA (denominatore corretto per % vittorie) ──
+    // ── SERATE CON SQUADRA (teams normali, escluso FFA) ──
     $qSS = $pdo->prepare('
-        SELECT COUNT(DISTINCT session_id)
-        FROM scores
-        WHERE player_id = ? AND team_id IS NOT NULL
+        SELECT COUNT(DISTINCT sc.session_id)
+        FROM scores sc
+        JOIN teams t ON sc.team_id = t.id
+        WHERE sc.player_id = ? AND t.name != '__FFA__'
     ');
     $qSS->execute([$id]);
-    $player['serate_con_squadra'] = (int)$qSS->fetchColumn();
+    $serateTeams = (int)$qSS->fetchColumn();
+
+    // ── SERATE FFA ──
+    $qSFFA = $pdo->prepare('
+        SELECT COUNT(DISTINCT sc.session_id)
+        FROM scores sc
+        JOIN teams t ON sc.team_id = t.id
+        WHERE sc.player_id = ? AND t.name = '__FFA__'
+    ');
+    $qSFFA->execute([$id]);
+    $sérateFFA = (int)$qSFFA->fetchColumn();
+
+    $player['serate_con_squadra'] = $serateTeams + $sérateFFA;
 
     // ── VOLTE TOP SCORER ──
     $qTop = $pdo->prepare('
@@ -166,18 +179,18 @@ foreach ($players as &$player) {
         $mode    = $sessRow['mode'] ?? 'teams';
 
         if ($mode === 'ffa') {
-            // Punteggio totale del giocatore
-            $qMyTot = $pdo->prepare('SELECT SUM(score) FROM scores WHERE session_id = ? AND player_id = ?');
+            // Punteggio totale del giocatore (solo game FFA, non singoli)
+            $qMyTot = $pdo->prepare('SELECT SUM(sc.score) FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND sc.player_id=? AND t.name='__FFA__'');
             $qMyTot->execute([$sessId, $id]);
             $myTot = (int)$qMyTot->fetchColumn();
 
-            // Max tra tutti i giocatori
-            $qMax = $pdo->prepare('SELECT MAX(ptot) FROM (SELECT player_id, SUM(score) AS ptot FROM scores WHERE session_id = ? GROUP BY player_id) t');
+            // Max tra tutti i giocatori FFA
+            $qMax = $pdo->prepare('SELECT MAX(ptot) FROM (SELECT sc.player_id, SUM(sc.score) AS ptot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id) pt');
             $qMax->execute([$sessId]);
             $maxTot = (int)$qMax->fetchColumn();
 
             // Quanti hanno il massimo
-            $qCnt = $pdo->prepare('SELECT COUNT(*) FROM (SELECT player_id, SUM(score) AS ptot FROM scores WHERE session_id = ? GROUP BY player_id HAVING SUM(score) = ?) t');
+            $qCnt = $pdo->prepare('SELECT COUNT(*) FROM (SELECT sc.player_id, SUM(sc.score) AS ptot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id HAVING SUM(sc.score)=?) pt');
             $qCnt->execute([$sessId, $maxTot]);
             $cntMax = (int)$qCnt->fetchColumn();
 
@@ -240,37 +253,42 @@ foreach ($sessWithCost as $sess) {
     $playerGames = $qPG->fetchAll();
 
     if ($mode === 'ffa') {
-        // ── FFA: il primo non paga, gli altri pagano base + quota del primo ──
+        // ── FFA: solo giocatori con team __FFA__, singoli pagano separatamente ──
+        $qFFAPG = $pdo->prepare('SELECT sc.player_id, COUNT(*) AS num_games, SUM(sc.score) AS total_score FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id');
+        $qFFAPG->execute([$sid]);
+        $ffaPlayers = $qFFAPG->fetchAll();
+
         $playerTotals = [];
-        foreach ($playerGames as $pg) {
-            $pid = $pg['player_id'];
-            $nG  = (int)$pg['num_games'];
-            // Somma punteggi del giocatore nella sessione
-            $qPT = $pdo->prepare('SELECT SUM(score) FROM scores WHERE session_id = ? AND player_id = ?');
-            $qPT->execute([$sid, $pid]);
-            $playerTotals[$pid] = ['score' => (int)$qPT->fetchColumn(), 'games' => $nG];
+        foreach ($ffaPlayers as $fp) {
+            $playerTotals[$fp['player_id']] = ['score' => (int)$fp['total_score'], 'games' => (int)$fp['num_games']];
         }
 
-        $maxScore  = max(array_column($playerTotals, 'score'));
-        $winnersN  = count(array_filter($playerTotals, fn($p) => $p['score'] === $maxScore));
-        $nPlayers  = count($playerTotals);
+        if ($playerTotals) {
+            $maxScore = max(array_column($playerTotals, 'score'));
+            $winnersN = count(array_filter($playerTotals, fn($p) => $p['score'] === $maxScore));
+            $nPlayers = count($playerTotals);
+            $winnerPid   = array_key_first(array_filter($playerTotals, fn($p) => $p['score'] === $maxScore));
+            $winnerBase  = $cost * ($playerTotals[$winnerPid]['games'] ?? 1);
+            $quota       = ($nPlayers > 1) ? $winnerBase / ($nPlayers - 1) : 0;
 
-        foreach ($playerTotals as $pid => $pt) {
-            if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
-            $base = $cost * $pt['games'];
-
-            if ($winnersN === 1 && $pt['score'] === $maxScore) {
-                // Vincitore unico — paga €0
-                $paymentMap[$pid] += 0;
-            } elseif ($winnersN > 1 || $pt['score'] !== $maxScore) {
-                // Pareggio al primo o perdente
-                // Trova il numero di game del vincitore per calcolare la sua quota
-                $winnerPid   = array_key_first(array_filter($playerTotals, fn($p) => $p['score'] === $maxScore));
-                $winnerGames = $playerTotals[$winnerPid]['games'];
-                $winnerBase  = $cost * $winnerGames;
-                $quota       = ($nPlayers > 1) ? $winnerBase / ($nPlayers - 1) : 0;
-                $paymentMap[$pid] += $base + $quota;
+            foreach ($playerTotals as $pid => $pt) {
+                if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
+                $base = $cost * $pt['games'];
+                if ($winnersN === 1 && $pt['score'] === $maxScore) {
+                    $paymentMap[$pid] += 0;
+                } else {
+                    $paymentMap[$pid] += $base + $quota;
+                }
             }
+        }
+
+        // Giocatori singoli nella sessione FFA pagano solo i loro game
+        foreach ($playerGames as $pg) {
+            if ($pg['team_id'] !== null) continue; // salta FFA e team
+            $pid  = $pg['player_id'];
+            $base = $cost * (int)$pg['num_games'];
+            if (!isset($paymentMap[$pid])) $paymentMap[$pid] = 0.0;
+            // singoli non contano nella dashboard
         }
     } else {
         // ── TEAMS: logica normale ──

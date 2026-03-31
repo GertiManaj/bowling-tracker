@@ -296,16 +296,31 @@ function openEditModal(id) {
   const numGames = parseInt(document.getElementById('numGames').value) || 1;
 
   if (isFFA) {
-    // ── Modalità FFA: tutti i giocatori senza team vanno in ffaRows ──
+    // ── Modalità FFA: giocatori con team __FFA__ vanno in ffaRows, gli altri in soloRows ──
     const ffaByPlayer = {};
+    const soloByPlayerFFA = {};
     scores.forEach(sc => {
-      if (sc.team_name) return; // salta eventuali con team
-      if (!ffaByPlayer[sc.player_id]) ffaByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
-      ffaByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+      if (sc.team_name === '__FFA__') {
+        if (!ffaByPlayer[sc.player_id]) ffaByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
+        ffaByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+      } else if (!sc.team_name) {
+        if (!soloByPlayerFFA[sc.player_id]) soloByPlayerFFA[sc.player_id] = { player_id: sc.player_id, games: [] };
+        soloByPlayerFFA[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+      }
     });
     Object.values(ffaByPlayer).forEach(p => {
       addFFARow(p.player_id, numGames);
       const rows = document.querySelectorAll('#ffaRows .ffa-row');
+      const lastRow = rows[rows.length - 1];
+      p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+        const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+        if (input) input.value = g.score;
+      });
+    });
+    // Giocatori extra (non partecipano al FFA)
+    Object.values(soloByPlayerFFA).forEach(p => {
+      addSoloRow(p.player_id, numGames);
+      const rows = document.querySelectorAll('#soloRows .solo-row');
       const lastRow = rows[rows.length - 1];
       p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);

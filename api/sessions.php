@@ -89,12 +89,17 @@ if ($method === 'POST') {
             $sc->execute([$sessionId, $player['player_id'], $player['score'], $gameNumber]);
         }
 
-        // Giocatori FFA (tutti contro tutti, team_id = NULL come i singoli)
-        foreach (($data['ffa_players'] ?? []) as $player) {
-            if (empty($player['player_id']) || !isset($player['score'])) continue;
-            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
-            $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
-            $sc->execute([$sessionId, $player['player_id'], $player['score'], $gameNumber]);
+        // Giocatori FFA — salvati sotto team __FFA__ per distinguerli dai singoli
+        if (!empty($data['ffa_players'])) {
+            $tFFA = $pdo->prepare('INSERT INTO teams (session_id, name) VALUES (?, ?)');
+            $tFFA->execute([$sessionId, '__FFA__']);
+            $ffaTeamId = $pdo->lastInsertId();
+            foreach ($data['ffa_players'] as $player) {
+                if (empty($player['player_id']) || !isset($player['score'])) continue;
+                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
+                $sc->execute([$sessionId, $player['player_id'], $ffaTeamId, $player['score'], $gameNumber]);
+            }
         }
 
         $pdo->commit();
@@ -159,12 +164,17 @@ if ($method === 'PUT') {
             $sc->execute([$id, $player['player_id'], $player['score'], $gameNumber]);
         }
 
-        // 5. Ricrea giocatori FFA
-        foreach (($data['ffa_players'] ?? []) as $player) {
-            if (empty($player['player_id']) || !isset($player['score'])) continue;
-            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
-            $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
-            $sc->execute([$id, $player['player_id'], $player['score'], $gameNumber]);
+        // 5. Ricrea giocatori FFA sotto team __FFA__
+        if (!empty($data['ffa_players'])) {
+            $tFFA = $pdo->prepare('INSERT INTO teams (session_id, name) VALUES (?, ?)');
+            $tFFA->execute([$id, '__FFA__']);
+            $ffaTeamId = $pdo->lastInsertId();
+            foreach ($data['ffa_players'] as $player) {
+                if (empty($player['player_id']) || !isset($player['score'])) continue;
+                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
+                $sc->execute([$id, $player['player_id'], $ffaTeamId, $player['score'], $gameNumber]);
+            }
         }
 
         $pdo->commit();
