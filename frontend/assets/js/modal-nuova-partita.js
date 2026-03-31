@@ -5,16 +5,16 @@
 //  NON includere in index.html (usa app.js direttamente)
 // ============================================
 
-// API è definita da app.js (index.html) o qui per le altre pagine
-const _API = (typeof API !== 'undefined') ? API : '/api';
-// allPlayers è definita da app.js (index.html) o qui per le altre pagine
-if (typeof allPlayers === 'undefined') var allPlayers = [];
+// Variabili globali: API e allPlayers sono definite da app.js in index.html
+// oppure dichiarate qui solo se non esistono (altre pagine)
+if (typeof API === 'undefined') window.API = '/api';
+if (typeof allPlayers === 'undefined') window.allPlayers = [];
 
 // ── APRI MODAL ───────────────────────────────
 async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
   try {
-    allPlayers = await fetch(`${_API}/players.php`).then(r => r.json());
+    allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
   } catch (e) {
     allPlayers = [];
   }
@@ -310,7 +310,7 @@ async function saveSession() {
 
     if (sessionEditId) payload.id = sessionEditId;
 
-    const res = await fetch(`${_API}/sessions.php`, {
+    const res = await fetch(`${API}/sessions.php`, {
       method:  sessionEditId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
