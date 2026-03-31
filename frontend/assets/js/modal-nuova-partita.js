@@ -7,7 +7,8 @@
 
 // API è definita da app.js (index.html) o qui per le altre pagine
 const _API = (typeof API !== 'undefined') ? API : '/api';
-let allPlayers = [];
+// allPlayers è definita da app.js (index.html) o qui per le altre pagine
+if (typeof allPlayers === 'undefined') var allPlayers = [];
 
 // ── APRI MODAL ───────────────────────────────
 async function openModal() {
