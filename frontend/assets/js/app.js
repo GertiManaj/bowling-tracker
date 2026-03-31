@@ -294,7 +294,6 @@ function renderAllTimeLeaderboard() {
 }
 
 function renderLastSessionLeaderboard() {
-  // Usa i dati dell'ultima sessione già caricata
   const sessions = cachedSessions;
   if (!sessions.length) {
     document.getElementById('leaderboard-body').innerHTML =
@@ -305,45 +304,65 @@ function renderLastSessionLeaderboard() {
   const lastSession = sessions[0];
   const scores      = lastSession.scores || [];
   const teams       = lastSession.teams  || [];
+  const isFFA       = lastSession.mode === 'ffa';
   const numGames    = scores.length ? Math.max(...scores.map(s => s.game_number||1)) : 1;
 
-  // Raggruppa per giocatore e somma i game
+  // Raggruppa per giocatore
   const byPlayer = {};
   scores.forEach(sc => {
-    if (!byPlayer[sc.player_name]) {
-      // Trova la squadra
-      byPlayer[sc.player_name] = {
-        name: sc.player_name, emoji: sc.emoji,
-        team: sc.team_name, total: 0, games: 0
-      };
-    }
-    byPlayer[sc.player_name].total += parseInt(sc.score)||0;
-    byPlayer[sc.player_name].games++;
+    const pname = sc.player_name;
+    if (!byPlayer[pname]) byPlayer[pname] = {
+      name: pname, emoji: sc.emoji, team: sc.team_name, total: 0, games: 0, isFFA: sc.team_name === '__FFA__', isSolo: !sc.team_name
+    };
+    byPlayer[pname].total += parseInt(sc.score) || 0;
+    byPlayer[pname].games++;
   });
 
-  // Trova il team vincitore
-  const teamTotals = {};
-  teams.forEach(t => { teamTotals[t.name] = 0; });
-  scores.forEach(sc => { if (teamTotals[sc.team_name] !== undefined) teamTotals[sc.team_name] += parseInt(sc.score)||0; });
-  const maxTeamTotal = Math.max(...Object.values(teamTotals));
-  const winningTeam  = Object.keys(teamTotals).find(t => teamTotals[t] === maxTeamTotal);
+  const sorted   = Object.values(byPlayer).sort((a,b) => b.total - a.total);
+  const medals   = ['🥇','🥈','🥉'];
+  const bColors  = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
 
-  // Ordina per totale decrescente
-  const sorted = Object.values(byPlayer).sort((a,b) => b.total - a.total);
-  const maxTotal = sorted.length ? sorted[0].total : 0;
+  let winningTeam = null;
+  let maxFFAScore = 0;
+  let ffaWinnersN = 0;
 
-  // Aggiorna header
-  document.getElementById('lb-header').innerHTML = `
-    <div>#</div>
-    <div>Giocatore</div>
-    <div style="text-align:center">Totale</div>
-    <div style="text-align:center">Media game</div>
-    <div style="text-align:center" class="col-partite">Squadra</div>
-    <div style="text-align:center">Risultato</div>`;
+  if (isFFA) {
+    // FFA: vincitore = giocatore FFA con punteggio più alto
+    const ffaPlayers = sorted.filter(p => p.isFFA);
+    maxFFAScore = ffaPlayers.length ? ffaPlayers[0].total : 0;
+    ffaWinnersN = ffaPlayers.filter(p => p.total === maxFFAScore).length;
+  } else {
+    // Teams: trova team vincitore
+    const teamTotals = {};
+    teams.filter(t => t.name !== '__FFA__').forEach(t => { teamTotals[t.name] = 0; });
+    scores.forEach(sc => {
+      if (sc.team_name && sc.team_name !== '__FFA__' && teamTotals[sc.team_name] !== undefined)
+        teamTotals[sc.team_name] += parseInt(sc.score) || 0;
+    });
+    if (Object.keys(teamTotals).length) {
+      const maxT = Math.max(...Object.values(teamTotals));
+      const winners = Object.keys(teamTotals).filter(t => teamTotals[t] === maxT);
+      winningTeam = winners.length === 1 ? winners[0] : null; // null = pareggio
+    }
+  }
+
+  // Header
+  if (isFFA) {
+    document.getElementById('lb-header').innerHTML = `
+      <div>#</div><div>Giocatore</div>
+      <div style="text-align:center">Totale</div>
+      <div style="text-align:center">Media</div>
+      <div style="text-align:center" class="col-partite">Tipo</div>
+      <div style="text-align:center">Risultato</div>`;
+  } else {
+    document.getElementById('lb-header').innerHTML = `
+      <div>#</div><div>Giocatore</div>
+      <div style="text-align:center">Totale</div>
+      <div style="text-align:center">Media</div>
+      <div style="text-align:center" class="col-partite">Squadra</div>
+      <div style="text-align:center">Risultato</div>`;
+  }
   document.getElementById('lb-header').style.gridTemplateColumns = '48px 1fr 90px 90px 100px 90px';
-
-  const bColors = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
-  const medals  = ['🥇','🥈','🥉'];
 
   let html = '';
   sorted.forEach((p, i) => {
@@ -353,8 +372,24 @@ function renderLastSessionLeaderboard() {
       ? `<div class="rank" style="color:${['var(--gold)','var(--silver)','var(--bronze)'][i]}">${medals[i]}</div>`
       : `<div class="rank-other">${i+1}</div>`;
     const mediaGame = p.games > 0 ? (p.total / p.games).toFixed(1) : '—';
-    const isWin     = p.team === winningTeam;
-    const teamColor = isWin ? 'var(--neon)' : 'var(--neon2)';
+
+    let teamCell = '', resultCell = '';
+
+    if (p.isSolo) {
+      teamCell   = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:var(--neon3)">Singolo</div>`;
+      resultCell = `<div class="stat-cell"><span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">fuori sfida</span></div>`;
+    } else if (p.isFFA) {
+      const isWinner = ffaWinnersN === 1 && p.total === maxFFAScore;
+      teamCell   = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:var(--neon)">🏆 FFA</div>`;
+      resultCell = `<div class="stat-cell"><span class="team-tag ${isWinner ? 'win' : 'lose'}" style="font-size:0.65rem">${isWinner ? '1° 🏆' : 'PAGA'}</span></div>`;
+    } else {
+      const isWin  = winningTeam !== null && p.team === winningTeam;
+      const isDraw = winningTeam === null && p.team;
+      const tag    = isWin ? 'WIN' : isDraw ? 'PARI' : 'LOSE';
+      const cls    = isWin ? 'win' : isDraw ? 'draw' : 'lose';
+      teamCell   = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:${isWin?'var(--neon)':'var(--neon2)'}">${p.team||'—'}</div>`;
+      resultCell = `<div class="stat-cell"><span class="team-tag ${cls}" style="font-size:0.65rem">${tag}</span></div>`;
+    }
 
     html += `
       <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:48px 1fr 90px 90px 100px 90px">
@@ -363,17 +398,13 @@ function renderLastSessionLeaderboard() {
           <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
           <div>
             <div class="player-name">${p.name}</div>
-            <div class="player-tag">${numGames} game giocati</div>
+            <div class="player-tag">${numGames} game</div>
           </div>
         </div>
-        <div class="stat-cell" style="color:${i===0?'var(--gold)':'var(--text)'}">
-          <strong>${p.total}</strong>
-        </div>
+        <div class="stat-cell" style="color:${i===0?'var(--gold)':'var(--text)'}"><strong>${p.total}</strong></div>
         <div class="stat-cell" style="color:var(--neon3)">${mediaGame}</div>
-        <div class="stat-cell col-partite" style="font-size:0.75rem;color:${teamColor}">${p.team||'—'}</div>
-        <div class="stat-cell">
-          <span class="team-tag ${isWin?'win':'lose'}" style="font-size:0.65rem">${isWin?'WIN':'LOSE'}</span>
-        </div>
+        ${teamCell}
+        ${resultCell}
       </div>`;
   });
 
@@ -431,108 +462,73 @@ async function loadSessions() {
 }
 
 function renderLastSession(s) {
-  const teams   = s.teams  || [];
-  const scores  = s.scores || [];
-  const isFFA   = (s.mode === 'ffa');
-  const numGames = scores.length > 0 ? Math.max(...scores.map(sc => sc.game_number || 1)) : 1;
-  const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
+  const teams  = s.teams  || [];
+  const scores = s.scores || [];
 
-  const makeGamesHtml = (games) => numGames > 1
-    ? games.sort((a,b) => a.game - b.game).map(g => `<span style="font-size:0.68rem;color:var(--text-muted)">G${g.game}:${g.score}</span>`).join(' ')
-    : '';
+  // Raggruppa punteggi per squadra, poi per giocatore (somma game multipli)
+  const byTeam = {};
+  teams.forEach(t => { byTeam[t.name] = { name: t.name, total: 0, players: {} }; });
+
+  scores.forEach(sc => {
+    if (!byTeam[sc.team_name]) return;
+    const team   = byTeam[sc.team_name];
+    const pname  = sc.player_name;
+    // Accumula per giocatore (somma tutti i game)
+    if (!team.players[pname]) {
+      team.players[pname] = { name: pname, emoji: sc.emoji, total: 0, games: [] };
+    }
+    team.players[pname].total += parseInt(sc.score) || 0;
+    team.players[pname].games.push({ game: sc.game_number || 1, score: sc.score });
+    team.total += parseInt(sc.score) || 0;
+  });
+
+  // Deduplicazione totale squadra: somma totali giocatori (evita doppio conteggio)
+  Object.values(byTeam).forEach(team => {
+    team.total = Object.values(team.players).reduce((s, p) => s + p.total, 0);
+  });
+
+  const teamList = Object.values(byTeam);
+  const maxT     = Math.max(...teamList.map(t => t.total));
+  const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
+  const numGames = scores.length > 0 ? Math.max(...scores.map(sc => sc.game_number || 1)) : 1;
 
   let teamsHtml = '';
-  let ffaHtml   = '';
+  teamList.forEach((t, i) => {
+    const win      = t.total === maxT && maxT > 0;
+    const c        = tColors[i % tColors.length];
+    const maxScore = Math.max(...Object.values(t.players).map(p => p.total));
 
-  if (isFFA) {
-    // ── FFA: raggruppa giocatori con team __FFA__ ──
-    const ffaPlayers = {};
-    scores.forEach(sc => {
-      if (sc.team_name !== '__FFA__') return;
-      const pname = sc.player_name;
-      if (!ffaPlayers[pname]) ffaPlayers[pname] = { name: pname, emoji: sc.emoji, total: 0, games: [] };
-      ffaPlayers[pname].total += parseInt(sc.score) || 0;
-      ffaPlayers[pname].games.push({ game: sc.game_number || 1, score: sc.score });
-    });
-    const ffaList = Object.values(ffaPlayers).sort((a,b) => b.total - a.total);
-    const maxFFA  = ffaList.length ? ffaList[0].total : 0;
-    const winnersN = ffaList.filter(p => p.total === maxFFA).length;
-
-    const ffaRows = ffaList.map(p => {
-      const isWinner = winnersN === 1 && p.total === maxFFA;
-      const gh = makeGamesHtml(p.games);
+    const plHtml = Object.values(t.players).map(p => {
+      const gamesHtml = numGames > 1
+        ? p.games.sort((a,b) => a.game - b.game)
+            .map(g => `<span style="font-size:0.68rem;color:var(--text-muted)">G${g.game}:${g.score}</span>`)
+            .join(' ')
+        : '';
+      const isTop = p.total === maxScore;
       return `
         <div class="team-player-row">
-          <span>${p.emoji || '🎳'} ${p.name}${isWinner ? ' 🏆' : ''}</span>
+          <span>${p.emoji || '🎳'} ${p.name}</span>
           <div style="display:flex;align-items:center;gap:0.5rem">
-            ${gh ? `<span style="font-family:'Share Tech Mono',monospace">${gh}</span>` : ''}
-            <span class="team-player-score" style="${isWinner ? 'color:var(--gold)' : ''}">${p.total}</span>
+            ${gamesHtml ? `<span style="font-family:'Share Tech Mono',monospace">${gamesHtml}</span>` : ''}
+            <span class="team-player-score" style="${isTop ? 'color:var(--gold)' : ''}">${p.total}</span>
           </div>
         </div>`;
     }).join('');
 
-    ffaHtml = `
-      <div class="team-block" style="border-color:var(--neon)44">
-        <div class="team-header" style="background:rgba(232,255,0,0.05)">
-          <span class="team-name-lbl" style="color:var(--neon)">🏆 Tutti contro tutti</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo non paga</span>
-        </div>
-        <div class="team-players">${ffaRows}</div>
-      </div>`;
-  } else {
-    // ── Teams normali (escludi __FFA__) ──
-    const byTeam = {};
-    teams.filter(t => t.name !== '__FFA__').forEach(t => {
-      byTeam[t.name] = { name: t.name, total: 0, players: {} };
-    });
-    scores.forEach(sc => {
-      if (!sc.team_name || sc.team_name === '__FFA__' || !byTeam[sc.team_name]) return;
-      const team  = byTeam[sc.team_name];
-      const pname = sc.player_name;
-      if (!team.players[pname]) team.players[pname] = { name: pname, emoji: sc.emoji, total: 0, games: [] };
-      team.players[pname].total += parseInt(sc.score) || 0;
-      team.players[pname].games.push({ game: sc.game_number || 1, score: sc.score });
-    });
-    Object.values(byTeam).forEach(team => {
-      team.total = Object.values(team.players).reduce((s, p) => s + p.total, 0);
-    });
-    const teamList = Object.values(byTeam);
-    const maxT     = teamList.length ? Math.max(...teamList.map(t => t.total)) : 0;
-    const drawCount = teamList.filter(t => t.total === maxT).length;
-
-    teamList.forEach((t, i) => {
-      const win  = t.total === maxT && maxT > 0 && drawCount === 1;
-      const draw = t.total === maxT && drawCount > 1;
-      const c    = tColors[i % tColors.length];
-      const maxScore = Object.values(t.players).length ? Math.max(...Object.values(t.players).map(p => p.total)) : 0;
-      const plHtml = Object.values(t.players).map(p => {
-        const gh = makeGamesHtml(p.games);
-        return `
-          <div class="team-player-row">
-            <span>${p.emoji || '🎳'} ${p.name}</span>
-            <div style="display:flex;align-items:center;gap:0.5rem">
-              ${gh ? `<span style="font-family:'Share Tech Mono',monospace">${gh}</span>` : ''}
-              <span class="team-player-score" style="${p.total === maxScore ? 'color:var(--gold)' : ''}">${p.total}</span>
-            </div>
-          </div>`;
-      }).join('');
-      const tag = win ? 'VITTORIA' : draw ? 'PAREGGIO' : 'SCONFITTA';
-      const tagClass = win ? 'win' : draw ? 'draw' : 'lose';
-      teamsHtml += `
-        <div class="team-block">
-          <div class="team-header">
-            <span class="team-name-lbl" style="color:${c}">${t.name}</span>
-            <div style="display:flex;align-items:center;gap:0.5rem">
-              <span class="team-tag ${tagClass}">${tag}</span>
-              <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${win ? c : 'var(--text-muted)'}">${t.total}</span>
-            </div>
+    teamsHtml += `
+      <div class="team-block">
+        <div class="team-header">
+          <span class="team-name-lbl" style="color:${c}">${t.name}</span>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <span class="team-tag ${win ? 'win' : 'lose'}">${win ? 'VITTORIA' : 'SCONFITTA'}</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${win ? c : 'var(--text-muted)'}">${t.total}</span>
           </div>
-          <div class="team-players">${plHtml}</div>
-        </div>`;
-    });
-  }
+        </div>
+        <div class="team-players">${plHtml}</div>
+      </div>`;
+  });
 
-  // ── Giocatori singoli (team_id NULL) ──
+  // Giocatori singoli (senza squadra)
   const soloPlayers2 = {};
   scores.forEach(sc => {
     if (sc.team_name) return;
@@ -546,16 +542,19 @@ function renderLastSession(s) {
   const soloList = Object.values(soloPlayers2);
   if (soloList.length) {
     const soloRows = soloList.map(p => {
-      const gh = makeGamesHtml(p.games);
+      const gamesHtml = numGames > 1
+        ? p.games.sort((a,b) => a.game - b.game).map(g => `<span style="font-size:0.68rem;color:var(--text-muted)">G${g.game}:${g.score}</span>`).join(' ')
+        : '';
       return `
         <div class="team-player-row">
           <span>${p.emoji || '🎳'} ${p.name}</span>
           <div style="display:flex;align-items:center;gap:0.5rem">
-            ${gh ? `<span style="font-family:'Share Tech Mono',monospace">${gh}</span>` : ''}
+            ${gamesHtml ? `<span style="font-family:'Share Tech Mono',monospace">${gamesHtml}</span>` : ''}
             <span class="team-player-score" style="color:var(--neon3)">${p.total}</span>
           </div>
         </div>`;
     }).join('');
+
     soloHtml = `
       <div class="team-block" style="border-color:var(--neon3)44">
         <div class="team-header" style="background:rgba(0,245,255,0.05)">
@@ -566,15 +565,14 @@ function renderLastSession(s) {
       </div>`;
   }
 
-  const mainHtml = isFFA ? ffaHtml : teamsHtml;
   document.getElementById('last-session-card').innerHTML = `
     <div class="card-header">
       <div class="card-title">${formatDate(s.date)}</div>
       <div class="card-date">${s.location}${numGames > 1 ? ` · ${numGames} game` : ''}</div>
     </div>
     <div class="session-teams">
-      ${mainHtml}${soloHtml}
-      ${!mainHtml && !soloHtml ? '<div style="padding:1rem;color:var(--text-muted);font-size:0.8rem">Nessun punteggio</div>' : ''}
+      ${teamsHtml}${soloHtml}
+      ${!teamsHtml && !soloHtml ? '<div style="padding:1rem;color:var(--text-muted);font-size:0.8rem">Nessun punteggio</div>' : ''}
     </div>`;
 }
 
