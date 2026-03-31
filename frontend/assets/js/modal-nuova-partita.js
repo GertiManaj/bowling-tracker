@@ -65,9 +65,9 @@ function setFFAMode(active) {
   const teamsSection = document.getElementById('teamsSection');
   const soloSection  = document.getElementById('soloSection');
   const ffaNote      = document.getElementById('ffaNote');
-  if (teamsSection) teamsSection.style.display = active ? 'none' : '';
-  if (soloSection)  soloSection.style.display  = active ? '' : '';
-  if (ffaNote)      ffaNote.style.display      = active ? '' : 'none';
+  if (teamsSection) teamsSection.style.display = active ? 'none' : 'block';
+  if (soloSection)  soloSection.style.display  = active ? 'block' : 'none';
+  if (ffaNote)      ffaNote.style.display      = active ? 'inline' : 'none';
 }
 
 function handleOverlayClick(e) {
