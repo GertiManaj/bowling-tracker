@@ -81,8 +81,8 @@ function setFFAMode(active) {
   if (soloSection)  soloSection.style.display  = 'block'; // sempre visibile
   if (ffaNote)      ffaNote.style.display      = active ? 'inline' : 'none';
   if (soloNote)     soloNote.textContent       = active
-    ? 'Non partecipano al FFA — pagano solo i loro game'
-    : 'Non partecipano alla sfida';
+    ? 'Giocatori extra — non partecipano al FFA'
+    : 'Giocatori extra — non partecipano alla sfida';
 
   // Reset righe FFA quando si disattiva
   if (!active) {
