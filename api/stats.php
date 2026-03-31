@@ -79,51 +79,75 @@ foreach ($qRecent->fetchAll() as $r) {
 }
 
 // ── ULTIMI RISULTATI V/P/N ──────────────────
-// Per ogni giocatore: ultime 5 sessioni con team, calcola V/P/N
+// Per ogni giocatore: ultime 5 sessioni (teams + FFA), calcola V/P/N
 $qUltimi = $pdo->prepare("
-    SELECT sc.player_id, sc.session_id, sc.team_id, se.date
+    SELECT sc.player_id, sc.session_id, sc.team_id, se.date, COALESCE(se.mode,'teams') AS mode, t.name AS team_name
     FROM scores sc
     JOIN sessions se ON sc.session_id = se.id
+    LEFT JOIN teams t ON sc.team_id = t.id
     WHERE sc.team_id IS NOT NULL
     ORDER BY sc.player_id, sc.session_id DESC
 ");
 $qUltimi->execute();
 $ultimiRaw = $qUltimi->fetchAll();
 
-// Precalcola totale per ogni team in ogni sessione
+// Precalcola totale per ogni team in ogni sessione (escluso __FFA__)
 $teamTotalCache = [];
 $qTeamTotals = $pdo->query("
-    SELECT team_id, session_id, SUM(score) AS tot
-    FROM scores
-    WHERE team_id IS NOT NULL
-    GROUP BY team_id, session_id
+    SELECT t.id AS team_id, sc.session_id, SUM(sc.score) AS tot
+    FROM scores sc JOIN teams t ON sc.team_id=t.id
+    WHERE t.name != '__FFA__'
+    GROUP BY t.id, sc.session_id
 ");
 foreach ($qTeamTotals->fetchAll() as $tt) {
     $teamTotalCache[$tt['session_id']][$tt['team_id']] = (int)$tt['tot'];
 }
 
+// Precalcola totale per ogni giocatore FFA in ogni sessione
+$ffaTotalCache = [];
+$qFFATotals = $pdo->query("
+    SELECT sc.player_id, sc.session_id, SUM(sc.score) AS tot
+    FROM scores sc JOIN teams t ON sc.team_id=t.id
+    WHERE t.name = '__FFA__'
+    GROUP BY sc.player_id, sc.session_id
+");
+foreach ($qFFATotals->fetchAll() as $ft) {
+    $ffaTotalCache[$ft['session_id']][$ft['player_id']] = (int)$ft['tot'];
+}
+
 $playerResults = [];
 foreach ($ultimiRaw as $r) {
-    $pid = $r['player_id'];
-    $sid = $r['session_id'];
-    $tid = $r['team_id'];
+    $pid       = $r['player_id'];
+    $sid       = $r['session_id'];
+    $tid       = $r['team_id'];
+    $mode      = $r['mode'];
+    $teamName  = $r['team_name'];
     if (!isset($playerResults[$pid])) $playerResults[$pid] = [];
     if (count($playerResults[$pid]) >= 5) continue;
-    // Evita duplicati per stessa sessione
     $alreadyDone = false;
     foreach ($playerResults[$pid] as $existing) {
         if (isset($existing['sid']) && $existing['sid'] === $sid) { $alreadyDone = true; break; }
     }
     if ($alreadyDone) continue;
 
-    $teamTotals = $teamTotalCache[$sid] ?? [];
-    if (empty($teamTotals) || !isset($teamTotals[$tid])) continue;
-    $myTotal  = $teamTotals[$tid];
-    $maxTotal = max($teamTotals);
-
-    if ($myTotal === $maxTotal && count(array_unique($teamTotals)) > 1) $esito = 'V';
-    elseif ($myTotal === $maxTotal && count(array_unique($teamTotals)) === 1) $esito = 'N';
-    else $esito = 'P';
+    if ($mode === 'ffa' && $teamName === '__FFA__') {
+        // FFA: solo il primo unico vince
+        $ffaScores = $ffaTotalCache[$sid] ?? [];
+        if (empty($ffaScores) || !isset($ffaScores[$pid])) continue;
+        $myTotal  = $ffaScores[$pid];
+        $maxTotal = max($ffaScores);
+        $topCount = count(array_filter($ffaScores, fn($s) => $s === $maxTotal));
+        $esito = ($myTotal === $maxTotal && $topCount === 1) ? 'V' : 'P';
+    } else {
+        // Teams normale
+        $teamTotals = $teamTotalCache[$sid] ?? [];
+        if (empty($teamTotals) || !isset($teamTotals[$tid])) continue;
+        $myTotal  = $teamTotals[$tid];
+        $maxTotal = max($teamTotals);
+        if ($myTotal === $maxTotal && count(array_unique($teamTotals)) > 1) $esito = 'V';
+        elseif ($myTotal === $maxTotal && count(array_unique($teamTotals)) === 1) $esito = 'N';
+        else $esito = 'P';
+    }
 
     $playerResults[$pid][] = ['sid' => $sid, 'esito' => $esito];
 }

@@ -114,25 +114,35 @@ function renderSessions() {
     const best    = scores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
     const delay   = (i * 0.04).toFixed(2);
 
-    // Raggruppa per squadra
+    // Modalità sessione
+    const isFFA = (s.mode === 'ffa');
+
+    // Raggruppa per squadra (escludi __FFA__)
     const byTeam = {};
-    teams.forEach(t => { byTeam[t.name] = { name: t.name, total: 0, players: [] }; });
+    teams.filter(t => t.name !== '__FFA__').forEach(t => {
+      byTeam[t.name] = { name: t.name, total: 0, players: [] };
+    });
     scores.forEach(sc => {
-      if (sc.team_name && byTeam[sc.team_name]) {
+      if (sc.team_name && sc.team_name !== '__FFA__' && byTeam[sc.team_name]) {
         byTeam[sc.team_name].total += parseInt(sc.score) || 0;
         byTeam[sc.team_name].players.push(sc);
       }
     });
 
-    // Giocatori singoli
+    // Giocatori FFA (team __FFA__)
+    const ffaScores = scores.filter(sc => sc.team_name === '__FFA__');
+
+    // Giocatori singoli (team_id NULL)
     const soloScores = scores.filter(sc => !sc.team_name);
 
     const teamList = Object.values(byTeam);
     const maxTotal = teamList.length ? Math.max(...teamList.map(t => t.total)) : 0;
     const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
 
-    const teamsHtml = teamList.map((t, ti) => {
-      const win   = t.total === maxTotal && maxTotal > 0;
+    // ── Render squadre normali ──
+    const teamsHtml = !isFFA ? teamList.map((t, ti) => {
+      const win   = t.total === maxTotal && maxTotal > 0 && teamList.filter(x => x.total === maxTotal).length === 1;
+      const isDraw = teamList.filter(x => x.total === maxTotal).length > 1;
       const color = tColors[ti % tColors.length];
       const byPlayer = {};
       t.players.forEach(p => {
@@ -162,18 +172,62 @@ function renderSessions() {
           </div>`;
       }).join('');
 
+      const tag = win ? '<span class="team-tag win">VITTORIA</span>'
+                : isDraw ? '<span class="team-tag draw">PAREGGIO</span>'
+                : '<span class="team-tag lose">SCONFITTA</span>';
+
       return `
         <div class="detail-team">
           <div class="detail-team-header">
             <span class="detail-team-name" style="color:${color}">${t.name}</span>
             <div style="display:flex;align-items:center;gap:0.5rem">
-              <span class="team-tag ${win ? 'win' : 'lose'}">${win ? 'WIN' : 'LOSE'}</span>
+              ${tag}
               <span class="detail-team-total" style="color:${win ? color : 'var(--text-muted)'}">${t.total}</span>
             </div>
           </div>
           <div class="detail-team-players">${rows}</div>
         </div>`;
-    }).join('');
+    }).join('') : '';
+
+    // ── Render sezione FFA ──
+    let ffaHtml = '';
+    if (isFFA && ffaScores.length) {
+      const ffaByPlayer = {};
+      ffaScores.forEach(sc => {
+        if (!ffaByPlayer[sc.player_name]) ffaByPlayer[sc.player_name] = { ...sc, games: [], total: 0 };
+        ffaByPlayer[sc.player_name].games.push({ game: sc.game_number || 1, score: sc.score });
+        ffaByPlayer[sc.player_name].total += parseInt(sc.score) || 0;
+      });
+      const ffaPlayers = Object.values(ffaByPlayer).sort((a,b) => b.total - a.total);
+      const maxFFAScore = ffaPlayers.length ? ffaPlayers[0].total : 0;
+      const winnersCount = ffaPlayers.filter(p => p.total === maxFFAScore).length;
+
+      const ffaRows = ffaPlayers.map((p, idx) => {
+        const isWinner = winnersCount === 1 && p.total === maxFFAScore;
+        const gamesHtml = p.games.length > 1
+          ? p.games.sort((a,b) => a.game - b.game).map(g =>
+              `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
+            ).join(' ')
+          : '';
+        return `
+          <div class="detail-player-row">
+            <span>${p.emoji || '🎳'} ${p.player_name} ${isWinner ? '🏆' : ''}</span>
+            <div style="display:flex;align-items:center;gap:0.4rem;font-family:'Share Tech Mono',monospace;font-size:0.8rem">
+              ${gamesHtml ? `<span style="font-size:0.7rem;color:var(--text-muted)">${gamesHtml}</span>` : ''}
+              <span class="detail-player-score${isWinner ? ' top' : ''}">${p.total}</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      ffaHtml = `
+        <div class="detail-team">
+          <div class="detail-team-header">
+            <span class="detail-team-name" style="color:var(--neon)">🏆 Tutti contro tutti</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo non paga</span>
+          </div>
+          <div class="detail-team-players">${ffaRows}</div>
+        </div>`;
+    }
 
     // Sezione giocatori singoli
     let soloHtml = '';
@@ -232,8 +286,8 @@ function renderSessions() {
           <div class="session-card-toggle">▼</div>
         </div>
         <div class="session-card-detail">
-          ${teamList.length || soloScores.length
-            ? `<div class="detail-teams">${teamsHtml}${soloHtml}</div>`
+          ${teamList.length || soloScores.length || ffaScores.length
+            ? `<div class="detail-teams">${isFFA ? ffaHtml : teamsHtml}${soloHtml}</div>`
             : '<div style="color:var(--text-muted);font-size:0.8rem">Nessun punteggio registrato</div>'}
           ${notesHtml}
           <div class="detail-actions action-btn-wrap">
@@ -281,46 +335,38 @@ function openEditModal(id) {
   document.getElementById('teamARows').innerHTML = '';
   document.getElementById('teamBRows').innerHTML = '';
   document.getElementById('soloRows').innerHTML  = '';
-  const ffaRowsEl = document.getElementById('ffaRows');
-  if (ffaRowsEl) ffaRowsEl.innerHTML = '';
   document.getElementById('totalA').textContent  = 'Totale: 0';
   document.getElementById('totalB').textContent  = 'Totale: 0';
 
-  // Imposta modalità FFA se necessario
-  const isFFA = (s.mode === 'ffa');
-  const ffaCheck = document.getElementById('ffaMode');
-  if (ffaCheck) { ffaCheck.checked = isFFA; setFFAMode(isFFA); }
-
   const teams  = s.teams  || [];
   const scores = s.scores || [];
+
+  // Raggruppa scores per team_name, poi per player_id
+  const byTeam = {};
+  teams.forEach(t => { byTeam[t.name] = {}; });
+  scores.forEach(sc => {
+    if (!sc.team_name || !byTeam[sc.team_name]) return;
+    const pid = sc.player_id;
+    if (!byTeam[sc.team_name][pid]) {
+      byTeam[sc.team_name][pid] = { player_id: pid, games: [] };
+    }
+    byTeam[sc.team_name][pid].games.push({ game_number: sc.game_number || 1, score: sc.score });
+  });
+
+  // Determina il numero di game dalla sessione
   const numGames = parseInt(document.getElementById('numGames').value) || 1;
 
-  if (isFFA) {
-    // ── Modalità FFA: giocatori con team __FFA__ vanno in ffaRows, gli altri in soloRows ──
-    const ffaByPlayer = {};
-    const soloByPlayerFFA = {};
-    scores.forEach(sc => {
-      if (sc.team_name === '__FFA__') {
-        if (!ffaByPlayer[sc.player_id]) ffaByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
-        ffaByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
-      } else if (!sc.team_name) {
-        if (!soloByPlayerFFA[sc.player_id]) soloByPlayerFFA[sc.player_id] = { player_id: sc.player_id, games: [] };
-        soloByPlayerFFA[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
-      }
-    });
-    Object.values(ffaByPlayer).forEach(p => {
-      addFFARow(p.player_id, numGames);
-      const rows = document.querySelectorAll('#ffaRows .ffa-row');
-      const lastRow = rows[rows.length - 1];
-      p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
-        const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
-        if (input) input.value = g.score;
-      });
-    });
-    // Giocatori extra (non partecipano al FFA)
-    Object.values(soloByPlayerFFA).forEach(p => {
-      addSoloRow(p.player_id, numGames);
-      const rows = document.querySelectorAll('#soloRows .solo-row');
+  const teamNames = Object.keys(byTeam);
+
+  // Squadra A
+  const nameA = teamNames[0] || '';
+  document.getElementById('teamAName').value = nameA;
+  const playersA = Object.values(byTeam[nameA] || {});
+  if (playersA.length) {
+    playersA.forEach(p => {
+      addPlayerRow('A', p.player_id, numGames);
+      // Precompila i punteggi nei campi appena creati
+      const rows = document.querySelectorAll('#teamARows .player-row');
       const lastRow = rows[rows.length - 1];
       p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
@@ -328,71 +374,43 @@ function openEditModal(id) {
       });
     });
   } else {
-    // ── Modalità Teams ──
-    const byTeam = {};
-    teams.forEach(t => { byTeam[t.name] = {}; });
-    scores.forEach(sc => {
-      if (!sc.team_name || !byTeam[sc.team_name]) return;
-      const pid = sc.player_id;
-      if (!byTeam[sc.team_name][pid]) byTeam[sc.team_name][pid] = { player_id: pid, games: [] };
-      byTeam[sc.team_name][pid].games.push({ game_number: sc.game_number || 1, score: sc.score });
-    });
+    addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
+  }
 
-    const teamNames = Object.keys(byTeam);
-
-    // Squadra A
-    const nameA = teamNames[0] || '';
-    document.getElementById('teamAName').value = nameA;
-    const playersA = Object.values(byTeam[nameA] || {});
-    if (playersA.length) {
-      playersA.forEach(p => {
-        addPlayerRow('A', p.player_id, numGames);
-        const rows = document.querySelectorAll('#teamARows .player-row');
-        const lastRow = rows[rows.length - 1];
-        p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
-          const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
-          if (input) input.value = g.score;
-        });
-      });
-    } else {
-      addPlayerRow('A'); addPlayerRow('A'); addPlayerRow('A');
-    }
-
-    // Squadra B
-    const nameB = teamNames[1] || '';
-    document.getElementById('teamBName').value = nameB;
-    const playersB = Object.values(byTeam[nameB] || {});
-    if (playersB.length) {
-      playersB.forEach(p => {
-        addPlayerRow('B', p.player_id, numGames);
-        const rows = document.querySelectorAll('#teamBRows .player-row');
-        const lastRow = rows[rows.length - 1];
-        p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
-          const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
-          if (input) input.value = g.score;
-        });
-      });
-    } else {
-      addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
-    }
-
-    // Giocatori singoli (non partecipano alla sfida)
-    const soloScores = scores.filter(sc => !sc.team_name);
-    const soloByPlayer = {};
-    soloScores.forEach(sc => {
-      if (!soloByPlayer[sc.player_id]) soloByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
-      soloByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
-    });
-    Object.values(soloByPlayer).forEach(p => {
-      addSoloRow(p.player_id, numGames);
-      const rows = document.querySelectorAll('#soloRows .solo-row');
+  // Squadra B
+  const nameB = teamNames[1] || '';
+  document.getElementById('teamBName').value = nameB;
+  const playersB = Object.values(byTeam[nameB] || {});
+  if (playersB.length) {
+    playersB.forEach(p => {
+      addPlayerRow('B', p.player_id, numGames);
+      const rows = document.querySelectorAll('#teamBRows .player-row');
       const lastRow = rows[rows.length - 1];
       p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
         if (input) input.value = g.score;
       });
     });
+  } else {
+    addPlayerRow('B'); addPlayerRow('B'); addPlayerRow('B');
   }
+
+  // Giocatori singoli
+  const soloScores = scores.filter(sc => !sc.team_name);
+  const soloByPlayer = {};
+  soloScores.forEach(sc => {
+    if (!soloByPlayer[sc.player_id]) soloByPlayer[sc.player_id] = { player_id: sc.player_id, games: [] };
+    soloByPlayer[sc.player_id].games.push({ game_number: sc.game_number || 1, score: sc.score });
+  });
+  Object.values(soloByPlayer).forEach(p => {
+    addSoloRow(p.player_id, numGames);
+    const rows = document.querySelectorAll('#soloRows .solo-row');
+    const lastRow = rows[rows.length - 1];
+    p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+      const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
+      if (input) input.value = g.score;
+    });
+  });
 
   calcTotals();
   document.getElementById('modalOverlay').classList.add('open');
