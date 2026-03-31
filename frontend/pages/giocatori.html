@@ -156,6 +156,13 @@
           <input type="number" class="form-input" id="sessionCost" placeholder="es. 4" min="0" step="0.5"/>
         </div>
       </div>
+      <!-- ══ MODALITÀ TUTTI CONTRO TUTTI ══ -->
+      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border:1px solid rgba(232,255,0,0.15);border-radius:6px;margin-bottom:0.8rem">
+        <input type="checkbox" id="ffaMode" onchange="setFFAMode(this.checked)" style="width:16px;height:16px;accent-color:var(--neon);cursor:pointer"/>
+        <label for="ffaMode" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--neon);cursor:pointer">🏆 Tutti contro tutti</label>
+        <span id="ffaNote" style="display:none;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted)">— Il primo non paga</span>
+      </div>
+      <div id="teamsSection">
       <div class="team-section">
         <div class="team-section-header">
           <span class="team-section-title team-a-title">⚡ Squadra A</span>
@@ -184,16 +191,32 @@
           <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
         </div>
       </div>
+      </div><!-- /teamsSection -->
+      <!-- ══ SEZIONE FFA ══ -->
+      <div id="ffaSection" style="display:none">
+      <div class="team-section">
+        <div class="team-section-header">
+          <span class="team-section-title" style="color:var(--neon)">🏆 Tutti contro tutti</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo non paga</span>
+        </div>
+        <div class="team-section-body">
+          <div id="ffaRows"></div>
+          <button class="btn-add-player" onclick="addFFARow()">+ Aggiungi giocatore</button>
+        </div>
+      </div>
+      </div><!-- /ffaSection -->
+      <div id="soloSection">
       <div class="team-section">
         <div class="team-section-header">
           <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Non partecipano alla sfida</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)" id="soloSectionNote">Giocatori extra — non partecipano alla sfida</span>
         </div>
         <div class="team-section-body">
           <div id="soloRows"></div>
           <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
         </div>
       </div>
+      </div><!-- /soloSection -->
       <div class="form-group">
         <label class="form-label">Note (opzionale)</label>
         <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
