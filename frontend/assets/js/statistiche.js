@@ -16,6 +16,7 @@ let statsData      = null;
 let trendChart     = null;
 let compareChart   = null;
 let distChart      = null;
+let paymentChart   = null;
 let activeTrend    = new Set();   // player names attivi nel grafico trend
 let currentMetric  = 'media';
 let currentFrom    = null;
@@ -286,6 +287,8 @@ async function loadStats() {
     renderRanking();
     buildTrendControls();
     renderTrend();
+    buildPaymentControls();
+    renderPaymentTrend();
     renderCompare();
     buildDistSelect();
     renderDistribution();
@@ -726,4 +729,118 @@ function setRankMetricById(metric) {
     b.classList.toggle('active', b.dataset.metric === metric);
   });
   renderRanking();
+}
+// ── GRAFICO ANDAMENTO PAGAMENTI ──────────────
+
+let activePaymentPlayers = new Set();
+
+function buildPaymentControls() {
+  const lb = statsData.leaderboard || [];
+  const payTrend = statsData.payment_trend || {};
+  const container = document.getElementById('paymentPlayerBtns');
+  if (!container) return;
+
+  // Solo giocatori con almeno un pagamento
+  const eligible = lb.filter(p => payTrend[p.id] && payTrend[p.id].length > 0);
+  if (!eligible.length) { container.innerHTML = '<span style="color:var(--text-muted);font-size:0.75rem">Nessun dato pagamenti</span>'; return; }
+
+  // Attiva tutti di default
+  activePaymentPlayers = new Set(eligible.map(p => p.name));
+
+  container.innerHTML = eligible.map((p, i) => {
+    const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    return `<button class="player-filter-btn active" data-name="${p.name}" data-color="${color}"
+      style="border-color:${color};color:${color};background:${color}18"
+      onclick="togglePaymentPlayer('${p.name}', this)">${p.emoji||'🎳'} ${p.name}</button>`;
+  }).join('');
+
+  renderPaymentTrend();
+}
+
+function togglePaymentPlayer(name, btn) {
+  if (activePaymentPlayers.has(name)) {
+    activePaymentPlayers.delete(name);
+    btn.classList.remove('active');
+    btn.style.background = 'none';
+  } else {
+    activePaymentPlayers.add(name);
+    btn.classList.add('active');
+    btn.style.background = btn.dataset.color + '18';
+  }
+  renderPaymentTrend();
+}
+
+function renderPaymentTrend() {
+  const canvas = document.getElementById('paymentChart');
+  if (!canvas) return;
+  const lb       = statsData.leaderboard || [];
+  const payTrend = statsData.payment_trend || {};
+
+  // Raccoglie tutte le date uniche ordinate
+  const allDates = [...new Set(
+    Object.values(payTrend).flat().map(p => p.date)
+  )].sort();
+
+  if (!allDates.length) {
+    canvas.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:260px;color:var(--text-muted);font-family:\'Share Tech Mono\',monospace;font-size:0.8rem">Nessun dato pagamenti</div>';
+    return;
+  }
+
+  const datasets = lb
+    .filter(p => activePaymentPlayers.has(p.name) && payTrend[p.id])
+    .map((p, i) => {
+      const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+      // Per ogni data, prendi il cumulativo più recente fino a quella data
+      const dataPoints = allDates.map(date => {
+        const entries = (payTrend[p.id] || []).filter(e => e.date <= date);
+        return entries.length ? entries[entries.length - 1].cumulativo : null;
+      });
+      return {
+        label: `${p.emoji||'🎳'} ${p.name}`,
+        data:  dataPoints,
+        borderColor: color,
+        backgroundColor: color + '15',
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        borderWidth: 2,
+        tension: 0.3,
+        fill: false,
+        spanGaps: true,
+      };
+    });
+
+  if (paymentChart) paymentChart.destroy();
+
+  paymentChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: allDates.map(d => new Date(d).toLocaleDateString('it-IT', { day:'2-digit', month:'short' })),
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#18182a',
+          borderColor: '#2a2a44',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: €${(ctx.raw||0).toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a4444' } },
+        y: {
+          grid: { color: '#2a2a4444' },
+          beginAtZero: true,
+          ticks: { callback: v => '€' + v }
+        }
+      }
+    }
+  });
 }

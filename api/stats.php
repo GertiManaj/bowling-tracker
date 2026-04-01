@@ -532,6 +532,82 @@ foreach ($allForImproved as $pl) {
     }
 }
 
+// ── PAYMENT TREND ────────────────────────────
+// Per ogni giocatore: array {date, pagato, cumulativo} ordinato per data
+$qPayTrend = $pdo->prepare("
+    SELECT se.id, se.date, COALESCE(se.mode,'teams') AS mode, se.cost_per_game
+    FROM sessions se
+    WHERE se.cost_per_game IS NOT NULL AND se.cost_per_game > 0
+    " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
+    ORDER BY se.date ASC, se.id ASC
+");
+$qPayTrend->execute($dateParams);
+$payTrendSessions = $qPayTrend->fetchAll();
+
+$paymentTrend = []; // pid → [{date, pagato, cumulativo}]
+
+foreach ($payTrendSessions as $sess) {
+    $sid  = $sess['id'];
+    $cost = floatval($sess['cost_per_game']);
+    $mode = $sess['mode'];
+    $date = $sess['date'];
+
+    $qPG2 = $pdo->prepare('SELECT sc.player_id, sc.team_id, COUNT(*) AS num_games FROM scores sc WHERE sc.session_id=? GROUP BY sc.player_id, sc.team_id');
+    $qPG2->execute([$sid]);
+    $pg2 = $qPG2->fetchAll();
+
+    $sessPayments = []; // pid → pagato in questa sessione
+
+    if ($mode === 'ffa') {
+        $qFFAPG2 = $pdo->prepare("SELECT sc.player_id, COUNT(*) AS ng, SUM(sc.score) AS ts FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name='__FFA__' GROUP BY sc.player_id");
+        $qFFAPG2->execute([$sid]);
+        $ffaP2 = $qFFAPG2->fetchAll();
+        $ptotals2 = [];
+        foreach ($ffaP2 as $fp) $ptotals2[$fp['player_id']] = ['score'=>(int)$fp['ts'],'games'=>(int)$fp['ng']];
+        if ($ptotals2) {
+            $maxS2 = max(array_column($ptotals2,'score'));
+            $winN2 = count(array_filter($ptotals2,fn($p)=>$p['score']===$maxS2));
+            $nP2   = count($ptotals2);
+            $wPid2 = array_key_first(array_filter($ptotals2,fn($p)=>$p['score']===$maxS2));
+            $wBase2= $cost * ($ptotals2[$wPid2]['games']??1);
+            $quota2= $nP2>1 ? $wBase2/($nP2-1) : 0;
+            foreach ($ptotals2 as $pid=>$pt) {
+                $base2 = $cost*$pt['games'];
+                $sessPayments[$pid] = ($winN2===1&&$pt['score']===$maxS2) ? 0 : $base2+$quota2;
+            }
+        }
+        // singoli in FFA
+        foreach ($pg2 as $pg) {
+            if ($pg['team_id']===null) {
+                $sessPayments[$pg['player_id']] = ($sessPayments[$pg['player_id']]??0) + $cost*(int)$pg['num_games'];
+            }
+        }
+    } else {
+        $qTT2 = $pdo->prepare("SELECT t.id AS tid, SUM(sc.score) AS tot FROM scores sc JOIN teams t ON sc.team_id=t.id WHERE sc.session_id=? AND t.name!='__FFA__' GROUP BY t.id");
+        $qTT2->execute([$sid]);
+        $tt2 = [];
+        foreach ($qTT2->fetchAll() as $t) $tt2[$t['tid']] = (int)$t['tot'];
+        $maxT2   = $tt2 ? max($tt2) : 0;
+        $winCnt2 = count(array_filter($tt2,fn($t)=>$t===$maxT2));
+        $isDraw2 = $winCnt2>1;
+        foreach ($pg2 as $pg) {
+            $pid2=$pg['player_id']; $tid2=$pg['team_id']; $nG2=(int)$pg['num_games']; $base2=$cost*$nG2;
+            if ($tid2===null) { $sessPayments[$pid2] = ($sessPayments[$pid2]??0)+$base2; }
+            else {
+                if ($isDraw2) $sessPayments[$pid2] = ($sessPayments[$pid2]??0)+$base2;
+                elseif (($tt2[$tid2]??0)===$maxT2) $sessPayments[$pid2] = ($sessPayments[$pid2]??0)+0;
+                else $sessPayments[$pid2] = ($sessPayments[$pid2]??0)+$base2*2;
+            }
+        }
+    }
+
+    foreach ($sessPayments as $pid=>$paid) {
+        if (!isset($paymentTrend[$pid])) $paymentTrend[$pid] = [];
+        $cumul = count($paymentTrend[$pid]) ? end($paymentTrend[$pid])['cumulativo'] : 0;
+        $paymentTrend[$pid][] = ['date'=>$date, 'pagato'=>round($paid,2), 'cumulativo'=>round($cumul+$paid,2)];
+    }
+}
+
 echo json_encode([
     'totale_sessioni' => (int)$totals['totale_sessioni'],
     'record_assoluto' => (int)($totals['record_assoluto'] ?? 0),
@@ -542,6 +618,7 @@ echo json_encode([
     'most_improved'   => $mostImproved,
     'leaderboard'     => $leaderboard,
     'trend'           => array_values($trend),
+    'payment_trend'   => $paymentTrend,
     'distribution'    => $distribution,
     'h2h'             => array_values($h2h),
     'chemistry'       => array_values($chemistry),

@@ -46,6 +46,7 @@ async function loadProfile() {
     renderHero(data, color);
     renderStatsGrid(data, color);
     renderTrend(data, color);
+    renderPaymentTrendProfilo(data, color);
     renderTeammates(data);
     renderHistory(data, color);
 
@@ -267,3 +268,93 @@ function renderHistory(data, color) {
 
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', loadProfile);
+// ── GRAFICO PAGAMENTI PROFILO ─────────────────
+let paymentChartProfilo = null;
+
+function renderPaymentTrendProfilo(data, color) {
+  const canvas = document.getElementById('paymentChartProfilo');
+  if (!canvas) return;
+
+  const detail = (data.stats.payment_detail || []).filter(p => p.pagato > 0 || true);
+  if (!detail.length) {
+    canvas.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text-muted);font-family:\'Share Tech Mono\',monospace;font-size:0.8rem">Nessun dato pagamenti</div>';
+    return;
+  }
+
+  // Costruisci array cumulativo per sessione
+  let cumul = 0;
+  const points = detail.map(p => {
+    cumul += p.pagato;
+    return { sessionId: p.session_id, pagato: p.pagato, cumulativo: Math.round(cumul * 100) / 100, esito: p.esito };
+  });
+
+  const labels = points.map((_, i) => `Sess. ${i + 1}`);
+
+  if (paymentChartProfilo) paymentChartProfilo.destroy();
+
+  paymentChartProfilo = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Cumulativo',
+          data: points.map(p => p.cumulativo),
+          borderColor: color,
+          backgroundColor: color + '22',
+          pointBackgroundColor: points.map(p =>
+            p.esito === 'vittoria' || p.esito === 'vittoria_ffa' ? 'var(--neon)' :
+            p.esito === 'pareggio' ? '#666680' : 'var(--neon2)'
+          ),
+          pointRadius: 6,
+          pointHoverRadius: 9,
+          borderWidth: 2.5,
+          tension: 0.3,
+          fill: true,
+        },
+        {
+          label: 'Per sessione',
+          data: points.map(p => p.pagato),
+          borderColor: '#666680',
+          backgroundColor: 'transparent',
+          pointRadius: 3,
+          borderWidth: 1.5,
+          borderDash: [4, 3],
+          tension: 0.2,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: '#18182a',
+          borderColor: '#2a2a44',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: €${(ctx.raw||0).toFixed(2)}`,
+            afterBody: (items) => {
+              const idx = items[0]?.dataIndex;
+              if (idx === undefined) return;
+              const esito = points[idx]?.esito || '';
+              const map = { vittoria:'✅ Vittoria', vittoria_ffa:'🏆 FFA vinto', pareggio:'🤝 Pareggio', sconfitta:'❌ Sconfitta', sconfitta_ffa:'❌ FFA perso', singolo:'👤 Singolo' };
+              return map[esito] ? ['', map[esito]] : [];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a4444' } },
+        y: {
+          grid: { color: '#2a2a4444' },
+          beginAtZero: true,
+          ticks: { callback: v => '€' + v }
+        }
+      }
+    }
+  });
+}
