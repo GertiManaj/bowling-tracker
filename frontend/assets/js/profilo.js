@@ -303,8 +303,8 @@ function renderPaymentTrendProfilo(data, color) {
           borderColor: color,
           backgroundColor: color + '22',
           pointBackgroundColor: points.map(p =>
-            p.esito === 'vittoria' || p.esito === 'vittoria_ffa' ? 'var(--neon)' :
-            p.esito === 'pareggio' ? '#666680' : 'var(--neon2)'
+            p.esito === 'vittoria' || p.esito === 'vittoria_ffa' ? '#e8ff00' :
+            p.esito === 'pareggio' ? '#666680' : '#ff3cac'
           ),
           pointRadius: 6,
           pointHoverRadius: 9,
