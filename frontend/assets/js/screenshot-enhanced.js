@@ -3,7 +3,9 @@
 //  Vecchie funzioni + Template Modal + Design Premium
 // ============================================
 
-// NOTA: COLORS e MEDALS sono definiti in app.js
+// Definizione colori e medaglie
+const COLORS = ['#e8ff00','#00f5ff','#ff6b35','#ff3cac','#ffd700','#a78bfa','#34d399','#fb923c','#60a5fa'];
+const MEDALS = ['🥇','🥈','🥉'];
 
 function makeCanvas(w, h) {
   var c = document.createElement('canvas');
