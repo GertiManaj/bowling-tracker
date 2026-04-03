@@ -241,8 +241,15 @@ function renderHistory(data, color) {
     const delay    = (i * 0.04).toFixed(2);
 
     const badges = [];
-    if (h.vittoria)   badges.push(`<span class="team-tag win">VITTORIA</span>`);
-    else              badges.push(`<span class="team-tag lose">SCONFITTA</span>`);
+    if (h.team_name === '🏆 FFA') {
+      if (h.vittoria) badges.push(`<span class="team-tag win">🏆 FFA VINTO</span>`);
+      else            badges.push(`<span class="team-tag lose">FFA</span>`);
+    } else if (h.team_name) {
+      if (h.vittoria) badges.push(`<span class="team-tag win">VITTORIA</span>`);
+      else            badges.push(`<span class="team-tag lose">SCONFITTA</span>`);
+    } else {
+      badges.push(`<span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">fuori sfida</span>`);
+    }
     if (h.top_scorer) badges.push(`<span style="font-size:0.8rem" title="Miglior score della serata">🏆</span>`);
 
     return `
