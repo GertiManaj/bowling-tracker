@@ -1113,15 +1113,6 @@ function useSuggestedTeams() {
   });
 }
 
-// ── SALVA FOTO CLASSIFICA (dinamico) ────────────
-function saveFotoClassifica() {
-  if (window.leaderboardMode === 'last') {
-    saveClassificaUltimaSerata();
-  } else {
-    saveClassifica();
-  }
-}
-
 // ── INIT ─────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
