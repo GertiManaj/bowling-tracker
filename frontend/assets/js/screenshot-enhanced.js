@@ -3,16 +3,7 @@
 //  Features: Template multipli, Design premium, WhatsApp share
 // ============================================
 
-function showToast(msg, type) {
-  type = type || 'success';
-  var t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
-  t.className = 'toast ' + type + ' show';
-  setTimeout(function() { t.className = 'toast'; }, 3500);
-}
-// COLORS e MEDALS già definiti in app.js
-const MEDALS = ['🥇','🥈','🥉'];
+// NOTA: COLORS e MEDALS sono già definiti in app.js, non le ridichiariamo
 
 function makeCanvas(w, h) {
   var c = document.createElement('canvas');
