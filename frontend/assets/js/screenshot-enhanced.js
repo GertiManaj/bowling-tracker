@@ -11,8 +11,7 @@ function showToast(msg, type) {
   t.className = 'toast ' + type + ' show';
   setTimeout(function() { t.className = 'toast'; }, 3500);
 }
-
-const COLORS = ['#e8ff00','#00f5ff','#ff6b35','#ff3cac','#ffd700','#a78bfa','#34d399','#fb923c','#60a5fa'];
+// COLORS e MEDALS già definiti in app.js
 const MEDALS = ['🥇','🥈','🥉'];
 
 function makeCanvas(w, h) {
