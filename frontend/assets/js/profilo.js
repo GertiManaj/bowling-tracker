@@ -241,10 +241,8 @@ function renderHistory(data, color) {
     const delay    = (i * 0.04).toFixed(2);
 
     const badges = [];
-    if (h.team_name === '🏆 FFA') {
-      if (h.vittoria) badges.push(`<span class="team-tag win">🏆 FFA VINTO</span>`);
-      else            badges.push(`<span class="team-tag lose">FFA</span>`);
-    } else if (h.team_name === '__FFA__') {
+    const isFFA = h.team_name === '🏆 FFA' || h.team_name === '__FFA__';
+    if (isFFA) {
       if (h.vittoria) badges.push(`<span class="team-tag win">🏆 FFA VINTO</span>`);
       else            badges.push(`<span class="team-tag lose">FFA PERSO</span>`);
     } else if (h.team_name) {
