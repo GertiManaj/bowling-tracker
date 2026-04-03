@@ -32,13 +32,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initTicketsPage() {
   const isAdmin = window.isLoggedIn || false;
+  // Vista pubblica sempre visibile (tutti possono aprire ticket e cercarlo)
+  document.getElementById('publicView').style.display = 'block';
+  // Vista admin visibile solo se loggato
   if (isAdmin) {
-    document.getElementById('publicView').style.display  = 'none';
-    document.getElementById('adminView').style.display   = 'block';
+    document.getElementById('adminView').style.display = 'block';
     loadAllTickets();
   } else {
-    document.getElementById('publicView').style.display  = 'block';
-    document.getElementById('adminView').style.display   = 'none';
+    document.getElementById('adminView').style.display = 'none';
   }
 }
 
