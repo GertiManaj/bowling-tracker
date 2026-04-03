@@ -3,34 +3,104 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎳 Strike Zone — Ticket</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#e8ff00"/>
+  <title>🎫 Strike Zone — Feedback</title>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
   <script src="../assets/js/shared.js"></script>
 </head>
 <body>
-<div id="app-header" data-active=""></div>
+<div id="app-header" data-active="tickets"></div>
 <script src="../assets/js/header.js"></script>
 
-<main style="max-width:900px;margin:0 auto;padding:2rem;display:flex;flex-direction:column;gap:1.5rem">
+<main style="max-width:860px;margin:0 auto;padding:2rem;display:flex;flex-direction:column;gap:2rem">
 
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-    <div class="section-title" style="margin:0">
+  <!-- ══ VISTA PUBBLICA ══ -->
+  <div id="publicView">
+
+    <!-- Form nuovo ticket -->
+    <div class="section-title">
       <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-      🎫 Ticket & Feedback
+      Feedback & Segnalazioni
     </div>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap" id="filterBtns">
-      <button class="period-btn active" onclick="filterTickets('all',this)">Tutti</button>
-      <button class="period-btn" onclick="filterTickets('open',this)">🔴 Aperti</button>
-      <button class="period-btn" onclick="filterTickets('in_progress',this)">🟡 In lavorazione</button>
-      <button class="period-btn" onclick="filterTickets('resolved',this)">🟢 Risolti</button>
-      <button class="period-btn" onclick="filterTickets('rejected',this)">⚫ Rifiutati</button>
+    <div class="card" style="padding:1.5rem">
+      <p style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--text-muted);letter-spacing:0.05em;margin-bottom:1.2rem;line-height:1.6">
+        Hai trovato un bug? Vuoi suggerire una nuova funzionalità? Scrivi qui — l'admin risponderà.<br>
+        <strong style="color:var(--text)">Dopo l'invio riceverai un numero ticket — annotalo per controllare la risposta.</strong>
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="newType">
+            <option value="bug">🐛 Bug — qualcosa non funziona</option>
+            <option value="feature">✨ Nuova funzionalità</option>
+            <option value="correction">✏️ Correzione dati</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Il tuo nome (opzionale)</label>
+          <input type="text" class="form-input" id="newName" placeholder="es. Mana"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrizione *</label>
+        <textarea class="form-input" id="newDesc" rows="4"
+          placeholder="Descrivi il problema o la richiesta in dettaglio..."
+          style="resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn-primary" id="btnSubmitTicket" onclick="submitNewTicket()" style="min-width:140px">🎫 Invia</button>
+      </div>
     </div>
+
+    <!-- Box conferma numero ticket -->
+    <div id="ticketConfirmBox" style="display:none;background:rgba(232,255,0,0.06);border:2px solid rgba(232,255,0,0.3);border-radius:12px;padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:0.5rem">🎫</div>
+      <div style="font-family:'Black Han Sans',sans-serif;font-size:1.1rem;color:var(--neon);margin-bottom:0.3rem">Ticket inviato!</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--text-muted);margin-bottom:0.8rem">Il tuo numero ticket è:</div>
+      <div style="font-family:'Black Han Sans',sans-serif;font-size:3rem;color:var(--neon);text-shadow:0 0 20px rgba(232,255,0,0.5);letter-spacing:0.05em" id="ticketConfirmNumber">#—</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--text-muted);margin-top:0.8rem;line-height:1.6">
+        📝 Annotalo! Potrai usarlo per controllare la risposta dell'admin.
+      </div>
+      <button onclick="hideTicketConfirm()" class="btn-secondary" style="margin-top:1rem;font-size:0.8rem">OK, l'ho annotato</button>
+    </div>
+
+    <!-- Cerca ticket per numero -->
+    <div>
+      <div class="section-title" style="margin-top:0">
+        <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
+        Controlla il tuo ticket
+      </div>
+      <div class="card" style="padding:1.2rem">
+        <div style="display:flex;gap:0.6rem;align-items:center">
+          <input type="text" class="form-input" id="searchTicketId"
+            placeholder="Inserisci il numero (es. 42)"
+            style="max-width:260px"/>
+          <button class="btn-primary" onclick="searchTicket()" style="white-space:nowrap">🔍 Cerca</button>
+        </div>
+        <div id="searchResult"></div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Lista ticket (solo admin) -->
-  <div id="ticketsList" class="action-btn-wrap">
-    <div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.8rem">Caricamento...</div>
+  <!-- ══ VISTA ADMIN ══ -->
+  <div id="adminView" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
+      <div class="section-title" style="margin:0">
+        <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+        🎫 Gestione Ticket
+      </div>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap" id="filterBtns">
+        <button class="period-btn active" onclick="filterTickets('all',this)">Tutti</button>
+        <button class="period-btn" onclick="filterTickets('open',this)">🔴 Aperti</button>
+        <button class="period-btn" onclick="filterTickets('in_progress',this)">🟡 In lavorazione</button>
+        <button class="period-btn" onclick="filterTickets('resolved',this)">🟢 Risolti</button>
+        <button class="period-btn" onclick="filterTickets('rejected',this)">⚫ Rifiutati</button>
+      </div>
+    </div>
+    <div id="adminTicketsList"></div>
   </div>
 
 </main>
@@ -43,7 +113,7 @@
       <button class="modal-close" onclick="closeReplyModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div id="replyTicketInfo" style="background:var(--surface2);border-radius:6px;padding:0.8rem;margin-bottom:1rem;font-size:0.85rem"></div>
+      <div id="replyTicketInfo" style="background:var(--surface2);border-radius:6px;padding:0.8rem;margin-bottom:1rem;font-size:0.85rem;line-height:1.5"></div>
       <div class="form-group">
         <label class="form-label">Stato</label>
         <select class="form-input" id="replyStatus">
@@ -54,8 +124,9 @@
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Risposta (opzionale)</label>
-        <textarea class="form-input" id="replyText" rows="3" placeholder="Scrivi una risposta al giocatore..." style="resize:vertical"></textarea>
+        <label class="form-label">Risposta</label>
+        <textarea class="form-input" id="replyText" rows="3"
+          placeholder="Scrivi una risposta..." style="resize:vertical"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -64,55 +135,6 @@
     </div>
   </div>
 </div>
-
-<!-- Modal nuovo ticket (tutti) -->
-<div class="modal-overlay" id="newTicketOverlay" onclick="if(event.target===this)closeNewTicket()">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
-      <div class="modal-title">🎫 Nuovo Ticket</div>
-      <button class="modal-close" onclick="closeNewTicket()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Tipo</label>
-        <select class="form-input" id="newType">
-          <option value="bug">🐛 Bug — qualcosa non funziona</option>
-          <option value="feature">✨ Nuova funzionalità</option>
-          <option value="correction">✏️ Correzione dati</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Il tuo nome (opzionale)</label>
-        <input type="text" class="form-input" id="newName" placeholder="es. Mana"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descrizione *</label>
-        <textarea class="form-input" id="newDesc" rows="4" placeholder="Descrivi il problema o la richiesta..." style="resize:vertical"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeNewTicket()">Annulla</button>
-      <button class="btn-primary" onclick="submitNewTicket()">Invia</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- FAB nuovo ticket (sempre visibile) -->
-<button onclick="openNewTicket()" style="
-  position:fixed;bottom:2rem;right:2rem;
-  background:var(--neon2);color:#fff;
-  border:none;border-radius:50px;
-  padding:0.8rem 1.4rem;
-  font-family:'Barlow Condensed',sans-serif;
-  font-weight:700;font-size:0.9rem;
-  letter-spacing:0.1em;text-transform:uppercase;
-  cursor:pointer;
-  box-shadow:0 0 20px rgba(255,60,172,0.4);
-  z-index:100;
-  display:flex;align-items:center;gap:0.5rem
-">🎫 Nuovo Ticket</button>
 
 <!-- Modal login -->
 <div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
@@ -124,7 +146,8 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="off" style="-webkit-text-security:disc"/>
+        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••"
+          autocomplete="off" style="-webkit-text-security:disc"/>
       </div>
       <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
     </div>
@@ -135,6 +158,7 @@
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
 <script src="../assets/js/auth.js"></script>
 <script src="../assets/js/tickets.js"></script>
 </body>

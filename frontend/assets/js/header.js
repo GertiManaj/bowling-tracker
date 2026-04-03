@@ -7,6 +7,7 @@ var NAV_LINKS = [
   { href: 'sessioni.html',    label: 'Sessioni',     key: 'sessioni'    },
   { href: 'statistiche.html', label: 'Statistiche',  key: 'statistiche' },
   { href: 'giocatori.html',   label: 'Giocatori',    key: 'giocatori'   },
+  { href: 'tickets.html',     label: '🎫 Feedback',  key: 'tickets'     },
 ];
 
 // ── HAMBURGER ────────────────────────────────
