@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Strike Zone — Ticket</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <script src="../assets/js/shared.js"></script>
+</head>
+<body>
+<div id="app-header" data-active=""></div>
+<script src="../assets/js/header.js"></script>
+
+<main style="max-width:900px;margin:0 auto;padding:2rem;display:flex;flex-direction:column;gap:1.5rem">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+    <div class="section-title" style="margin:0">
+      <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+      🎫 Ticket & Feedback
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap" id="filterBtns">
+      <button class="period-btn active" onclick="filterTickets('all',this)">Tutti</button>
+      <button class="period-btn" onclick="filterTickets('open',this)">🔴 Aperti</button>
+      <button class="period-btn" onclick="filterTickets('in_progress',this)">🟡 In lavorazione</button>
+      <button class="period-btn" onclick="filterTickets('resolved',this)">🟢 Risolti</button>
+      <button class="period-btn" onclick="filterTickets('rejected',this)">⚫ Rifiutati</button>
+    </div>
+  </div>
+
+  <!-- Lista ticket (solo admin) -->
+  <div id="ticketsList" class="action-btn-wrap">
+    <div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.8rem">Caricamento...</div>
+  </div>
+
+</main>
+
+<!-- Modal risposta admin -->
+<div class="modal-overlay" id="replyOverlay" onclick="if(event.target===this)closeReplyModal()">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title" id="replyModalTitle">📝 Gestisci Ticket</div>
+      <button class="modal-close" onclick="closeReplyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="replyTicketInfo" style="background:var(--surface2);border-radius:6px;padding:0.8rem;margin-bottom:1rem;font-size:0.85rem"></div>
+      <div class="form-group">
+        <label class="form-label">Stato</label>
+        <select class="form-input" id="replyStatus">
+          <option value="open">🔴 Aperto</option>
+          <option value="in_progress">🟡 In lavorazione</option>
+          <option value="resolved">🟢 Risolto</option>
+          <option value="rejected">⚫ Rifiutato</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Risposta (opzionale)</label>
+        <textarea class="form-input" id="replyText" rows="3" placeholder="Scrivi una risposta al giocatore..." style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeReplyModal()">Annulla</button>
+      <button class="btn-primary" onclick="submitReply()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuovo ticket (tutti) -->
+<div class="modal-overlay" id="newTicketOverlay" onclick="if(event.target===this)closeNewTicket()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🎫 Nuovo Ticket</div>
+      <button class="modal-close" onclick="closeNewTicket()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-input" id="newType">
+          <option value="bug">🐛 Bug — qualcosa non funziona</option>
+          <option value="feature">✨ Nuova funzionalità</option>
+          <option value="correction">✏️ Correzione dati</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Il tuo nome (opzionale)</label>
+        <input type="text" class="form-input" id="newName" placeholder="es. Mana"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrizione *</label>
+        <textarea class="form-input" id="newDesc" rows="4" placeholder="Descrivi il problema o la richiesta..." style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeNewTicket()">Annulla</button>
+      <button class="btn-primary" onclick="submitNewTicket()">Invia</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FAB nuovo ticket (sempre visibile) -->
+<button onclick="openNewTicket()" style="
+  position:fixed;bottom:2rem;right:2rem;
+  background:var(--neon2);color:#fff;
+  border:none;border-radius:50px;
+  padding:0.8rem 1.4rem;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.9rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 0 20px rgba(255,60,172,0.4);
+  z-index:100;
+  display:flex;align-items:center;gap:0.5rem
+">🎫 Nuovo Ticket</button>
+
+<!-- Modal login -->
+<div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--neon)">🔐 Accedi</div>
+      <button class="modal-close" onclick="closeLoginModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="off" style="-webkit-text-security:disc"/>
+      </div>
+      <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeLoginModal()">Annulla</button>
+      <button class="btn-primary" id="btnLoginSubmit" onclick="submitLogin()">Accedi</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/tickets.js"></script>
+</body>
+</html>
