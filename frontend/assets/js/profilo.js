@@ -244,6 +244,9 @@ function renderHistory(data, color) {
     if (h.team_name === '🏆 FFA') {
       if (h.vittoria) badges.push(`<span class="team-tag win">🏆 FFA VINTO</span>`);
       else            badges.push(`<span class="team-tag lose">FFA</span>`);
+    } else if (h.team_name === '__FFA__') {
+      if (h.vittoria) badges.push(`<span class="team-tag win">🏆 FFA VINTO</span>`);
+      else            badges.push(`<span class="team-tag lose">FFA PERSO</span>`);
     } else if (h.team_name) {
       if (h.vittoria) badges.push(`<span class="team-tag win">VITTORIA</span>`);
       else            badges.push(`<span class="team-tag lose">SCONFITTA</span>`);
