@@ -1,0 +1,78 @@
+/* ============================================
+   screenshot-modal.css
+   Stili per il modal di selezione template
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#template-modal-overlay {
+  animation: fadeIn 0.2s ease;
+}
+
+#template-modal-overlay > div {
+  animation: slideUp 0.3s ease;
+}
+
+.template-option {
+  transition: all 0.2s ease;
+}
+
+.template-option:hover {
+  border-color: var(--neon) !important;
+  background: rgba(232,255,0,0.03) !important;
+  transform: translateX(4px);
+}
+
+#template-confirm:hover {
+  background: #d4e600 !important;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(232,255,0,0.3);
+}
+
+#template-cancel:hover {
+  border-color: var(--text-muted);
+  background: var(--surface);
+}
+
+/* Radio button custom style */
+.template-option input[type="radio"] {
+  cursor: pointer;
+}
+
+.template-option input[type="radio"]:checked {
+  accent-color: var(--neon);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  #template-modal-overlay > div {
+    padding: 1.5rem !important;
+    width: 95% !important;
+  }
+
+  .template-option {
+    padding: 0.8rem !important;
+  }
+
+  .template-option > div > div:first-child {
+    font-size: 0.85rem !important;
+  }
+
+  .template-option > div > div:last-child {
+    font-size: 0.7rem !important;
+  }
+}
