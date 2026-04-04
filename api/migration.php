@@ -77,6 +77,23 @@ function runMigrations(PDO $pdo) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 
+    // ── MIGRATION 007: tabella password_resets ──
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            admin_id    INT NOT NULL,
+            token       VARCHAR(64) NOT NULL UNIQUE,
+            expires_at  DATETIME NOT NULL,
+            used        TINYINT(1) NOT NULL DEFAULT 0,
+            used_at     DATETIME DEFAULT NULL,
+            ip_address  VARCHAR(45) DEFAULT NULL,
+            created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE,
+            INDEX idx_token (token),
+            INDEX idx_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+
     // ── CREA ADMIN DI DEFAULT SE NON ESISTE ──
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM admins")->fetchColumn();
