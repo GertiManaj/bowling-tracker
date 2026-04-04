@@ -1,0 +1,37 @@
+# Environment variables (CRITICO - non committare!)
+.env
+.env.local
+.env.production
+
+# Database dumps
+*.sql
+*.dump
+
+# Logs
+*.log
+logs/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*.backup
+
+# Setup files
+setup-database.php
+generate-password-hash.php
