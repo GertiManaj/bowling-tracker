@@ -3,9 +3,9 @@
 //  api/leaderboard.php
 //  GET → classifica generale con tutte le stat
 // ============================================
-require_once 'db.php';
+require_once __DIR__ . '/config.php';
 
-$pdo = getDB();
+$pdo = getPDO();
 
 // Classifica completa
 $stmt = $pdo->query('

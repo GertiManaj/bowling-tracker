@@ -4,8 +4,8 @@
 //  POST → suggerisce squadre equilibrate
 //  Body: { "player_ids": [1,2,3,4,5,6] }
 // ============================================
-require_once 'db.php';
-$pdo = getDB();
+require_once __DIR__ . '/config.php';
+$pdo = getPDO();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

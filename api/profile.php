@@ -1,6 +1,6 @@
 <?php
-require_once 'db.php';
-$pdo = getDB();
+require_once __DIR__ . '/config.php';
+$pdo = getPDO();
 $id = intval($_GET['id'] ?? 0);
 if (!$id) { echo json_encode(['error' => 'ID non valido']); exit; }
 

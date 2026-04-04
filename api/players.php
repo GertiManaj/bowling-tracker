@@ -6,9 +6,9 @@
 //  PUT    → modifica un giocatore esistente
 //  DELETE → elimina un giocatore
 // ============================================
-require_once 'db.php';
+require_once __DIR__ . '/config.php';
 
-$pdo    = getDB();
+$pdo    = getPDO();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET ──────────────────────────────────────

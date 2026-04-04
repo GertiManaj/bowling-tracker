@@ -5,8 +5,8 @@
 //  POST   → crea nuovo ticket (chiunque)
 //  PUT    → aggiorna stato/risposta (admin)
 // ============================================
-require_once 'db.php';
-$pdo    = getDB();
+require_once __DIR__ . '/config.php';
+$pdo    = getPDO();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET ──────────────────────────────────────

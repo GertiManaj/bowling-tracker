@@ -4,7 +4,7 @@
 //  GET → esporta tutto il database in JSON
 //  Richiede token JWT valido (solo admin)
 // ============================================
-require_once 'db.php';
+require_once __DIR__ . '/config.php';
 
 // ── VERIFICA TOKEN ────────────────────────────
 $headers = getallheaders();
@@ -45,7 +45,7 @@ if (!verifyToken($token)) {
 }
 
 // ── EXPORT ───────────────────────────────────
-$pdo = getDB();
+$pdo = getPDO();
 
 // Sessioni
 $sessions = $pdo->query('

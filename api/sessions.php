@@ -6,9 +6,9 @@
 //  PUT    → modifica una sessione esistente
 //  DELETE → elimina una sessione
 // ============================================
-require_once 'db.php';
+require_once __DIR__ . '/config.php';
 
-$pdo    = getDB();
+$pdo    = getPDO();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET ──────────────────────────────────────
