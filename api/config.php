@@ -1,6 +1,7 @@
 <?php
 // ============================================
 //  api/config.php — Database Configuration
+//  Compatibile con Railway MySQL Reference Variables
 // ============================================
 
 function getPDO() {
@@ -10,12 +11,13 @@ function getPDO() {
         return $pdo;
     }
     
-    // Carica configurazione da environment variables
-    $host = getenv('DB_HOST') ?: 'localhost';
-    $port = getenv('DB_PORT') ?: '3306';
-    $dbname = getenv('DB_NAME') ?: 'bowling';
-    $user = getenv('DB_USER') ?: 'root';
-    $pass = getenv('DB_PASS') ?: '';
+    // Railway inietta automaticamente MYSQL* variables quando connetti il database
+    // Usa quelle se disponibili, altrimenti fallback su DB_*
+    $host = getenv('MYSQLHOST') ?: getenv('DB_HOST') ?: 'localhost';
+    $port = getenv('MYSQLPORT') ?: getenv('DB_PORT') ?: '3306';
+    $dbname = getenv('MYSQLDATABASE') ?: getenv('DB_NAME') ?: 'railway';
+    $user = getenv('MYSQLUSER') ?: getenv('DB_USER') ?: 'root';
+    $pass = getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD') ?: '';
     
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
     
@@ -28,7 +30,14 @@ function getPDO() {
         return $pdo;
     } catch (PDOException $e) {
         error_log("Database connection error: " . $e->getMessage());
+        error_log("Host: $host, Port: $port, DB: $dbname, User: $user");
         http_response_code(500);
-        die(json_encode(['error' => 'Database connection failed']));
+        die(json_encode([
+            'error' => 'Database connection failed',
+            'details' => $e->getMessage(),
+            'host' => $host,
+            'port' => $port,
+            'db' => $dbname
+        ]));
     }
 }
