@@ -12,7 +12,8 @@
   <title>🎳 Strike Zone — Statistiche</title>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
-  <link rel="stylesheet" href="../assets/css/statistiche.css?v=3"/>
+  <link rel="stylesheet" href="../assets/css/statistiche.css"/>
+  <link rel="stylesheet" href="../assets/css/auth.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="../assets/js/shared.js"></script>
 </head>
@@ -25,24 +26,24 @@
 <div class="hero-bar">
   <div class="hero-bar-inner">
     <div class="hero-stat">
-      <div class="hero-stat-label">Sessioni nel periodo</div>
-      <div class="hero-stat-value neon" id="stat-sessioni">—</div>
-      <div class="hero-stat-sub">totale</div>
+      <div class="hero-stat-label">Partite totali</div>
+      <div class="hero-stat-value neon" id="stat-partite">—</div>
+      <div class="hero-stat-sub">da sempre</div>
     </div>
     <div class="hero-stat">
-      <div class="hero-stat-label">Record assoluto</div>
-      <div class="hero-stat-value pink" id="stat-record">—</div>
-      <div class="hero-stat-sub" id="stat-record-sub">—</div>
-    </div>
-    <div class="hero-stat">
-      <div class="hero-stat-label">Media del gruppo</div>
-      <div class="hero-stat-value cyan" id="stat-media">—</div>
+      <div class="hero-stat-label">Media gruppo</div>
+      <div class="hero-stat-value pink" id="stat-media-gruppo">—</div>
       <div class="hero-stat-sub">tutti i punteggi</div>
     </div>
     <div class="hero-stat">
-      <div class="hero-stat-label">Ultima sessione</div>
-      <div class="hero-stat-value orange" id="stat-ultima">—</div>
-      <div class="hero-stat-sub" id="stat-ultima-sub">—</div>
+      <div class="hero-stat-label">Record assoluto</div>
+      <div class="hero-stat-value cyan" id="stat-record">—</div>
+      <div class="hero-stat-sub" id="stat-record-sub">caricamento...</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Punteggio più basso</div>
+      <div class="hero-stat-value orange" id="stat-minimo">—</div>
+      <div class="hero-stat-sub" id="stat-minimo-sub">caricamento...</div>
     </div>
   </div>
 </div>
@@ -50,202 +51,171 @@
 <!-- ══ MAIN ══ -->
 <main class="main-stats">
 
-  <!-- ── FILTRO PERIODO ── -->
-  <div class="period-bar">
-    <span class="period-label">Periodo:</span>
-    <div class="period-btns">
-      <button class="period-btn" onclick="setPeriod('month')">Ultimo mese</button>
-      <button class="period-btn" onclick="setPeriod('3months')">3 mesi</button>
-      <button class="period-btn" onclick="setPeriod('year')">Anno</button>
-      <button class="period-btn active" onclick="setPeriod('all')">Tutto</button>
-    </div>
-    <div class="period-custom">
-      <input type="date" class="form-input period-input" id="periodFrom" onchange="applyCustomPeriod()"/>
-      <span style="color:var(--text-muted);font-size:0.8rem">→</span>
-      <input type="date" class="form-input period-input" id="periodTo" onchange="applyCustomPeriod()"/>
-    </div>
+  <!-- Filtri periodo -->
+  <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+    <button class="period-btn active" onclick="setPeriod('all',this)">Tutti i tempi</button>
+    <button class="period-btn" onclick="setPeriod('year',this)">Anno corrente</button>
+    <button class="period-btn" onclick="setPeriod('month',this)">Ultimo mese</button>
+    <button class="period-btn" onclick="setPeriod('week',this)">Ultima settimana</button>
   </div>
 
-  <!-- ── CLASSIFICA GENERALE ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
-      Classifica Generale
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
-      <button id="btnSaveClassificaStats" onclick="saveClassificaStatistiche()" class="btn-screenshot">📸 Salva classifica</button>
-    </div>
-    <div class="rank-controls">
-      <span class="chart-hint">Ordina per:</span>
-      <div class="metric-btns">
-        <button class="metric-btn rank-metric active" data-metric="media"           onclick="setRankMetric(this)">Media</button>
-        <button class="metric-btn rank-metric"        data-metric="record"          onclick="setRankMetric(this)">Record</button>
-        <button class="metric-btn rank-metric"        data-metric="win_pct"         onclick="setRankMetric(this)">% Vitt</button>
-        <button class="metric-btn rank-metric"        data-metric="sfide"           onclick="setRankMetric(this)">Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_sfide"   onclick="setRankMetric(this)">Part.</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_singolo" onclick="setRankMetric(this)">Solo</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_sfide"    onclick="setRankMetric(this)">€ Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_singolo"  onclick="setRankMetric(this)">€ Solo</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_totale"   onclick="setRankMetric(this)">€ Tot</button>
-        <button class="metric-btn rank-metric"        data-metric="vitt"            onclick="setRankMetric(this)">V/N/P</button>
-        <button class="metric-btn rank-metric"        data-metric="media_recente"   onclick="setRankMetric(this)">Forma</button>
-      </div>
-    </div>
-    <div class="podium-wrap" id="podiumWrap"></div>
-    <div class="rank-table-wrap">
-      <div class="rank-table-header">
-        <div>#</div>
-        <div>Giocatore</div>
-        <div class="rank-col" id="thMedia"         style="cursor:pointer" onclick="setRankMetricById('media')">Media ↕</div>
-        <div class="rank-col" id="thRecord"        style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕</div>
-        <div class="rank-col" id="thWin"           style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
-        <div class="rank-col" id="thSfide"         style="cursor:pointer" onclick="setRankMetricById('sfide')">Sfide ↕</div>
-        <div class="rank-col" id="thPartiteSfide"  style="cursor:pointer" onclick="setRankMetricById('partite_sfide')">Part. ↕</div>
-        <div class="rank-col" id="thSingolo"       style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">Solo ↕</div>
-        <div class="rank-col" id="thPagatoSfide"   style="cursor:pointer" onclick="setRankMetricById('pagato_sfide')">€ Sfide ↕</div>
-        <div class="rank-col" id="thPagatoSingolo" style="cursor:pointer" onclick="setRankMetricById('pagato_singolo')">€ Solo ↕</div>
-        <div class="rank-col" id="thPagatoTotale"  style="cursor:pointer" onclick="setRankMetricById('pagato_totale')">€ Tot ↕</div>
-        <div class="rank-col" id="thVitt"          style="cursor:pointer" onclick="setRankMetricById('vitt')">V/N/P ↕</div>
-        <div class="rank-col" id="thForma"         style="cursor:pointer" onclick="setRankMetricById('media_recente')">Forma ↕</div>
-      </div>
-      <div id="rankTableBody"></div>
-      <!-- Legenda pallini -->
-      <div style="display:flex;align-items:center;gap:1rem;padding:0.6rem 1rem;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);flex-wrap:wrap">
-        <span style="letter-spacing:0.1em">FORMA (ULTIMI 5):</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span> Vittoria</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span> Sconfitta</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span> Pareggio</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span> Nessun dato</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── ANDAMENTO NEL TEMPO ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent"></span>
-      Andamento nel Tempo
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Seleziona i giocatori:</span>
-        <div id="trendPlayerBtns" class="player-filter-btns"></div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="trendChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── ANDAMENTO PAGAMENTI ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-      Andamento Pagamenti Cumulativi
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Seleziona i giocatori:</span>
-        <div id="paymentPlayerBtns" class="player-filter-btns"></div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="paymentChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CONFRONTO GIOCATORI ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
-      Confronto Giocatori
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <div class="metric-btns">
-          <button class="metric-btn active" onclick="setMetric('media',this)">Media</button>
-          <button class="metric-btn" onclick="setMetric('record',this)">Record</button>
-          <button class="metric-btn" onclick="setMetric('partite',this)">Partite</button>
-        </div>
-      </div>
-      <div class="chart-wrap" style="height:280px">
-        <canvas id="compareChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── DISTRIBUZIONE + VITTORIE ── -->
+  <!-- DUE COLONNE -->
   <div class="stats-two-col">
 
-    <div class="stats-section">
+    <div>
       <div class="section-title">
-        <span class="accent" style="background:var(--neon4);box-shadow:0 0 8px var(--neon4)"></span>
+        <span class="accent"></span>
+        Andamento Punteggi
+      </div>
+      <div class="card" style="padding:1.2rem">
+        <div style="position:relative;height:280px">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">
+        <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
         Distribuzione Punteggi
       </div>
-      <div class="chart-card">
-        <div class="chart-controls">
-          <select class="form-input" id="distPlayer" onchange="renderDistribution()" style="width:auto;font-size:0.85rem">
-            <option value="all">Tutti i giocatori</option>
-          </select>
+      <div class="card" style="padding:1.2rem">
+        <div style="position:relative;height:280px">
+          <canvas id="histChart"></canvas>
         </div>
-        <div class="chart-wrap" style="height:240px">
-          <canvas id="distChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="stats-section">
-      <div class="section-title">
-        <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
-        Vittorie Squadra vs Top Score
-      </div>
-      <div class="chart-card">
-        <div class="wins-list" id="winsList"></div>
       </div>
     </div>
 
   </div>
 
-  <!-- ── TESTA A TESTA ── -->
-  <div class="stats-section">
+  <!-- Record & Curiosità -->
+  <div>
+    <div class="section-title">
+      <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
+      Record & Curiosità
+    </div>
+    <div id="recordsGrid" class="records-grid"></div>
+  </div>
+
+  <!-- Top Performer -->
+  <div>
+    <div class="section-title">
+      <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
+      Top Performer
+    </div>
+    <div class="card" id="topPerformerCard">
+      <div style="padding:2rem;text-align:center;color:var(--text-muted)">caricamento...</div>
+    </div>
+  </div>
+
+  <!-- Pagamenti -->
+  <div>
     <div class="section-title">
       <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-      Testa a Testa
+      Andamento Pagamenti
     </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Seleziona due giocatori:</span>
-        <select class="form-input" id="h2hP1" onchange="renderH2H()" style="width:auto">
-          <option value="">— Giocatore 1 —</option>
-        </select>
-        <select class="form-input" id="h2hP2" onchange="renderH2H()" style="width:auto">
-          <option value="">— Giocatore 2 —</option>
-        </select>
+    <div class="card" style="padding:1.2rem">
+      <div style="position:relative;height:280px">
+        <canvas id="paymentChart"></canvas>
       </div>
-      <div id="h2hResult" class="h2h-result"></div>
-    </div>
-  </div>
-
-  <!-- ── CHIMICA DI SQUADRA ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>
-      Chimica di Squadra
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Filtra per giocatore:</span>
-        <select class="form-input" id="chemPlayer" onchange="renderChemistry()" style="width:auto">
-          <option value="">Tutti</option>
-        </select>
-      </div>
-      <div class="chemistry-table" id="chemistryTable"></div>
     </div>
   </div>
 
 </main>
 
 <footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
+
+<!-- ══ LOGIN MODAL WITH OTP ══ -->
+<div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
+  <div class="login-modal">
+    
+    <!-- STEP 1: Email + Password -->
+    <div id="loginStep1" class="login-step" style="display: block;">
+      <div class="login-modal-header">
+        <div class="login-modal-title">🎳 ACCEDI</div>
+        <div class="login-modal-subtitle">Bowling Tracker</div>
+      </div>
+
+      <div id="loginError" class="login-error"></div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="loginEmail">Email</label>
+        <input 
+          type="email" 
+          id="loginEmail" 
+          class="login-form-input" 
+          placeholder="tua-email@example.com"
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="loginPassword">Password</label>
+        <input 
+          type="password" 
+          id="loginPassword" 
+          class="login-form-input" 
+          placeholder="••••••••••••"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <button id="btnLoginSubmit" class="login-btn" onclick="submitLogin()">
+        Continua
+      </button>
+
+      <button class="login-btn-secondary" onclick="closeLoginModal()">
+        Annulla
+      </button>
+    </div>
+
+    <!-- STEP 2: OTP Code -->
+    <div id="loginStep2" class="login-step">
+      <div class="login-modal-header">
+        <div class="login-modal-title">📧 CODICE OTP</div>
+        <div class="login-modal-subtitle">Verifica Sicurezza</div>
+      </div>
+
+      <div class="otp-info">
+        <div class="otp-info-text">
+          Abbiamo inviato un codice di 6 cifre a:
+        </div>
+        <div class="otp-info-email" id="otpEmailDisplay"></div>
+      </div>
+
+      <div id="otpError" class="login-error"></div>
+
+      <div class="otp-inputs-container">
+        <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+
+      <div class="otp-timer-section">
+        <div class="otp-timer-label">Scade tra</div>
+        <div id="otpTimer" class="otp-timer">--:--</div>
+      </div>
+
+      <button id="btnOTPSubmit" class="login-btn" onclick="submitOTP()">
+        Verifica
+      </button>
+
+      <div class="otp-resend-section">
+        <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
+          Rinvia codice
+        </button>
+      </div>
+
+      <button class="otp-back-btn" onclick="goBackToStep1()">
+        ← Torna indietro
+      </button>
+    </div>
+
+  </div>
+</div>
 
 <!-- ══ MODAL: NUOVA PARTITA ══ -->
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
@@ -315,7 +285,6 @@
         </div>
       </div>
       </div><!-- /teamsSection -->
-      <!-- ══ SEZIONE FFA ══ -->
       <div id="ffaSection" style="display:none">
       <div class="team-section">
         <div class="team-section-header">
@@ -352,30 +321,6 @@
   </div>
 </div>
 
-<!-- ══ MODAL LOGIN ══ -->
-<div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-header">
-      <div class="modal-title" style="color:var(--neon)">🔐 Accedi</div>
-      <button class="modal-close" onclick="closeLoginModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:0.85rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.05em;margin-bottom:0.5rem">Inserisci la password per modificare i dati</p>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="off" style="-webkit-text-security:disc"/>
-      </div>
-      <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeLoginModal()">Annulla</button>
-      <button class="btn-primary" id="btnLoginSubmit" onclick="submitLogin()">Accedi</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
 <!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
 <div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
   <div class="modal">
@@ -405,10 +350,11 @@
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script src="../assets/js/auth.js"></script>
 <script src="../assets/js/modal-giocatore.js"></script>
 <script src="../assets/js/modal-nuova-partita.js"></script>
 <script src="../assets/js/statistiche.js"></script>
-<script src="../assets/js/screenshot-enhanced.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
   <link rel="stylesheet" href="../assets/css/giocatori.css"/>
+  <link rel="stylesheet" href="../assets/css/auth.css"/>
   <script src="../assets/js/shared.js"></script>
 </head>
 <body>
@@ -228,25 +229,95 @@
   </div>
 </div>
 
-<!-- ══ MODAL LOGIN ══ -->
-<div class="modal-overlay" id="loginModalOverlay" onclick="handleLoginOverlayClick(event)">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-header">
-      <div class="modal-title" style="color:var(--neon)">🔐 Accedi</div>
-      <button class="modal-close" onclick="closeLoginModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:0.85rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.05em;margin-bottom:0.5rem">Inserisci la password per modificare i dati</p>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="text" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="off" style="-webkit-text-security:disc"/>
+<!-- ══ LOGIN MODAL WITH OTP ══ -->
+<div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
+  <div class="login-modal">
+    
+    <!-- STEP 1: Email + Password -->
+    <div id="loginStep1" class="login-step" style="display: block;">
+      <div class="login-modal-header">
+        <div class="login-modal-title">🎳 ACCEDI</div>
+        <div class="login-modal-subtitle">Bowling Tracker</div>
       </div>
-      <div id="loginError" style="display:none;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.75rem;margin-top:0.3rem"></div>
+
+      <div id="loginError" class="login-error"></div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="loginEmail">Email</label>
+        <input 
+          type="email" 
+          id="loginEmail" 
+          class="login-form-input" 
+          placeholder="tua-email@example.com"
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="loginPassword">Password</label>
+        <input 
+          type="password" 
+          id="loginPassword" 
+          class="login-form-input" 
+          placeholder="••••••••••••"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <button id="btnLoginSubmit" class="login-btn" onclick="submitLogin()">
+        Continua
+      </button>
+
+      <button class="login-btn-secondary" onclick="closeLoginModal()">
+        Annulla
+      </button>
     </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeLoginModal()">Annulla</button>
-      <button class="btn-primary" id="btnLoginSubmit" onclick="submitLogin()">Accedi</button>
+
+    <!-- STEP 2: OTP Code -->
+    <div id="loginStep2" class="login-step">
+      <div class="login-modal-header">
+        <div class="login-modal-title">📧 CODICE OTP</div>
+        <div class="login-modal-subtitle">Verifica Sicurezza</div>
+      </div>
+
+      <div class="otp-info">
+        <div class="otp-info-text">
+          Abbiamo inviato un codice di 6 cifre a:
+        </div>
+        <div class="otp-info-email" id="otpEmailDisplay"></div>
+      </div>
+
+      <div id="otpError" class="login-error"></div>
+
+      <div class="otp-inputs-container">
+        <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+
+      <div class="otp-timer-section">
+        <div class="otp-timer-label">Scade tra</div>
+        <div id="otpTimer" class="otp-timer">--:--</div>
+      </div>
+
+      <button id="btnOTPSubmit" class="login-btn" onclick="submitOTP()">
+        Verifica
+      </button>
+
+      <div class="otp-resend-section">
+        <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
+          Rinvia codice
+        </button>
+      </div>
+
+      <button class="otp-back-btn" onclick="goBackToStep1()">
+        ← Torna indietro
+      </button>
     </div>
+
   </div>
 </div>
 

@@ -5,6 +5,8 @@
 // ============================================
 require_once 'db.php';
 $pdo = getDB();
+require_once __DIR__ . '/config.php';
+$pdo = getPDO();
 
 $from = $_GET['from'] ?? null;
 $to   = $_GET['to']   ?? null;

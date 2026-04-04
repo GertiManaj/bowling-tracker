@@ -157,7 +157,9 @@ function startOTPTimer(expiresAt) {
   const timerEl = document.getElementById('otpTimer');
   const resendBtn = document.getElementById('btnResendOTP');
   
-  const expiryTime = new Date(expiresAt).getTime();
+  // Usa 5 minuti dal momento attuale invece di expiresAt
+  // perché il server potrebbe usare fuso orario diverso
+  const expiryTime = Date.now() + (5 * 60 * 1000);
   
   const interval = setInterval(() => {
     const now = Date.now();

@@ -94,18 +94,12 @@
     .admin-form           { display: none; flex-direction: column; gap: 0.8rem; margin-top: 0.5rem; }
     .admin-form.visible   { display: flex; }
 
-    .password-wrap          { position: relative; }
-    .password-wrap input    { padding-right: 3rem; }
-    .btn-show-pass {
-      position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%);
-      background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 0;
-    }
-
     .error-msg {
       display: none;
       color: var(--neon2);
       font-family: 'Share Tech Mono', monospace;
       font-size: 0.72rem; letter-spacing: 0.05em; text-align: left;
+      margin-top: -0.4rem;
     }
 
     .btn-back {
@@ -121,6 +115,100 @@
     .welcome-stat  { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.4rem; }
     .welcome-stat-val { font-family: 'Black Han Sans', sans-serif; font-size: 1.2rem; color: var(--neon); }
     .welcome-stat-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.2rem; }
+
+    /* OTP Inputs */
+    .otp-inputs-container {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin: 1.5rem 0;
+    }
+    
+    .otp-input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      color: var(--neon);
+      transition: all 0.2s;
+    }
+    
+    .otp-input:focus {
+      outline: none;
+      border-color: var(--neon);
+      box-shadow: 0 0 12px rgba(232,255,0,0.3);
+    }
+    
+    .otp-info {
+      margin: 1rem 0;
+      padding: 0.8rem;
+      background: rgba(232,255,0,0.05);
+      border: 1px solid rgba(232,255,0,0.15);
+      border-radius: 6px;
+    }
+    
+    .otp-info-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.4rem;
+    }
+    
+    .otp-info-email {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.95rem;
+      color: var(--neon);
+      font-weight: 600;
+    }
+    
+    .otp-timer-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .otp-timer-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .otp-timer {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.1rem;
+      color: var(--neon);
+    }
+    
+    .otp-resend-section {
+      margin-top: 1rem;
+    }
+    
+    .otp-resend-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      text-decoration: underline;
+      display: none;
+    }
+    
+    .otp-resend-btn:hover {
+      color: var(--neon);
+    }
   </style>
 </head>
 <body>
@@ -152,20 +240,69 @@
 
   <div class="welcome-label">Come vuoi accedere?</div>
 
+  <!-- SCELTA INIZIALE -->
   <div class="choice-buttons" id="choiceButtons">
     <button class="btn-admin" onclick="showAdminForm()">🔐 Amministratore</button>
     <button class="btn-guest" onclick="enterAsGuest()">👤 Entra come ospite</button>
   </div>
 
-  <div class="admin-form" id="adminForm">
-    <div class="password-wrap">
-      <input type="password" class="form-input" id="welcomePassword" placeholder="Password amministratore"
-        autocomplete="new-password" oninput="document.getElementById('welcomeError').style.display='none'"/>
-      <button class="btn-show-pass" onclick="togglePassword()" id="btnShowPass">👁</button>
+  <!-- STEP 1: Email + Password -->
+  <div class="admin-form" id="adminFormStep1">
+    <div class="form-group">
+      <input 
+        type="email" 
+        class="form-input" 
+        id="adminEmail" 
+        placeholder="Email amministratore"
+        autocomplete="email"
+      />
     </div>
-    <div class="error-msg" id="welcomeError">Password errata — riprova</div>
-    <button class="btn-admin" id="btnWelcomeLogin" onclick="submitWelcomeLogin()">Accedi</button>
+    <div class="form-group">
+      <input 
+        type="password" 
+        class="form-input" 
+        id="adminPassword" 
+        placeholder="Password"
+        autocomplete="current-password"
+      />
+    </div>
+    <div class="error-msg" id="step1Error"></div>
+    <button class="btn-admin" id="btnStep1" onclick="submitAdminStep1()">Continua</button>
     <button class="btn-back" onclick="showChoiceButtons()">← Torna indietro</button>
+  </div>
+
+  <!-- STEP 2: OTP -->
+  <div class="admin-form" id="adminFormStep2">
+    <div class="otp-info">
+      <div class="otp-info-text">Codice inviato a:</div>
+      <div class="otp-info-email" id="otpEmailDisplay"></div>
+    </div>
+    
+    <div class="otp-inputs-container">
+      <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+    </div>
+    
+    <div class="otp-timer-section">
+      <div class="otp-timer-label">Scade tra</div>
+      <div id="otpTimer" class="otp-timer">--:--</div>
+    </div>
+    
+    <div class="error-msg" id="step2Error"></div>
+    
+    <button class="btn-admin" id="btnStep2" onclick="submitAdminStep2()">Verifica</button>
+    
+    <div class="otp-resend-section">
+      <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
+        Rinvia codice
+      </button>
+    </div>
+    
+    <button class="btn-back" onclick="goBackToStep1()">← Torna indietro</button>
   </div>
 
 </div>
@@ -176,6 +313,12 @@
 const AUTH_API  = '/api/auth.php';
 const TOKEN_KEY = 'sz_auth_token';
 
+let adminEmail = null; // Salva email per step 2
+
+// ══════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════
+
 async function loadWelcomeStats() {
   try {
     const data = await fetch('/api/stats.php').then(r => r.json());
@@ -185,24 +328,38 @@ async function loadWelcomeStats() {
   } catch(e) {}
 }
 
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+
 function showAdminForm() {
   document.getElementById('choiceButtons').style.display = 'none';
-  document.getElementById('adminForm').classList.add('visible');
-  setTimeout(() => document.getElementById('welcomePassword').focus(), 100);
+  document.getElementById('adminFormStep1').classList.add('visible');
+  setTimeout(() => document.getElementById('adminEmail').focus(), 100);
 }
 
 function showChoiceButtons() {
-  document.getElementById('adminForm').classList.remove('visible');
+  document.getElementById('adminFormStep1').classList.remove('visible');
+  document.getElementById('adminFormStep2').classList.remove('visible');
   document.getElementById('choiceButtons').style.display = 'flex';
-  document.getElementById('welcomePassword').value = '';
-  document.getElementById('welcomeError').style.display = 'none';
+  
+  // Reset
+  document.getElementById('adminEmail').value = '';
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('step1Error').style.display = 'none';
+  document.getElementById('step2Error').style.display = 'none';
+  adminEmail = null;
 }
 
-function togglePassword() {
-  const inp = document.getElementById('welcomePassword');
-  const btn = document.getElementById('btnShowPass');
-  if (inp.type === 'password') { inp.type = 'text';     btn.textContent = '🙈'; }
-  else                         { inp.type = 'password'; btn.textContent = '👁'; }
+function goBackToStep1() {
+  document.getElementById('adminFormStep2').classList.remove('visible');
+  document.getElementById('adminFormStep1').classList.add('visible');
+  
+  // Reset OTP
+  for (let i = 1; i <= 6; i++) {
+    document.getElementById(`otp${i}`).value = '';
+  }
+  document.getElementById('step2Error').style.display = 'none';
 }
 
 function enterAsGuest() {
@@ -210,55 +367,283 @@ function enterAsGuest() {
   window.location.href = 'index.html';
 }
 
-async function submitWelcomeLogin() {
-  const btn      = document.getElementById('btnWelcomeLogin');
-  const password = document.getElementById('welcomePassword').value;
-  const errEl    = document.getElementById('welcomeError');
+// ══════════════════════════════════════════
+// STEP 1: Email + Password → Richiedi OTP
+// ══════════════════════════════════════════
 
-  if (!password) { errEl.textContent = 'Inserisci la password'; errEl.style.display = 'block'; return; }
+async function submitAdminStep1() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  const btn = document.getElementById('btnStep1');
+  const errEl = document.getElementById('step1Error');
 
-  btn.disabled = true; btn.textContent = 'Accesso in corso...';
+  if (!email || !password) {
+    errEl.textContent = 'Inserisci email e password';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Verifica...';
   errEl.style.display = 'none';
 
   try {
-    const res  = await fetch(`${AUTH_API}?action=login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
+    const res = await fetch(`${AUTH_API}?action=request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
+
     const data = await res.json();
+
+    if (data.success) {
+      adminEmail = email;
+      
+      // Mostra step 2
+      document.getElementById('adminFormStep1').classList.remove('visible');
+      document.getElementById('adminFormStep2').classList.add('visible');
+      document.getElementById('otpEmailDisplay').textContent = email;
+      
+      startOTPTimer(data.expires_at);
+      setTimeout(() => document.getElementById('otp1').focus(), 100);
+      
+    } else {
+      errEl.textContent = data.error || 'Credenziali non valide';
+      errEl.style.display = 'block';
+    }
+
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione';
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Continua';
+}
+
+// ══════════════════════════════════════════
+// STEP 2: Verifica OTP → Login
+// ══════════════════════════════════════════
+
+async function submitAdminStep2() {
+  const code = 
+    document.getElementById('otp1').value +
+    document.getElementById('otp2').value +
+    document.getElementById('otp3').value +
+    document.getElementById('otp4').value +
+    document.getElementById('otp5').value +
+    document.getElementById('otp6').value;
+  
+  const btn = document.getElementById('btnStep2');
+  const errEl = document.getElementById('step2Error');
+  
+  if (code.length !== 6) {
+    errEl.textContent = 'Inserisci il codice completo';
+    errEl.style.display = 'block';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Verifica...';
+  errEl.style.display = 'none';
+  
+  try {
+    const res = await fetch(`${AUTH_API}?action=verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: adminEmail, code })
+    });
+    
+    const data = await res.json();
+    
     if (data.success && data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
       window.location.href = 'index.html';
+      
     } else {
-      errEl.textContent = 'Password errata — riprova'; errEl.style.display = 'block';
-      document.getElementById('welcomePassword').value = '';
-      document.getElementById('welcomePassword').focus();
+      errEl.textContent = data.error || 'Codice non valido';
+      errEl.style.display = 'block';
+      
+      // Pulisci input
+      for (let i = 1; i <= 6; i++) {
+        document.getElementById(`otp${i}`).value = '';
+      }
+      document.getElementById('otp1').focus();
     }
+    
   } catch(e) {
-    errEl.textContent = 'Errore di connessione'; errEl.style.display = 'block';
+    errEl.textContent = 'Errore di connessione';
+    errEl.style.display = 'block';
   }
-  btn.disabled = false; btn.textContent = 'Accedi';
+  
+  btn.disabled = false;
+  btn.textContent = 'Verifica';
 }
 
+// ══════════════════════════════════════════
+// OTP TIMER
+// ══════════════════════════════════════════
+
+function startOTPTimer(expiresAt) {
+  const timerEl = document.getElementById('otpTimer');
+  const resendBtn = document.getElementById('btnResendOTP');
+  
+  // Usa 5 minuti dal momento attuale
+  const expiryTime = Date.now() + (5 * 60 * 1000);
+  
+  const interval = setInterval(() => {
+    const now = Date.now();
+    const remaining = Math.max(0, expiryTime - now);
+    
+    if (remaining === 0) {
+      clearInterval(interval);
+      timerEl.textContent = 'Scaduto';
+      timerEl.style.color = '#ff3cac';
+      resendBtn.style.display = 'inline-block';
+      return;
+    }
+    
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+  }, 1000);
+}
+
+// ══════════════════════════════════════════
+// RESEND OTP
+// ══════════════════════════════════════════
+
+async function resendOTP() {
+  const password = document.getElementById('adminPassword').value;
+  const btn = document.getElementById('btnResendOTP');
+  
+  btn.disabled = true;
+  btn.textContent = 'Invio...';
+  
+  try {
+    const res = await fetch(`${AUTH_API}?action=request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: adminEmail, password })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Nuovo codice inviato!', 'success');
+      btn.style.display = 'none';
+      startOTPTimer(data.expires_at);
+      
+      // Pulisci input
+      for (let i = 1; i <= 6; i++) {
+        document.getElementById(`otp${i}`).value = '';
+      }
+      document.getElementById('otp1').focus();
+    }
+    
+  } catch(e) {
+    showToast('Errore invio codice', 'error');
+  }
+  
+  btn.disabled = false;
+  btn.textContent = 'Rinvia codice';
+}
+
+// ══════════════════════════════════════════
+// OTP INPUT AUTO-FOCUS
+// ══════════════════════════════════════════
+
+function setupOTPInputs() {
+  for (let i = 1; i <= 6; i++) {
+    const input = document.getElementById(`otp${i}`);
+    if (!input) continue;
+    
+    input.addEventListener('input', (e) => {
+      const value = e.target.value;
+      
+      // Solo numeri
+      e.target.value = value.replace(/[^0-9]/g, '').slice(0, 1);
+      
+      // Auto-focus su prossimo input
+      if (e.target.value && i < 6) {
+        document.getElementById(`otp${i + 1}`).focus();
+      }
+    });
+    
+    input.addEventListener('keydown', (e) => {
+      // Backspace: torna indietro
+      if (e.key === 'Backspace' && !e.target.value && i > 1) {
+        document.getElementById(`otp${i - 1}`).focus();
+      }
+      
+      // Enter: submit
+      if (e.key === 'Enter') {
+        submitAdminStep2();
+      }
+    });
+    
+    // Paste: distribuisci codice
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text');
+      const digits = paste.replace(/[^0-9]/g, '').slice(0, 6);
+      
+      for (let j = 0; j < digits.length && j < 6; j++) {
+        document.getElementById(`otp${j + 1}`).value = digits[j];
+      }
+      
+      if (digits.length === 6) {
+        document.getElementById('otp6').focus();
+      }
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('adminForm').classList.contains('visible')) {
-    submitWelcomeLogin();
+  if (e.key === 'Enter' && document.getElementById('adminFormStep1').classList.contains('visible')) {
+    submitAdminStep1();
   }
 });
 
-// Init
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+
+function showToast(msg, type = 'info') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+
 loadWelcomeStats();
+setupOTPInputs();
 
 // Se c'è già un token valido, mostra il bottone "Continua come admin"
 const existingToken = localStorage.getItem(TOKEN_KEY);
 if (existingToken) {
-  const choiceBtns   = document.getElementById('choiceButtons');
-  const continueBtn  = document.createElement('button');
-  continueBtn.className   = 'btn-admin';
-  continueBtn.style.cssText = 'background:none;border:1px solid rgba(232,255,0,0.4);color:var(--neon);box-shadow:none';
-  continueBtn.innerHTML   = '⚡ Continua come amministratore';
-  continueBtn.onclick     = () => { window.location.href = 'index.html'; };
-  choiceBtns.insertBefore(continueBtn, choiceBtns.firstChild);
+  try {
+    const payload = JSON.parse(atob(existingToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if (payload.exp > Math.floor(Date.now() / 1000)) {
+      const choiceBtns = document.getElementById('choiceButtons');
+      const continueBtn = document.createElement('button');
+      continueBtn.className = 'btn-admin';
+      continueBtn.style.cssText = 'background:none;border:1px solid rgba(232,255,0,0.4);color:var(--neon);box-shadow:none';
+      continueBtn.innerHTML = '⚡ Continua come amministratore';
+      continueBtn.onclick = () => { window.location.href = 'index.html'; };
+      choiceBtns.insertBefore(continueBtn, choiceBtns.firstChild);
+    }
+  } catch(e) {}
 }
 </script>
 </body>
