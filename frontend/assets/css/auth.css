@@ -1,0 +1,286 @@
+/* ============================================
+   LOGIN MODAL WITH OTP - CSS
+   ============================================ */
+
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.login-modal-overlay.open {
+  display: flex;
+}
+
+.login-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-modal-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-modal-title {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 1.8rem;
+  color: var(--neon);
+  margin-bottom: 0.5rem;
+}
+
+.login-modal-subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.login-step {
+  display: none;
+}
+
+.login-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.login-form-label {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--neon);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.login-form-input {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.login-form-input:focus {
+  outline: none;
+  border-color: var(--neon);
+  box-shadow: 0 0 0 3px rgba(232, 255, 0, 0.1);
+}
+
+.login-error {
+  display: none;
+  background: rgba(255, 60, 172, 0.1);
+  border: 1px solid var(--accent2);
+  color: var(--accent2);
+  padding: 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--neon);
+  border: none;
+  border-radius: 6px;
+  color: var(--bg);
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.05em;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: #d4e600;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 255, 0, 0.3);
+}
+
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  margin-top: 0.5rem;
+}
+
+.login-btn-secondary:hover:not(:disabled) {
+  background: var(--surface2);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ============================================
+   OTP INPUT SECTION
+   ============================================ */
+
+.otp-info {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: rgba(232, 255, 0, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(232, 255, 0, 0.1);
+}
+
+.otp-info-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.otp-info-email {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--neon);
+  font-size: 0.85rem;
+}
+
+.otp-inputs-container {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.otp-input {
+  width: 3rem;
+  height: 3.5rem;
+  text-align: center;
+  font-size: 1.5rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: bold;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  color: var(--neon);
+  transition: all 0.2s;
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: var(--neon);
+  box-shadow: 0 0 0 3px rgba(232, 255, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.otp-timer-section {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.otp-timer-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.otp-timer {
+  font-size: 1.2rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: bold;
+  color: var(--neon);
+}
+
+.otp-resend-section {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.otp-resend-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--accent1);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s;
+}
+
+.otp-resend-btn:hover:not(:disabled) {
+  color: var(--neon);
+}
+
+.otp-back-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: all 0.2s;
+}
+
+.otp-back-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .login-modal {
+    padding: 1.5rem;
+  }
+  
+  .otp-input {
+    width: 2.5rem;
+    height: 3rem;
+    font-size: 1.3rem;
+  }
+  
+  .login-modal-title {
+    font-size: 1.5rem;
+  }
+}
