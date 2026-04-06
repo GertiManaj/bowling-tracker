@@ -3,7 +3,14 @@
 // ══════════════════════════════════════════
 
 function openChangePasswordModal() {
-  document.getElementById('changePasswordOverlay').classList.add('show');
+  console.log('openChangePasswordModal chiamata');
+  const overlay = document.getElementById('changePasswordOverlay');
+  if (!overlay) {
+    console.error('changePasswordOverlay non trovato nel DOM');
+    return;
+  }
+  
+  overlay.classList.add('show');
   
   // Reset form
   document.getElementById('currentPassword').value = '';
@@ -16,7 +23,10 @@ function openChangePasswordModal() {
 }
 
 function closeChangePasswordModal() {
-  document.getElementById('changePasswordOverlay').classList.remove('show');
+  const overlay = document.getElementById('changePasswordOverlay');
+  if (overlay) {
+    overlay.classList.remove('show');
+  }
 }
 
 function handleChangePasswordOverlayClick(event) {
@@ -113,12 +123,12 @@ async function submitChangePassword() {
   btn.textContent = 'Cambia Password';
 }
 
-// Enter per submit
-document.addEventListener('DOMContentLoaded', function() {
-  document.addEventListener('keydown', function(e) {
-    const overlay = document.getElementById('changePasswordOverlay');
-    if (overlay && overlay.classList.contains('show') && e.key === 'Enter') {
-      submitChangePassword();
-    }
-  });
+// Enter per submit nel modal cambio password
+document.addEventListener('keydown', function(e) {
+  const overlay = document.getElementById('changePasswordOverlay');
+  if (overlay && overlay.classList.contains('show') && e.key === 'Enter') {
+    submitChangePassword();
+  }
 });
+
+console.log('✅ change-password.js caricato - openChangePasswordModal disponibile:', typeof openChangePasswordModal);
