@@ -1,8 +1,10 @@
 // ============================================
-//  statistiche.js — Pagina Statistiche (Versione Semplificata)
+//  statistiche.js — Pagina Statistiche
 // ============================================
 
-// Palette colori giocatori
+
+
+// Palette colori giocatori (ciclica)
 const PLAYER_COLORS = [
   '#e8ff00','#00f5ff','#ff6b35','#ff3cac',
   '#ffd700','#a78bfa','#34d399','#fb923c',
@@ -10,40 +12,291 @@ const PLAYER_COLORS = [
 ];
 
 // Stato
-let statsData = null;
-let trendChart = null;
-let histChart = null;
-let paymentChart = null;
+let statsData      = null;
+let trendChart     = null;
+let compareChart   = null;
+let distChart      = null;
+let paymentChart   = null;
+let activeTrend    = new Set();   // player names attivi nel grafico trend
+let currentMetric  = 'media';
+let currentFrom    = null;
+let currentTo      = null;
+let currentRankMetric = 'media';
+
+// ── CLASSIFICA ────────────────────────────────
+
+const RANK_METRICS = {
+  media:          { label: 'Media',        fmt: v => v ?? '—',                                          unit: '' },
+  record:         { label: 'Record',       fmt: v => v ?? '—',                                          unit: '' },
+  win_pct:        { label: '% Vittorie',   fmt: v => v != null ? v + '%' : '—',                        unit: '%' },
+  sfide:          { label: 'N° Sfide',     fmt: v => v ?? '—',                                          unit: '' },
+  partite_sfide:  { label: 'G. Sfide',     fmt: v => v ?? '—',                                          unit: '' },
+  partite_singolo:{ label: 'G. Solo',      fmt: v => v ?? '—',                                          unit: '' },
+  pagato_sfide:   { label: '€ Sfide',      fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
+  pagato_singolo: { label: '€ Solo',       fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
+  pagato_totale:  { label: '€ Totale',     fmt: v => v != null ? '€' + parseFloat(v).toFixed(2) : '—', unit: '€' },
+  vitt:           { label: 'V/N/P',        fmt: v => v ?? '—',                                          unit: '' },
+  media_recente:  { label: 'Forma',        fmt: v => v ?? '—',                                          unit: '' },
+};
+
+const MEDAL_COLORS = ['#ffd700', '#c0c0d0', '#cd7f32'];
+const MEDAL_EMOJIS = ['🥇', '🥈', '🥉'];
+
+function computeRankValue(p, metric) {
+  if (metric === 'win_pct') {
+    const scs  = parseInt(p.serate_con_squadra) || 0;
+    const wins = parseInt(p.vittorie_squadra) || 0;
+    return scs > 0 ? Math.round(wins / scs * 100) : null;
+  }
+  if (metric === 'vitt')           return parseInt(p.vittorie_squadra) || 0;
+  if (metric === 'media_recente')  return p.media_recente ? parseFloat(p.media_recente) : null;
+  if (metric === 'media')          return parseFloat(p.media) || null;
+  if (metric === 'record')         return parseInt(p.record) || null;
+  if (metric === 'sfide')          return parseInt(p.serate_con_squadra) || null;
+  if (metric === 'partite_sfide')  return parseInt(p.partite_sfide) || null;
+  if (metric === 'partite_singolo')return parseInt(p.partite_singolo) ?? 0;
+  if (metric === 'partite')        return parseInt(p.serate_con_squadra) || null;
+  if (metric === 'pagato_sfide')   return p.pagato_sfide   != null ? parseFloat(p.pagato_sfide)   : null;
+  if (metric === 'pagato_singolo') return p.pagato_singolo != null ? parseFloat(p.pagato_singolo) : null;
+  if (metric === 'pagato_totale')  return p.pagato_totale  != null ? parseFloat(p.pagato_totale)  : null;
+  if (metric === 'saldo')          return p.saldo_pagamenti != null ? parseFloat(p.saldo_pagamenti) : null;
+  return null;
+}
+
+function setRankMetric(btn) {
+  document.querySelectorAll('.rank-metric').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentRankMetric = btn.dataset.metric;
+  renderRanking();
+}
+
+function renderRanking() {
+  const lb = (statsData.leaderboard || []).filter(p => parseInt(p.partite) > 0);
+  if (!lb.length) {
+    document.getElementById('podiumWrap').innerHTML =
+      `<div style="color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.8rem;padding:2rem">Nessun dato nel periodo selezionato</div>`;
+    document.getElementById('rankTableBody').innerHTML = '';
+    return;
+  }
+
+  // Ordina per metrica corrente
+  const sorted = [...lb].sort((a, b) => {
+    const va = computeRankValue(a, currentRankMetric) ?? -Infinity;
+    const vb = computeRankValue(b, currentRankMetric) ?? -Infinity;
+    return vb - va;
+  });
+
+  // ── PODIO ──
+  const top3 = sorted.slice(0, 3);
+  // Ordine visivo podio: 2° | 1° | 3°
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const posClass    = ['pos-2', 'pos-1', 'pos-3'];
+  const realPos     = [1, 0, 2]; // indice nell'array sorted
+
+  const metric = RANK_METRICS[currentRankMetric];
+
+  document.getElementById('podiumWrap').innerHTML = podiumOrder.map((p, vi) => {
+    const pos   = realPos[vi];
+    const color = MEDAL_COLORS[pos];
+    const medal = MEDAL_EMOJIS[pos];
+    const val   = computeRankValue(p, currentRankMetric);
+    const ci    = lb.findIndex(x => x.id === p.id);
+    const pcolor = PLAYER_COLORS[ci % PLAYER_COLORS.length];
+
+    return `
+      <div class="podium-slot ${posClass[vi]}" style="--medal-color:${color}">
+        <div class="podium-avatar" style="border-color:${color};box-shadow:0 0 20px ${color}44">
+          ${p.emoji || '🎳'}
+          <span class="podium-medal">${medal}</span>
+        </div>
+        <div class="podium-name" style="color:${color}">${p.name}</div>
+        <div class="podium-value" style="color:${color};text-shadow:0 0 20px ${color}66">
+          ${currentRankMetric === 'media_recente'
+            ? (() => {
+                const ris = p.ultimi_risultati || [];
+                if (!ris.length) return '<span style="font-size:0.8rem">—</span>';
+                const dot = r => {
+                  if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#22c55e;color:#000;font-size:0.45rem;font-weight:700">V</span>';
+                  if (r==='P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.45rem;font-weight:700">P</span>';
+                  return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#555570;color:#fff;font-size:0.45rem;font-weight:700">N</span>';
+                };
+                const empty = '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
+                const emptyDots = Array(5-ris.length).fill(empty).join('');
+                return '<div style="display:flex;gap:2px;justify-content:center;margin:4px 0">' + emptyDots + ris.map(dot).join('') + '</div>';
+              })()
+            : val != null ? metric.fmt(val) : '—'}
+        </div>
+        <div class="podium-value-label">${metric.label}</div>
+        <div class="podium-block" style="border-color:${color}55;box-shadow:0 0 16px ${color}22"></div>
+      </div>`;
+  }).join('');
+
+  // Aggiorna header colonna attiva
+  const colIds = {
+    media:'thMedia', record:'thRecord', win_pct:'thWin',
+    sfide:'thSfide', partite_sfide:'thPartiteSfide', partite_singolo:'thSingolo',
+    pagato_sfide:'thPagatoSfide', pagato_singolo:'thPagatoSingolo', pagato_totale:'thPagatoTotale',
+    vitt:'thVitt', media_recente:'thForma',
+  };
+  Object.values(colIds).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active-col');
+  });
+  const activeEl = document.getElementById(colIds[currentRankMetric]);
+  if (activeEl) activeEl.classList.add('active-col');
+
+  // ── TABELLA ──
+  document.getElementById('rankTableBody').innerHTML = sorted.map((p, i) => {
+    const ci      = lb.findIndex(x => x.id === p.id);
+    const pcolor  = PLAYER_COLORS[ci % PLAYER_COLORS.length];
+    const medals  = ['🥇','🥈','🥉'];
+    const rankEl  = i < 3
+      ? `<div class="rank-table-rank">${medals[i]}</div>`
+      : `<div class="rank-table-rank" style="color:var(--text-muted);font-size:0.85rem">${i+1}</div>`;
+
+    const vittorie         = parseInt(p.vittorie_squadra) || 0;
+    const pareggi          = parseInt(p.pareggi_squadra)  || 0;
+    const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
+    const hasSfide         = serateConSquadra > 0;
+    const winPct           = hasSfide ? Math.round(vittorie / serateConSquadra * 100) : null;
+    const sconfitte        = hasSfide ? Math.max(0, serateConSquadra - vittorie - pareggi) : null;
+
+    // Colonna V/N/P
+    const vnpBadge = hasSfide
+      ? '<span style="color:#22c55e;font-weight:700">' + vittorie + 'V</span> <span style="color:#666680">' + pareggi + 'N</span> <span style="color:#ef4444">' + sconfitte + 'P</span>'
+      : '—';
+
+    // Badge forma — pallini V/P/N
+    const risultati = p.ultimi_risultati || [];
+    const dot = r => {
+      if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span>';
+      if (r==='P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span>';
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span>';
+    };
+    const emptyDot = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
+    const formaBadge = '<div style="display:flex;gap:2px;justify-content:center">' +
+      Array(Math.max(0, 5 - risultati.length)).fill(emptyDot).join('') +
+      risultati.map(dot).join('') + '</div>';
+
+    const isActive = m => currentRankMetric === m;
+    const eur = v => {
+      if (v == null) return '—';
+      const n = parseFloat(v);
+      const c = n === 0 ? 'var(--neon)' : 'var(--neon2)';
+      return '<span style="color:' + c + '">€' + n.toFixed(2) + '</span>';
+    };
+
+    return `
+      <div class="rank-table-row" style="animation-delay:${(i*0.05).toFixed(2)}s">
+        ${rankEl}
+        <div class="rank-table-player">
+          <div class="rank-table-avatar" style="border-color:${pcolor}44;background:${pcolor}12">${p.emoji||'🎳'}</div>
+          <div>
+            <div class="rank-table-name">${p.name}</div>
+            ${p.nickname ? '<div class="rank-table-nick">' + p.nickname.toUpperCase() + '</div>' : ''}
+          </div>
+        </div>
+        <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}" style="${isActive('media')?'':'color:var(--neon)'}">${p.media ?? '—'}</div>
+        <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}" style="${isActive('record')?'':'color:var(--neon3)'}">${p.record ?? '—'}</div>
+        <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct+'%' : '—'}</div>
+        <div class="rank-table-val ${isActive('sfide') ? 'active-val' : ''}">${serateConSquadra || '—'}</div>
+        <div class="rank-table-val ${isActive('partite_sfide') ? 'active-val' : ''}">${parseInt(p.partite_sfide) || 0}</div>
+        <div class="rank-table-val ${isActive('partite_singolo') ? 'active-val' : ''}">${p.partite_singolo != null ? parseInt(p.partite_singolo) : 0}</div>
+        <div class="rank-table-val ${isActive('pagato_sfide') ? 'active-val' : ''}">${eur(p.pagato_sfide)}</div>
+        <div class="rank-table-val ${isActive('pagato_singolo') ? 'active-val' : ''}">${eur(p.pagato_singolo)}</div>
+        <div class="rank-table-val ${isActive('pagato_totale') ? 'active-val' : ''}" style="font-weight:700">${eur(p.pagato_totale)}</div>
+        <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem">${vnpBadge}</div>
+        <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
+      </div>`;
+  }).join('');
+}
 
 // ── UTILITY ──────────────────────────────────
 
-function formatDate(str) {
-  if (!str) return '';
-  const d = new Date(str);
-  return d.toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
-}
-
-function showToast(msg, type = 'info') {
+function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = msg;
-  t.className = 'toast show ' + type;
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
+  t.className   = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3500);
 }
 
-// ── CARICAMENTO DATI ─────────────────────────
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+}
+
+function pctClass(pct) {
+  if (pct >= 60) return 'high';
+  if (pct >= 35) return 'medium';
+  return 'low';
+}
+
+// Defaults Chart.js globali
+Chart.defaults.color           = '#666680';
+Chart.defaults.borderColor     = '#2a2a44';
+Chart.defaults.font.family     = "'Barlow Condensed', sans-serif";
+Chart.defaults.font.size       = 12;
+
+// ── FILTRO PERIODO ───────────────────────────
+
+function setPeriod(range) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const now  = new Date();
+  const pad  = n => String(n).padStart(2,'0');
+  const fmt  = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  if (range === 'all') {
+    currentFrom = null; currentTo = null;
+    document.getElementById('periodFrom').value = '';
+    document.getElementById('periodTo').value   = '';
+  } else {
+    currentTo = fmt(now);
+    const from = new Date(now);
+    if (range === 'month')   from.setMonth(from.getMonth() - 1);
+    if (range === '3months') from.setMonth(from.getMonth() - 3);
+    if (range === 'year')    from.setFullYear(from.getFullYear() - 1);
+    currentFrom = fmt(from);
+    document.getElementById('periodFrom').value = currentFrom;
+    document.getElementById('periodTo').value   = currentTo;
+  }
+  loadStats();
+}
+
+function applyCustomPeriod() {
+  currentFrom = document.getElementById('periodFrom').value || null;
+  currentTo   = document.getElementById('periodTo').value   || null;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  loadStats();
+}
+
+// ── CARICA DATI ──────────────────────────────
 
 async function loadStats() {
   try {
-    const res = await fetch('/api/stats.php');
-    statsData = await res.json();
+    const params = new URLSearchParams();
+    if (currentFrom) params.set('from', currentFrom);
+    if (currentTo)   params.set('to',   currentTo);
+    const paramStr = params.toString();
+    const url = '/api/stats.php' + (paramStr ? '?' + paramStr : '');
+
+    statsData = await fetch(url).then(r => r.json());
 
     updateHeroBar();
-    buildRecords();
-    buildTopPerformer();
+    renderRanking();
+    buildTrendControls();
     renderTrend();
-    renderHistogram();
+    buildPaymentControls();
     renderPaymentTrend();
+    renderCompare();
+    buildDistSelect();
+    renderDistribution();
+    renderWins();
+    buildH2HSelects();
+    renderH2H();
+    buildChemSelect();
+    renderChemistry();
 
   } catch (e) {
     console.error('Errore caricamento stats:', e);
@@ -54,120 +307,155 @@ async function loadStats() {
 // ── HERO BAR ─────────────────────────────────
 
 function updateHeroBar() {
-  const partite = document.getElementById('stat-partite');
-  const record = document.getElementById('stat-record');
-  const media = document.getElementById('stat-media-gruppo');
-  const minimo = document.getElementById('stat-minimo');
-  const recordSub = document.getElementById('stat-record-sub');
-  const minimoSub = document.getElementById('stat-minimo-sub');
+  document.getElementById('stat-sessioni').textContent = statsData.totale_sessioni || '—';
+  document.getElementById('stat-record').textContent   = statsData.record_assoluto || '—';
+  document.getElementById('stat-media').textContent    = statsData.media_gruppo    || '—';
 
-  if (partite) partite.textContent = statsData.totale_sessioni || '—';
-  if (record) record.textContent = statsData.record_assoluto || '—';
-  if (media) media.textContent = statsData.media_gruppo || '—';
-
-  if (statsData.record_holder && recordSub) {
-    recordSub.textContent = `${statsData.record_holder.emoji} ${statsData.record_holder.name} · ${formatDate(statsData.record_holder.date)}`;
+  if (statsData.record_holder) {
+    document.getElementById('stat-record-sub').textContent =
+      `${statsData.record_holder.emoji} ${statsData.record_holder.name} · ${formatDate(statsData.record_holder.date)}`;
   }
-
-  if (statsData.punteggio_minimo !== undefined && minimo) {
-    minimo.textContent = statsData.punteggio_minimo || '—';
-  }
-  if (statsData.minimo_holder && minimoSub) {
-    minimoSub.textContent = `${statsData.minimo_holder.emoji} ${statsData.minimo_holder.name} · ${formatDate(statsData.minimo_holder.date)}`;
+  if (statsData.ultima_sessione) {
+    const d = new Date(statsData.ultima_sessione.date);
+    document.getElementById('stat-ultima').textContent =
+      d.toLocaleDateString('it-IT', { day:'numeric', month:'short' }).toUpperCase();
+    document.getElementById('stat-ultima-sub').textContent = statsData.ultima_sessione.location;
   }
 }
 
 // ── GRAFICO TREND ────────────────────────────
 
-function renderTrend() {
-  const canvas = document.getElementById('trendChart');
-  if (!canvas) return;
-
+function buildTrendControls() {
   const trend = statsData.trend || [];
-  if (trend.length === 0) return;
 
-  // Prendi tutte le date uniche
+  // Prima volta: attiva tutti i giocatori con dati
+  if (activeTrend.size === 0) {
+    trend.forEach(p => activeTrend.add(p.name));
+  }
+
+  const container = document.getElementById('trendPlayerBtns');
+  container.innerHTML = trend.map((p, i) => {
+    const color   = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const isActive = activeTrend.has(p.name);
+    return `
+      <button class="player-filter-btn${isActive ? ' active' : ''}"
+        style="${isActive ? `background:${color};border-color:${color};` : `border-color:${color}44;color:${color};`}"
+        onclick="toggleTrendPlayer('${p.name}', this, '${color}')">
+        ${p.emoji || '🎳'} ${p.name}
+      </button>`;
+  }).join('');
+}
+
+function toggleTrendPlayer(name, btn, color) {
+  if (activeTrend.has(name)) {
+    if (activeTrend.size === 1) return; // almeno uno sempre attivo
+    activeTrend.delete(name);
+    btn.classList.remove('active');
+    btn.style.background   = 'none';
+    btn.style.borderColor  = color + '44';
+    btn.style.color        = color;
+  } else {
+    activeTrend.add(name);
+    btn.classList.add('active');
+    btn.style.background   = color;
+    btn.style.borderColor  = color;
+    btn.style.color        = '#0a0a0f';
+  }
+  renderTrend();
+}
+
+function renderTrend() {
+  const trend = (statsData.trend || []).filter(p => activeTrend.has(p.name));
+  if (!trend.length) return;
+
+  // Raccoglie tutte le date uniche ordinate
   const allDates = [...new Set(
     trend.flatMap(p => p.data.map(d => d.date))
   )].sort();
 
-  const datasets = trend.map((p, i) => ({
-    label: `${p.emoji || '🎳'} ${p.name}`,
-    data: allDates.map(date => {
-      const entry = p.data.find(d => d.date === date);
-      return entry ? entry.avg : null;
-    }),
-    borderColor: PLAYER_COLORS[i % PLAYER_COLORS.length],
-    backgroundColor: PLAYER_COLORS[i % PLAYER_COLORS.length] + '22',
-    borderWidth: 2,
-    tension: 0.3,
-    spanGaps: true
-  }));
+  const datasets = trend.map((p, i) => {
+    const colorIdx = (statsData.trend || []).findIndex(x => x.name === p.name);
+    const color    = PLAYER_COLORS[colorIdx % PLAYER_COLORS.length];
+    // Mappa score sulle date (null se non ha giocato quel giorno)
+    const dataMap  = Object.fromEntries(p.data.map(d => [d.date, d.score]));
+    return {
+      label: `${p.emoji || ''} ${p.name}`,
+      data:  allDates.map(d => dataMap[d] ?? null),
+      borderColor: color,
+      backgroundColor: color + '22',
+      pointBackgroundColor: color,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      borderWidth: 2,
+      spanGaps: true,
+      tension: 0.3,
+    };
+  });
 
   if (trendChart) trendChart.destroy();
-  
-  trendChart = new Chart(canvas, {
+
+  trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'line',
     data: {
-      labels: allDates.map(d => {
-        const dt = new Date(d);
-        return dt.toLocaleDateString('it-IT', {day:'numeric', month:'short'});
-      }),
-      datasets: datasets
+      labels: allDates.map(d => new Date(d).toLocaleDateString('it-IT', { day:'2-digit', month:'short' })),
+      datasets
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color: '#e8e8f0', font: { size: 11 } }
-        },
+        legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(10,10,15,0.95)',
-          titleColor: '#e8ff00',
-          bodyColor: '#e8e8f0'
+          backgroundColor: '#18182a',
+          borderColor: '#2a2a44',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y ?? '—'}`
+          }
         }
       },
       scales: {
-        y: {
-          ticks: { color: '#666680' },
-          grid: { color: '#2a2a44' }
-        },
-        x: {
-          ticks: { color: '#666680' },
-          grid: { color: '#2a2a44' }
-        }
+        x: { grid: { color: '#2a2a4444' }, ticks: { maxRotation: 45 } },
+        y: { grid: { color: '#2a2a4444' }, min: 0, max: 300,
+             ticks: { stepSize: 50 } }
       }
     }
   });
 }
 
-// ── ISTOGRAMMA DISTRIBUZIONE ─────────────────
+// ── GRAFICO CONFRONTO ─────────────────────────
 
-function renderHistogram() {
-  const canvas = document.getElementById('histChart');
-  if (!canvas) return;
+function setMetric(metric, btn) {
+  currentMetric = metric;
+  document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCompare();
+}
 
-  const dist = statsData.distribution || [];
-  if (dist.length === 0) return;
+function renderCompare() {
+  const lb = (statsData.leaderboard || []).filter(p => parseInt(p.partite) > 0);
+  if (!lb.length) return;
 
-  const labels = dist.map(d => d.range);
-  const counts = dist.map(d => d.count);
+  const labels = lb.map(p => `${p.emoji || ''} ${p.name}`);
+  const values = lb.map(p => parseFloat(p[currentMetric]) || 0);
+  const colors = lb.map((_, i) => PLAYER_COLORS[i % PLAYER_COLORS.length]);
 
-  if (histChart) histChart.destroy();
+  const metricLabels = { media: 'Media', record: 'Record', partite: 'Partite' };
 
-  histChart = new Chart(canvas, {
+  if (compareChart) compareChart.destroy();
+
+  compareChart = new Chart(document.getElementById('compareChart'), {
     type: 'bar',
     data: {
-      labels: labels,
+      labels,
       datasets: [{
-        label: 'Punteggi',
-        data: counts,
-        backgroundColor: '#00f5ff44',
-        borderColor: '#00f5ff',
-        borderWidth: 1
+        label: metricLabels[currentMetric],
+        data: values,
+        backgroundColor: colors.map(c => c + 'bb'),
+        borderColor: colors,
+        borderWidth: 2,
+        borderRadius: 4,
       }]
     },
     options: {
@@ -176,220 +464,383 @@ function renderHistogram() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(10,10,15,0.95)',
-          titleColor: '#00f5ff',
-          bodyColor: '#e8e8f0'
+          backgroundColor: '#18182a',
+          borderColor: '#2a2a44',
+          borderWidth: 1,
         }
       },
       scales: {
-        y: {
-          ticks: { color: '#666680' },
-          grid: { color: '#2a2a44' }
-        },
-        x: {
-          ticks: { color: '#666680' },
-          grid: { color: '#2a2a44' }
-        }
+        x: { grid: { display: false } },
+        y: { grid: { color: '#2a2a4444' }, beginAtZero: true }
       }
     }
   });
 }
 
-// ── RECORD & CURIOSITÀ ───────────────────────
+// ── DISTRIBUZIONE ────────────────────────────
 
-function buildRecords() {
-  const container = document.getElementById('recordsGrid');
-  if (!container) return;
-
-  const records = statsData.records || {};
-  const items = [];
-
-  if (records.max_score) {
-    items.push({
-      icon: '🔥',
-      label: 'Punteggio più alto',
-      value: records.max_score.score,
-      sub: `${records.max_score.emoji} ${records.max_score.name} · ${formatDate(records.max_score.date)}`
-    });
-  }
-
-  if (records.min_score) {
-    items.push({
-      icon: '❄️',
-      label: 'Punteggio più basso',
-      value: records.min_score.score,
-      sub: `${records.min_score.emoji} ${records.min_score.name} · ${formatDate(records.min_score.date)}`
-    });
-  }
-
-  if (records.avg_per_session) {
-    items.push({
-      icon: '📊',
-      label: 'Media per sessione',
-      value: records.avg_per_session,
-      sub: 'Punteggio medio complessivo'
-    });
-  }
-
-  if (records.total_games) {
-    items.push({
-      icon: '🎳',
-      label: 'Partite totali',
-      value: records.total_games,
-      sub: 'Game giocati da sempre'
-    });
-  }
-
-  container.innerHTML = items.map(r => `
-    <div class="record-card">
-      <div class="record-icon">${r.icon}</div>
-      <div class="record-label">${r.label}</div>
-      <div class="record-value">${r.value}</div>
-      <div class="record-sub">${r.sub}</div>
-    </div>
-  `).join('');
+function buildDistSelect() {
+  const sel = document.getElementById('distPlayer');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">Tutti i giocatori</option>' +
+    (statsData.leaderboard || [])
+      .filter(p => parseInt(p.partite) > 0)
+      .map(p => `<option value="${p.id}" ${p.id == cur ? 'selected':''}>${p.emoji || ''} ${p.name}</option>`)
+      .join('');
 }
 
-// ── TOP PERFORMER ────────────────────────────
+function renderDistribution() {
+  const pid  = document.getElementById('distPlayer').value;
+  const dist = statsData.distribution || [];
+  const labels = ['< 100', '100–149', '150–199', '200–249', '≥ 250'];
 
-function buildTopPerformer() {
-  const container = document.getElementById('topPerformerCard');
-  if (!container) return;
+  let values;
+  if (pid === 'all') {
+    values = [
+      dist.reduce((s,p) => s + parseInt(p.r0  ||0),0),
+      dist.reduce((s,p) => s + parseInt(p.r100||0),0),
+      dist.reduce((s,p) => s + parseInt(p.r150||0),0),
+      dist.reduce((s,p) => s + parseInt(p.r200||0),0),
+      dist.reduce((s,p) => s + parseInt(p.r250||0),0),
+    ];
+  } else {
+    const p = dist.find(x => x.id == pid);
+    values = p ? [p.r0,p.r100,p.r150,p.r200,p.r250].map(v => parseInt(v)||0) : [0,0,0,0,0];
+  }
 
-  const lb = (statsData.leaderboard || []).filter(p => parseInt(p.partite) > 0);
-  if (lb.length === 0) {
-    container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted)">Nessun dato disponibile</div>';
+  const bgColors = ['#666680bb','#ff6b35bb','#e8ff00bb','#00f5ffbb','#ff3cacbb'];
+  const brColors = ['#666680',  '#ff6b35',  '#e8ff00',  '#00f5ff',  '#ff3cac'];
+
+  if (distChart) distChart.destroy();
+
+  distChart = new Chart(document.getElementById('distChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Punteggi',
+        data: values,
+        backgroundColor: bgColors,
+        borderColor: brColors,
+        borderWidth: 2,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor:'#18182a', borderColor:'#2a2a44', borderWidth:1 }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#2a2a4444' }, beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+}
+
+// ── VITTORIE ─────────────────────────────────
+
+function renderWins() {
+  const wins = statsData.wins_breakdown || [];
+  if (!wins.length) {
+    document.getElementById('winsList').innerHTML =
+      '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessun dato</div>';
     return;
   }
 
-  // Ordina per media
-  const sorted = [...lb].sort((a, b) => {
-    const avgA = parseFloat(a.media) || 0;
-    const avgB = parseFloat(b.media) || 0;
-    return avgB - avgA;
-  });
+  const maxSq  = Math.max(...wins.map(w => parseInt(w.vittorie_squadra)  || 0));
+  const maxInd = Math.max(...wins.map(w => parseInt(w.vittorie_individuali) || 0));
 
-  const top3 = sorted.slice(0, 3);
+  document.getElementById('winsList').innerHTML = wins.map((w, i) => {
+    const sq  = parseInt(w.vittorie_squadra)      || 0;
+    const ind = parseInt(w.vittorie_individuali)  || 0;
+    const tot = parseInt(w.sessioni_totali)        || 0;
+    const pSq  = maxSq  > 0 ? Math.round(sq  / maxSq  * 100) : 0;
+    const pInd = maxInd > 0 ? Math.round(ind / maxInd * 100) : 0;
+    const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
 
-  container.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;padding:1.5rem">
-      ${top3.map((p, i) => {
-        const medal = ['🥇','🥈','🥉'][i];
-        const color = PLAYER_COLORS[i];
-        return `
-          <div style="text-align:center;padding:1rem">
-            <div style="font-size:2rem;margin-bottom:0.5rem">${medal}</div>
-            <div style="font-size:2.5rem;margin-bottom:0.5rem">${p.emoji || '🎳'}</div>
-            <div style="color:${color};font-weight:700;font-size:1.1rem;margin-bottom:0.3rem">${p.name}</div>
-            <div style="color:var(--neon);font-size:1.5rem;font-weight:700">${p.media || '—'}</div>
-            <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.3rem">${p.partite} partite</div>
+    return `
+      <div class="wins-row">
+        <div style="font-size:1.3rem">${w.emoji || '🎳'}</div>
+        <div class="wins-player" style="color:${color}">${w.name}</div>
+        <div>
+          <div class="wins-bar-row">
+            <span class="wins-label">SQ</span>
+            <div class="wins-bar-bg">
+              <div class="wins-bar-fill" style="width:${pSq}%;background:var(--neon);box-shadow:0 0 4px var(--neon)"></div>
+            </div>
+            <span class="wins-val" style="color:var(--neon)">${sq}</span>
           </div>
-        `;
-      }).join('')}
-    </div>
-  `;
+          <div class="wins-bar-row">
+            <span class="wins-label">TOP</span>
+            <div class="wins-bar-bg">
+              <div class="wins-bar-fill" style="width:${pInd}%;background:var(--neon4);box-shadow:0 0 4px var(--neon4)"></div>
+            </div>
+            <span class="wins-val" style="color:var(--neon4)">${ind}</span>
+          </div>
+        </div>
+        <div class="wins-val" style="color:var(--text-muted)">${tot} gare</div>
+      </div>`;
+  }).join('');
 }
 
-// ── GRAFICO PAGAMENTI ────────────────────────
+// ── TESTA A TESTA ────────────────────────────
+
+function buildH2HSelects() {
+  const players = statsData.leaderboard || [];
+  const opts    = players.map(p =>
+    `<option value="${p.id}">${p.emoji || '🎳'} ${p.name}</option>`
+  ).join('');
+
+  const sel1 = document.getElementById('h2hP1');
+  const sel2 = document.getElementById('h2hP2');
+  const v1   = sel1.value;
+  const v2   = sel2.value;
+  sel1.innerHTML = '<option value="">— Giocatore 1 —</option>' + opts;
+  sel2.innerHTML = '<option value="">— Giocatore 2 —</option>' + opts;
+  if (v1) sel1.value = v1;
+  if (v2) sel2.value = v2;
+}
+
+function renderH2H() {
+  const p1id = parseInt(document.getElementById('h2hP1').value);
+  const p2id = parseInt(document.getElementById('h2hP2').value);
+  const container = document.getElementById('h2hResult');
+
+  if (!p1id || !p2id || p1id === p2id) {
+    container.innerHTML = '<div class="h2h-placeholder">Seleziona due giocatori diversi per vedere lo scontro diretto</div>';
+    return;
+  }
+
+  // Trova la coppia (l'API li ordina con p1_id < p2_id)
+  const key1 = Math.min(p1id,p2id) + '_' + Math.max(p1id,p2id);
+  const match = (statsData.h2h || []).find(h =>
+    (h.p1_id == Math.min(p1id,p2id) && h.p2_id == Math.max(p1id,p2id))
+  );
+
+  if (!match || match.total === 0) {
+    container.innerHTML = '<div class="h2h-placeholder">Questi due giocatori non hanno ancora giocato nella stessa sessione</div>';
+    return;
+  }
+
+  // Assegna P1/P2 in base alla selezione
+  const isSwapped = p1id > p2id;
+  const p1wins  = isSwapped ? match.p2_wins : match.p1_wins;
+  const p2wins  = isSwapped ? match.p1_wins : match.p2_wins;
+  const p1name  = isSwapped ? match.p2_name : match.p1_name;
+  const p2name  = isSwapped ? match.p1_name : match.p2_name;
+  const p1emoji = isSwapped ? match.p2_emoji : match.p1_emoji;
+  const p2emoji = isSwapped ? match.p1_emoji : match.p2_emoji;
+  const total   = match.total;
+  const draws   = match.draws;
+
+  const p1pct  = total > 0 ? Math.round(p1wins / total * 100) : 50;
+  const p1color = '#e8ff00';
+  const p2color = '#ff3cac';
+
+  container.innerHTML = `
+    <div class="h2h-display">
+      <div class="h2h-player">
+        <div class="h2h-avatar">${p1emoji || '🎳'}</div>
+        <div class="h2h-name" style="color:${p1color}">${p1name}</div>
+        <div class="h2h-wins-big" style="color:${p1color};text-shadow:0 0 20px ${p1color}88">${p1wins}</div>
+        <div class="h2h-wins-label">vittorie</div>
+      </div>
+
+      <div class="h2h-vs">
+        <span class="h2h-vs-text">VS</span>
+        <span class="h2h-total">${total} sfide<br>${draws > 0 ? draws + ' pari' : ''}</span>
+      </div>
+
+      <div class="h2h-player">
+        <div class="h2h-avatar">${p2emoji || '🎳'}</div>
+        <div class="h2h-name" style="color:${p2color}">${p2name}</div>
+        <div class="h2h-wins-big" style="color:${p2color};text-shadow:0 0 20px ${p2color}88">${p2wins}</div>
+        <div class="h2h-wins-label">vittorie</div>
+      </div>
+
+      <div class="h2h-bar">
+        <div class="h2h-bar-fill" style="width:${p1pct}%;background:linear-gradient(90deg,${p1color},${p2color})"></div>
+      </div>
+    </div>`;
+}
+
+// ── CHIMICA DI SQUADRA ────────────────────────
+
+function buildChemSelect() {
+  const players = statsData.leaderboard || [];
+  const sel     = document.getElementById('chemPlayer');
+  const cur     = sel.value;
+  sel.innerHTML = '<option value="">Tutti</option>' +
+    players.map(p => `<option value="${p.id}" ${p.id == cur ? 'selected':''}>${p.emoji || ''} ${p.name}</option>`).join('');
+}
+
+function renderChemistry() {
+  const pid  = parseInt(document.getElementById('chemPlayer').value) || null;
+  let chem   = (statsData.chemistry || []).filter(c => c.total > 0);
+
+  if (pid) chem = chem.filter(c => c.p1_id == pid || c.p2_id == pid);
+
+  // Ordina per % vittorie decrescente
+  chem.sort((a, b) => (b.wins / b.total) - (a.wins / a.total));
+
+  const container = document.getElementById('chemistryTable');
+
+  if (!chem.length) {
+    container.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">Nessun dato disponibile</div>';
+    return;
+  }
+
+  const header = `
+    <div class="chem-row chem-header">
+      <div>Coppia</div>
+      <div style="text-align:center">Gare</div>
+      <div style="text-align:center">Vinte</div>
+      <div style="text-align:center">% Win</div>
+    </div>`;
+
+  const rows = chem.map(c => {
+    const pct    = c.total > 0 ? Math.round(c.wins / c.total * 100) : 0;
+    const cls    = pctClass(pct);
+    return `
+      <div class="chem-row">
+        <div class="chem-players">
+          <span>${c.p1_emoji || '🎳'} ${c.p1_name}</span>
+          <span class="chem-sep">+</span>
+          <span>${c.p2_emoji || '🎳'} ${c.p2_name}</span>
+        </div>
+        <div class="chem-val">${c.total}</div>
+        <div class="chem-val" style="color:var(--neon)">${c.wins}</div>
+        <div><span class="chem-pct ${cls}">${pct}%</span></div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = header + rows;
+}
+
+// ── INIT ─────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', loadStats);
+function setRankMetricById(metric) {
+  currentRankMetric = metric;
+  document.querySelectorAll('.rank-metric').forEach(b => {
+    b.classList.toggle('active', b.dataset.metric === metric);
+  });
+  renderRanking();
+}
+// ── GRAFICO ANDAMENTO PAGAMENTI ──────────────
+
+let activePaymentPlayers = new Set();
+
+function buildPaymentControls() {
+  const lb = statsData.leaderboard || [];
+  const payTrend = statsData.payment_trend || {};
+  const container = document.getElementById('paymentPlayerBtns');
+  if (!container) return;
+
+  // Solo giocatori con almeno un pagamento
+  const eligible = lb.filter(p => payTrend[p.id] && payTrend[p.id].length > 0);
+  if (!eligible.length) { container.innerHTML = '<span style="color:var(--text-muted);font-size:0.75rem">Nessun dato pagamenti</span>'; return; }
+
+  // Attiva tutti di default
+  activePaymentPlayers = new Set(eligible.map(p => p.name));
+
+  container.innerHTML = eligible.map((p, i) => {
+    const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    return `<button class="player-filter-btn active" data-name="${p.name}" data-color="${color}"
+      style="border-color:${color};color:${color};background:${color}18"
+      onclick="togglePaymentPlayer('${p.name}', this)">${p.emoji||'🎳'} ${p.name}</button>`;
+  }).join('');
+
+  renderPaymentTrend();
+}
+
+function togglePaymentPlayer(name, btn) {
+  if (activePaymentPlayers.has(name)) {
+    activePaymentPlayers.delete(name);
+    btn.classList.remove('active');
+    btn.style.background = 'none';
+  } else {
+    activePaymentPlayers.add(name);
+    btn.classList.add('active');
+    btn.style.background = btn.dataset.color + '18';
+  }
+  renderPaymentTrend();
+}
 
 function renderPaymentTrend() {
   const canvas = document.getElementById('paymentChart');
   if (!canvas) return;
+  const lb       = statsData.leaderboard || [];
+  const payTrend = statsData.payment_trend || {};
 
-  const payments = statsData.payment_trend || [];
-  if (payments.length === 0) return;
+  // Raccoglie tutte le date uniche ordinate
+  const allDates = [...new Set(
+    Object.values(payTrend).flat().map(p => p.date)
+  )].sort();
 
-  const labels = payments.map(p => {
-    const d = new Date(p.date);
-    return d.toLocaleDateString('it-IT', {day:'numeric', month:'short'});
-  });
+  if (!allDates.length) {
+    canvas.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:260px;color:var(--text-muted);font-family:\'Share Tech Mono\',monospace;font-size:0.8rem">Nessun dato pagamenti</div>';
+    return;
+  }
 
-  const vittorie = payments.map(p => parseFloat(p.vittorie) || 0);
-  const pareggi = payments.map(p => parseFloat(p.pareggi) || 0);
-  const sconfitte = payments.map(p => parseFloat(p.sconfitte) || 0);
+  const datasets = lb
+    .filter(p => activePaymentPlayers.has(p.name) && payTrend[p.id])
+    .map((p, i) => {
+      const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+      // Per ogni data, prendi il cumulativo più recente fino a quella data
+      const dataPoints = allDates.map(date => {
+        const entries = (payTrend[p.id] || []).filter(e => e.date <= date);
+        return entries.length ? entries[entries.length - 1].cumulativo : null;
+      });
+      return {
+        label: `${p.emoji||'🎳'} ${p.name}`,
+        data:  dataPoints,
+        borderColor: color,
+        backgroundColor: color + '15',
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        borderWidth: 2,
+        tension: 0.3,
+        fill: false,
+        spanGaps: true,
+      };
+    });
 
   if (paymentChart) paymentChart.destroy();
 
   paymentChart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Vittoria (€0)',
-          data: vittorie,
-          borderColor: '#e8ff00',
-          backgroundColor: '#e8ff0022',
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: 'Pareggio',
-          data: pareggi,
-          borderColor: '#666680',
-          backgroundColor: '#66668022',
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: 'Sconfitta',
-          data: sconfitte,
-          borderColor: '#ff3cac',
-          backgroundColor: '#ff3cac22',
-          borderWidth: 2,
-          tension: 0.3
-        }
-      ]
+      labels: allDates.map(d => new Date(d).toLocaleDateString('it-IT', { day:'2-digit', month:'short' })),
+      datasets
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color: '#e8e8f0', font: { size: 11 } }
-        },
+        legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(10,10,15,0.95)',
-          titleColor: '#e8ff00',
-          bodyColor: '#e8e8f0',
+          backgroundColor: '#18182a',
+          borderColor: '#2a2a44',
+          borderWidth: 1,
           callbacks: {
-            label: function(context) {
-              return context.dataset.label + ': €' + context.parsed.y.toFixed(2);
-            }
+            label: ctx => ` ${ctx.dataset.label}: €${(ctx.raw||0).toFixed(2)}`
           }
         }
       },
       scales: {
+        x: { grid: { color: '#2a2a4444' } },
         y: {
-          ticks: { 
-            color: '#666680',
-            callback: function(value) {
-              return '€' + value;
-            }
-          },
-          grid: { color: '#2a2a44' }
-        },
-        x: {
-          ticks: { color: '#666680' },
-          grid: { color: '#2a2a44' }
+          grid: { color: '#2a2a4444' },
+          beginAtZero: true,
+          ticks: { callback: v => '€' + v }
         }
       }
     }
   });
 }
-
-// ── FILTRI PERIODO (STUB) ────────────────────
-
-function setPeriod(period, btn) {
-  console.log('setPeriod:', period, '- funzione non implementata in questa versione');
-  // Rimuovi active da tutti i bottoni
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  // Aggiungi active al bottone cliccato
-  if (btn) btn.classList.add('active');
-}
-
-// ── INIT ─────────────────────────────────────
-
-document.addEventListener('DOMContentLoaded', loadStats);
