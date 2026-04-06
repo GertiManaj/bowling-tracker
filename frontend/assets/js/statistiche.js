@@ -307,19 +307,22 @@ async function loadStats() {
 // ── HERO BAR ─────────────────────────────────
 
 function updateHeroBar() {
-  document.getElementById('stat-sessioni').textContent = statsData.totale_sessioni || '—';
+  document.getElementById('stat-partite').textContent = statsData.totale_sessioni || '—';
   document.getElementById('stat-record').textContent   = statsData.record_assoluto || '—';
-  document.getElementById('stat-media').textContent    = statsData.media_gruppo    || '—';
+  document.getElementById('stat-media-gruppo').textContent    = statsData.media_gruppo    || '—';
 
   if (statsData.record_holder) {
     document.getElementById('stat-record-sub').textContent =
       `${statsData.record_holder.emoji} ${statsData.record_holder.name} · ${formatDate(statsData.record_holder.date)}`;
   }
-  if (statsData.ultima_sessione) {
-    const d = new Date(statsData.ultima_sessione.date);
-    document.getElementById('stat-ultima').textContent =
-      d.toLocaleDateString('it-IT', { day:'numeric', month:'short' }).toUpperCase();
-    document.getElementById('stat-ultima-sub').textContent = statsData.ultima_sessione.location;
+  
+  // Punteggio minimo
+  if (statsData.punteggio_minimo !== undefined) {
+    document.getElementById('stat-minimo').textContent = statsData.punteggio_minimo || '—';
+  }
+  if (statsData.minimo_holder) {
+    document.getElementById('stat-minimo-sub').textContent =
+      `${statsData.minimo_holder.emoji} ${statsData.minimo_holder.name} · ${formatDate(statsData.minimo_holder.date)}`;
   }
 }
 
