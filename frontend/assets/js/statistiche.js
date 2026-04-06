@@ -73,9 +73,9 @@ function setRankMetric(btn) {
 function renderRanking() {
   const lb = (statsData.leaderboard || []).filter(p => parseInt(p.partite) > 0);
   if (!lb.length) {
-    document.getElementById('podiumWrap').innerHTML =
+    // RIMOSSO: document.getElementById('podiumWrap').innerHTML =
       `<div style="color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.8rem;padding:2rem">Nessun dato nel periodo selezionato</div>`;
-    document.getElementById('rankTableBody').innerHTML = '';
+    // RIMOSSO: document.getElementById('rankTableBody').innerHTML = '';
     return;
   }
 
@@ -95,7 +95,7 @@ function renderRanking() {
 
   const metric = RANK_METRICS[currentRankMetric];
 
-  document.getElementById('podiumWrap').innerHTML = podiumOrder.map((p, vi) => {
+  // RIMOSSO: document.getElementById('podiumWrap').innerHTML = podiumOrder.map((p, vi) => {
     const pos   = realPos[vi];
     const color = MEDAL_COLORS[pos];
     const medal = MEDAL_EMOJIS[pos];
@@ -146,7 +146,7 @@ function renderRanking() {
   if (activeEl) activeEl.classList.add('active-col');
 
   // ── TABELLA ──
-  document.getElementById('rankTableBody').innerHTML = sorted.map((p, i) => {
+  // RIMOSSO: document.getElementById('rankTableBody').innerHTML = sorted.map((p, i) => {
     const ci      = lb.findIndex(x => x.id === p.id);
     const pcolor  = PLAYER_COLORS[ci % PLAYER_COLORS.length];
     const medals  = ['🥇','🥈','🥉'];
