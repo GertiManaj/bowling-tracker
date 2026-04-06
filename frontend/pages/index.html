@@ -312,6 +312,12 @@
         Continua
       </button>
 
+      <div style="text-align: center; margin: 0.8rem 0;">
+        <a href="reset-password-request.html" style="color: var(--text-muted); text-decoration: none; font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-decoration: underline;">
+          Password dimenticata?
+        </a>
+      </div>
+
       <button class="login-btn-secondary" onclick="closeLoginModal()">
         Annulla
       </button>
@@ -365,6 +371,63 @@
   </div>
 </div>
 
+
+<!-- ══ MODAL: CAMBIO PASSWORD ══ -->
+<div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
+  <div class="login-modal">
+    <div class="login-modal-header">
+      <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
+      <div class="login-modal-subtitle">Modifica le tue credenziali</div>
+      <button class="modal-close" onclick="closeChangePasswordModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+    </div>
+
+    <div id="changePasswordError" class="login-error"></div>
+    <div id="changePasswordSuccess" class="login-error" style="background: rgba(232,255,0,0.1); border-color: var(--neon); color: var(--neon); display: none;"></div>
+
+    <div class="login-form-group">
+      <label class="login-form-label" for="currentPassword">Password Attuale</label>
+      <input 
+        type="password" 
+        id="currentPassword" 
+        class="login-form-input" 
+        placeholder="••••••••••••"
+        autocomplete="current-password"
+      />
+    </div>
+
+    <div class="login-form-group">
+      <label class="login-form-label" for="newPassword">Nuova Password</label>
+      <input 
+        type="password" 
+        id="newPassword" 
+        class="login-form-input" 
+        placeholder="Minimo 8 caratteri"
+        autocomplete="new-password"
+        minlength="8"
+      />
+    </div>
+
+    <div class="login-form-group">
+      <label class="login-form-label" for="confirmNewPassword">Conferma Nuova Password</label>
+      <input 
+        type="password" 
+        id="confirmNewPassword" 
+        class="login-form-input" 
+        placeholder="Ripeti la nuova password"
+        autocomplete="new-password"
+      />
+    </div>
+
+    <button id="btnChangePassword" class="login-btn" onclick="submitChangePassword()">
+      Cambia Password
+    </button>
+
+    <button class="login-btn-secondary" onclick="closeChangePasswordModal()">
+      Annulla
+    </button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
@@ -397,6 +460,7 @@
 </div>
 
 <script src="../assets/js/auth.js"></script>
+<script src="../assets/js/change-password.js"></script>
 <script src="../assets/js/modal-giocatore.js"></script>
 <script src="../assets/js/screenshot-enhanced.js"></script>
 <script src="../assets/js/app.js"></script>
