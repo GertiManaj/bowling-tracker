@@ -190,9 +190,12 @@ function renderAllTimeLeaderboard() {
     const serate           = parseInt(p.partite) || 0;
     const sfide            = parseInt(p.sfide) || 0;
     const vittorie         = parseInt(p.vittorie_squadra) || 0;
+    const pareggi          = parseInt(p.pareggi_squadra) || 0;
     const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
-    const hasSfide         = serateConSquadra > 0;
-    const winPct           = hasSfide ? Math.round(vittorie / serateConSquadra * 100) : null;
+    const sconfitte        = serateConSquadra - vittorie - pareggi;
+    const totaleRisultati  = vittorie + pareggi + sconfitte;
+    const hasSfide         = totaleRisultati > 0;
+    const winPct           = hasSfide ? Math.round(vittorie / totaleRisultati * 100) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
     // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
