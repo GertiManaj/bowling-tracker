@@ -1,11 +1,18 @@
 <?php
 // ============================================
 //  api/tickets.php
-//  GET    → lista ticket (admin) o singolo
-//  POST   → crea nuovo ticket (chiunque)
-//  PUT    → aggiorna stato/risposta (admin)
+//  GET    → lista ticket (admin) o singolo (pubblico)
+//  POST   → crea nuovo ticket (pubblico - chiunque)
+//  PUT    → aggiorna stato/risposta (PROTETTO - solo admin)
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/jwt_protection.php';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROTEZIONE JWT solo per PUT (admin)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+requireAuth(['PUT']);
+
 $pdo    = getPDO();
 $method = $_SERVER['REQUEST_METHOD'];
 

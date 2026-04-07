@@ -1,12 +1,18 @@
 <?php
 // ============================================
 //  api/sessions.php
-//  GET    → lista sessioni con dettagli
-//  POST   → salva una nuova sessione
-//  PUT    → modifica una sessione esistente
-//  DELETE → elimina una sessione
+//  GET    → lista sessioni con dettagli (pubblico)
+//  POST   → salva una nuova sessione (PROTETTO)
+//  PUT    → modifica una sessione esistente (PROTETTO)
+//  DELETE → elimina una sessione (PROTETTO)
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/jwt_protection.php';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROTEZIONE JWT per POST/PUT/DELETE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+requireAuth(['POST', 'PUT', 'DELETE']);
 
 $pdo    = getPDO();
 $method = $_SERVER['REQUEST_METHOD'];

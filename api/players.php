@@ -1,12 +1,18 @@
 <?php
 // ============================================
 //  api/players.php
-//  GET    → lista tutti i giocatori + stats
-//  POST   → aggiunge un nuovo giocatore
-//  PUT    → modifica un giocatore esistente
-//  DELETE → elimina un giocatore
+//  GET    → lista tutti i giocatori + stats (pubblico)
+//  POST   → aggiunge un nuovo giocatore (PROTETTO)
+//  PUT    → modifica un giocatore esistente (PROTETTO)
+//  DELETE → elimina un giocatore (PROTETTO)
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/jwt_protection.php';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROTEZIONE JWT per POST/PUT/DELETE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+requireAuth(['POST', 'PUT', 'DELETE']);
 
 $pdo    = getPDO();
 $method = $_SERVER['REQUEST_METHOD'];

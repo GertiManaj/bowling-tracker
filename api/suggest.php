@@ -1,10 +1,17 @@
 <?php
 // ============================================
 //  api/suggest.php
-//  POST → suggerisce squadre equilibrate
+//  POST → suggerisce squadre equilibrate (PROTETTO)
 //  Body: { "player_ids": [1,2,3,4,5,6] }
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/jwt_protection.php';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROTEZIONE JWT per POST
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+requireAuth(['POST']);
+
 $pdo = getPDO();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
