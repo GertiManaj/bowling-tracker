@@ -143,7 +143,7 @@ foreach ($players as &$player) {
 
     $player['serate_con_squadra'] = $serateTeams + $sérateFFA;
 
-    // ── VOLTE TOP SCORER ──
+    // ── VOLTE TOP SCORER (esclude pareggi) ──
     $qTop = $pdo->prepare('
         SELECT COUNT(*) AS volte
         FROM (
@@ -159,6 +159,22 @@ foreach ($players as &$player) {
                 WHERE session_id = myTot.session_id
                 GROUP BY player_id
             ) allTot
+        )
+        AND 1 = (
+            SELECT COUNT(*) FROM (
+                SELECT player_id, SUM(score) AS tot
+                FROM scores
+                WHERE session_id = myTot.session_id
+                GROUP BY player_id
+                HAVING SUM(score) = (
+                    SELECT MAX(tot2) FROM (
+                        SELECT SUM(score) AS tot2
+                        FROM scores
+                        WHERE session_id = myTot.session_id
+                        GROUP BY player_id
+                    ) maxScores
+                )
+            ) winners
         )
     ');
     $qTop->execute([$id]);
