@@ -843,9 +843,8 @@ async function saveSession() {
   }
 
   try {
-    const res = await fetch(`${API}/sessions.php`, {
+    const res = await authFetch(`${API}/sessions.php`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         date,
         location: document.getElementById('sessionLocation').value || 'Bowling',

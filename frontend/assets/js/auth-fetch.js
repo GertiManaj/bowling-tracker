@@ -1,61 +1,46 @@
-// ============================================
-//  auth-fetch.js
-//  Helper per fetch con autenticazione automatica
-//  Usa: authFetch(url, options) invece di fetch()
-// ============================================
-
-const TOKEN_KEY = 'sz_auth_token';
-
 /**
- * Fetch con autenticazione automatica JWT
- * Aggiunge automaticamente l'header Authorization se il token esiste
+ * authFetch - Helper per fetch con JWT automatico
  * 
- * @param {string} url - URL della richiesta
- * @param {object} options - Opzioni fetch (method, body, headers, etc.)
- * @returns {Promise<Response>}
+ * Usa questo al posto di fetch() per chiamate protette.
+ * Aggiunge automaticamente il token JWT dall'localStorage.
+ * 
+ * Esempio:
+ *   authFetch('/api/players.php', {
+ *     method: 'POST',
+ *     body: JSON.stringify({name: 'Mana', emoji: '🎳'})
+ *   })
  */
+
+const AUTH_TOKEN_KEY = 'sz_auth_token';
+
 async function authFetch(url, options = {}) {
-  const token = localStorage.getItem(TOKEN_KEY);
+  // Prendi il token da localStorage
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
   
-  // Aggiungi headers di default
+  // Prepara gli headers
   const headers = {
     'Content-Type': 'application/json',
-    ...options.headers
+    ...(options.headers || {})
   };
   
-  // Aggiungi token se esiste e se è una richiesta che lo richiede
-  if (token && ['POST', 'PUT', 'DELETE'].includes(options.method?.toUpperCase())) {
+  // Aggiungi Authorization header se c'è il token
+  if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  // Esegui fetch con headers aggiornati
-  return fetch(url, {
+  // Esegui la fetch con gli headers modificati
+  const response = await fetch(url, {
     ...options,
     headers
   });
-}
-
-/**
- * Verifica se l'utente è autenticato
- * @returns {boolean}
- */
-function isAuthenticated() {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return false;
   
-  // Verifica se il token è scaduto
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.exp > Math.floor(Date.now() / 1000);
-  } catch (e) {
-    return false;
+  // Se ricevi 401 (non autorizzato), pulisci il token e ricarica
+  if (response.status === 401) {
+    console.warn('Token non valido o scaduto. Richiesto nuovo login.');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    // Opzionale: reindirizza a login
+    // window.location.href = '/frontend/pages/welcome.html';
   }
-}
-
-/**
- * Ottieni il token corrente
- * @returns {string|null}
- */
-function getAuthToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  
+  return response;
 }
