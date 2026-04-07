@@ -41,12 +41,10 @@
   <link rel="stylesheet" href="../assets/css/auth.css"/>
   <!-- shared.js: tema, splash, shareLink, SW — caricato subito per evitare flash -->
   <script src="../assets/js/shared.js"></script>
-  <script src="../assets/js/auth-fetch.js"></script>
 </head>
 <body>
 
 <!-- Header iniettato da header.js -->
-<script src="../assets/js/auth.js"></script>
 <div id="app-header" data-active="dashboard"></div>
 <script src="../assets/js/header.js"></script>
 
@@ -301,7 +299,7 @@
 </div>
 
 <!-- ══ LOGIN MODAL WITH OTP ══ -->
-<div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)" style="z-index: 99999;">
+<div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
   <div class="login-modal">
     
     <!-- STEP 1: Email + Password -->
@@ -400,7 +398,7 @@
 
 
 <!-- ══ MODAL: CAMBIO PASSWORD ══ -->
-<div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)" style="z-index: 99999;">
+<div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
   <div class="login-modal">
     <div class="login-modal-header">
       <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
@@ -486,6 +484,7 @@
   </div>
 </div>
 
+<script src="../assets/js/auth.js"></script>
 <script src="../assets/js/change-password.js"></script>
 <script src="../assets/js/modal-giocatore.js"></script>
 <script src="../assets/js/screenshot-enhanced.js"></script>

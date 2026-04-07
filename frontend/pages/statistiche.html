@@ -19,12 +19,11 @@
   <link rel="stylesheet" href="../assets/css/auth.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="../assets/js/shared.js"></script>
-  <script src="../assets/js/auth-fetch.js"></script>
+  <script src="../assets/js/auth-fetch.js"></script> <!-- ← NUOVO -->
 </head>
 
 <body>
 
-<script src="../assets/js/auth.js"></script>
   <div id="app-header" data-active="statistiche"></div>
   <script src="../assets/js/header.js"></script>
 
@@ -395,7 +394,7 @@
 
   <!-- ══ MODAL LOGIN ══ -->
   <!-- ══ LOGIN MODAL WITH OTP ══ -->
-  <div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)" style="z-index: 99999;">
+  <div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
     <div class="login-modal">
 
       <!-- STEP 1: Email + Password -->
@@ -484,7 +483,7 @@
   </div>
 
   <!-- ══ MODAL: CAMBIO PASSWORD ══ -->
-  <div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)" style="z-index: 99999;">
+  <div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
     <div class="login-modal">
       <div class="login-modal-header">
         <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
@@ -557,6 +556,7 @@
     </div>
   </div>
 
+  <script src="../assets/js/auth.js"></script>
   <script src="../assets/js/change-password.js"></script>
   <script src="../assets/js/modal-giocatore.js"></script>
   <script src="../assets/js/modal-nuova-partita.js"></script>
