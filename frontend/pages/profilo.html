@@ -1,392 +1,391 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#e8ff00"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Strike Zone"/>
-  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Strike Zone" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <title>🎳 Strike Zone — Profilo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../assets/css/style.css"/>
-  <link rel="stylesheet" href="../assets/css/profilo.css"/>
-  <link rel="stylesheet" href="../assets/css/auth.css"/>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="stylesheet" href="../assets/css/profilo.css" />
+  <link rel="stylesheet" href="../assets/css/auth.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="../assets/js/shared.js"></script>
+  <script src="../assets/js/auth-fetch.js"></script> <!-- ← NUOVO -->
+  <script src="../assets/js/header.js"></script>
 </head>
+
 <body>
 
-<div id="app-header" data-active="giocatori"></div>
-<script src="../assets/js/header.js"></script>
+  <div id="app-header" data-active="giocatori"></div>
+  <script src="../assets/js/header.js"></script>
 
-<!-- ══ MAIN ══ -->
-<main class="main-profilo">
+  <!-- ══ MAIN ══ -->
+  <main class="main-profilo">
 
-  <!-- HERO PROFILO -->
-  <div class="profile-hero" id="profileHero">
-    <div style="padding:3rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace">caricamento...</div>
-  </div>
-
-  <!-- Bottone salva profilo -->
-  <div style="display:flex;justify-content:flex-end;margin-top:-1rem">
-    <button id="btnSaveProfilo" onclick="saveProfilo()" class="btn-screenshot">📸 Salva profilo</button>
-  </div>
-
-  <!-- STATS GRID -->
-  <div class="stats-grid" id="statsGrid"></div>
-
-  <!-- DUE COLONNE -->
-  <div class="profilo-two-col">
-
-    <div>
-      <div class="section-title">
-        <span class="accent"></span>
-        Andamento nel Tempo
-      </div>
-      <div class="card" style="padding:1.2rem">
-        <div style="position:relative;height:260px">
-          <canvas id="trendChart"></canvas>
-        </div>
-      </div>
+    <!-- HERO PROFILO -->
+    <div class="profile-hero" id="profileHero">
+      <div style="padding:3rem;text-align:center;color:var(--text-muted);font-family:'Share Tech Mono',monospace">
+        caricamento...</div>
     </div>
 
+    <!-- Bottone salva profilo -->
+    <div style="display:flex;justify-content:flex-end;margin-top:-1rem">
+      <button id="btnSaveProfilo" onclick="saveProfilo()" class="btn-screenshot">📸 Salva profilo</button>
+    </div>
+
+    <!-- STATS GRID -->
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- DUE COLONNE -->
+    <div class="profilo-two-col">
+
+      <div>
+        <div class="section-title">
+          <span class="accent"></span>
+          Andamento nel Tempo
+        </div>
+        <div class="card" style="padding:1.2rem">
+          <div style="position:relative;height:260px">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">
+          <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+          Compagni di Squadra
+        </div>
+        <div class="card" id="teammatesCard">
+          <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">caricamento...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GRAFICO PAGAMENTI -->
     <div>
       <div class="section-title">
         <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-        Compagni di Squadra
+        Andamento Pagamenti
       </div>
-      <div class="card" id="teammatesCard">
-        <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.8rem">caricamento...</div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- GRAFICO PAGAMENTI -->
-  <div>
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-      Andamento Pagamenti
-    </div>
-    <div class="card" style="padding:1.2rem">
-      <div style="position:relative;height:220px">
-        <canvas id="paymentChartProfilo"></canvas>
-      </div>
-      <div style="display:flex;gap:1rem;margin-top:0.6rem;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted)">
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e8ff00;margin-right:4px"></span>Vittoria (€0)</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#666680;margin-right:4px"></span>Pareggio</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff3cac;margin-right:4px"></span>Sconfitta</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- STORICO SESSIONI -->
-  <div>
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
-      Storico Sessioni
-    </div>
-    <div id="historyList"></div>
-  </div>
-
-</main>
-
-<footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
-
-<!-- ══ LOGIN MODAL WITH OTP ══ -->
-<div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
-  <div class="login-modal">
-    
-    <!-- STEP 1: Email + Password -->
-    <div id="loginStep1" class="login-step" style="display: block;">
-      <div class="login-modal-header">
-        <div class="login-modal-title">🎳 ACCEDI</div>
-        <div class="login-modal-subtitle">Bowling Tracker</div>
-      </div>
-
-      <div id="loginError" class="login-error"></div>
-
-      <div class="login-form-group">
-        <label class="login-form-label" for="loginEmail">Email</label>
-        <input 
-          type="email" 
-          id="loginEmail" 
-          class="login-form-input" 
-          placeholder="tua-email@example.com"
-          autocomplete="email"
-        />
-      </div>
-
-      <div class="login-form-group">
-        <label class="login-form-label" for="loginPassword">Password</label>
-        <input 
-          type="password" 
-          id="loginPassword" 
-          class="login-form-input" 
-          placeholder="••••••••••••"
-          autocomplete="current-password"
-        />
-      </div>
-
-      <button id="btnLoginSubmit" class="login-btn" onclick="submitLogin()">
-        Continua
-      </button>
-
-      <button class="login-btn-secondary" onclick="closeLoginModal()">
-        Annulla
-      </button>
-    </div>
-
-    <!-- STEP 2: OTP Code -->
-    <div id="loginStep2" class="login-step">
-      <div class="login-modal-header">
-        <div class="login-modal-title">📧 CODICE OTP</div>
-        <div class="login-modal-subtitle">Verifica Sicurezza</div>
-      </div>
-
-      <div class="otp-info">
-        <div class="otp-info-text">
-          Abbiamo inviato un codice di 6 cifre a:
+      <div class="card" style="padding:1.2rem">
+        <div style="position:relative;height:220px">
+          <canvas id="paymentChartProfilo"></canvas>
         </div>
-        <div class="otp-info-email" id="otpEmailDisplay"></div>
+        <div
+          style="display:flex;gap:1rem;margin-top:0.6rem;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted)">
+          <span><span
+              style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e8ff00;margin-right:4px"></span>Vittoria
+            (€0)</span>
+          <span><span
+              style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#666680;margin-right:4px"></span>Pareggio</span>
+          <span><span
+              style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff3cac;margin-right:4px"></span>Sconfitta</span>
+        </div>
       </div>
+    </div>
 
-      <div id="otpError" class="login-error"></div>
-
-      <div class="otp-inputs-container">
-        <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+    <!-- STORICO SESSIONI -->
+    <div>
+      <div class="section-title">
+        <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
+        Storico Sessioni
       </div>
+      <div id="historyList"></div>
+    </div>
 
-      <div class="otp-timer-section">
-        <div class="otp-timer-label">Scade tra</div>
-        <div id="otpTimer" class="otp-timer">--:--</div>
-      </div>
+  </main>
 
-      <button id="btnOTPSubmit" class="login-btn" onclick="submitOTP()">
-        Verifica
-      </button>
+  <footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
 
-      <div class="otp-resend-section">
-        <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
-          Rinvia codice
+  <!-- ══ LOGIN MODAL WITH OTP ══ -->
+  <div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
+    <div class="login-modal">
+
+      <!-- STEP 1: Email + Password -->
+      <div id="loginStep1" class="login-step" style="display: block;">
+        <div class="login-modal-header">
+          <div class="login-modal-title">🎳 ACCEDI</div>
+          <div class="login-modal-subtitle">Bowling Tracker</div>
+        </div>
+
+        <div id="loginError" class="login-error"></div>
+
+        <div class="login-form-group">
+          <label class="login-form-label" for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" class="login-form-input" placeholder="tua-email@example.com"
+            autocomplete="email" />
+        </div>
+
+        <div class="login-form-group">
+          <label class="login-form-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="login-form-input" placeholder="••••••••••••"
+            autocomplete="current-password" />
+        </div>
+
+        <button id="btnLoginSubmit" class="login-btn" onclick="submitLogin()">
+          Continua
+        </button>
+
+        <button class="login-btn-secondary" onclick="closeLoginModal()">
+          Annulla
         </button>
       </div>
 
-      <button class="otp-back-btn" onclick="goBackToStep1()">
-        ← Torna indietro
+      <!-- STEP 2: OTP Code -->
+      <div id="loginStep2" class="login-step">
+        <div class="login-modal-header">
+          <div class="login-modal-title">📧 CODICE OTP</div>
+          <div class="login-modal-subtitle">Verifica Sicurezza</div>
+        </div>
+
+        <div class="otp-info">
+          <div class="otp-info-text">
+            Abbiamo inviato un codice di 6 cifre a:
+          </div>
+          <div class="otp-info-email" id="otpEmailDisplay"></div>
+        </div>
+
+        <div id="otpError" class="login-error"></div>
+
+        <div class="otp-inputs-container">
+          <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        </div>
+
+        <div class="otp-timer-section">
+          <div class="otp-timer-label">Scade tra</div>
+          <div id="otpTimer" class="otp-timer">--:--</div>
+        </div>
+
+        <button id="btnOTPSubmit" class="login-btn" onclick="submitOTP()">
+          Verifica
+        </button>
+
+        <div class="otp-resend-section">
+          <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
+            Rinvia codice
+          </button>
+        </div>
+
+        <button class="otp-back-btn" onclick="goBackToStep1()">
+          ← Torna indietro
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ MODAL: NUOVA PARTITA ══ -->
+  <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🎳 Nuova Partita</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 100px 100px;gap:0.8rem">
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input type="date" class="form-input" id="sessionDate" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Luogo</label>
+            <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">N° Game</label>
+            <select class="form-input" id="numGames" onchange="buildGameRows()">
+              <option value="1">1 game</option>
+              <option value="2" selected>2 game</option>
+              <option value="3">3 game</option>
+              <option value="4">4 game</option>
+              <option value="5">5 game</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">€ / game</label>
+            <input type="number" class="form-input" id="sessionCost" placeholder="es. 4" min="0" step="0.5" />
+          </div>
+        </div>
+        <!-- ══ MODALITÀ TUTTI CONTRO TUTTI ══ -->
+        <div
+          style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border:1px solid rgba(232,255,0,0.15);border-radius:6px;margin-bottom:0.8rem">
+          <input type="checkbox" id="ffaMode" onchange="setFFAMode(this.checked)"
+            style="width:16px;height:16px;accent-color:var(--neon);cursor:pointer" />
+          <label for="ffaMode"
+            style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--neon);cursor:pointer">🏆
+            Tutti contro tutti</label>
+          <span id="ffaNote"
+            style="display:none;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted)">— Il
+            primo non paga</span>
+        </div>
+        <div id="teamsSection">
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title team-a-title">⚡ Squadra A</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)"
+                id="totalA">Totale: 0</span>
+            </div>
+            <div class="team-section-body">
+              <div class="form-group">
+                <label class="form-label">Nome squadra</label>
+                <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini" />
+              </div>
+              <div id="teamARows"></div>
+              <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+            </div>
+          </div>
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title team-b-title">🔥 Squadra B</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)"
+                id="totalB">Totale: 0</span>
+            </div>
+            <div class="team-section-body">
+              <div class="form-group">
+                <label class="form-label">Nome squadra</label>
+                <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme" />
+              </div>
+              <div id="teamBRows"></div>
+              <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+            </div>
+          </div>
+        </div><!-- /teamsSection -->
+        <!-- ══ SEZIONE FFA ══ -->
+        <div id="ffaSection" style="display:none">
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title" style="color:var(--neon)">🏆 Tutti contro tutti</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo
+                non paga</span>
+            </div>
+            <div class="team-section-body">
+              <div id="ffaRows"></div>
+              <button class="btn-add-player" onclick="addFFARow()">+ Aggiungi giocatore</button>
+            </div>
+          </div>
+        </div><!-- /ffaSection -->
+        <div id="soloSection">
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)"
+                id="soloSectionNote">Giocatori extra — non partecipano alla sfida</span>
+            </div>
+            <div class="team-section-body">
+              <div id="soloRows"></div>
+              <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
+            </div>
+          </div>
+        </div><!-- /soloSection -->
+        <div class="form-group">
+          <label class="form-label">Note (opzionale)</label>
+          <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+        <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
+  <div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="gModalTitle">➕ Nuovo Giocatore</div>
+        <button class="modal-close" onclick="closeGModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Avatar</label>
+          <div class="emoji-grid" id="emojiGrid"></div>
+          <input type="hidden" id="selectedEmoji" value="🎳" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome *</label>
+          <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Soprannome</label>
+          <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeGModal()">Annulla</button>
+        <button class="btn-primary" id="btnSavePlayer" onclick="savePlayer()">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/modal-giocatore.js"></script>
+  <script src="../assets/js/modal-nuova-partita.js"></script>
+  <script src="../assets/js/screenshot.js"></script>
+  <script src="../assets/js/profilo.js"></script>
+
+  <!-- ══ MODAL: CAMBIO PASSWORD ══ -->
+  <div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
+    <div class="login-modal">
+      <div class="login-modal-header">
+        <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
+        <div class="login-modal-subtitle">Modifica le tue credenziali</div>
+        <button class="modal-close" onclick="closeChangePasswordModal()"
+          style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div id="changePasswordError" class="login-error"></div>
+      <div id="changePasswordSuccess" class="login-error"
+        style="background: rgba(232,255,0,0.1); border-color: var(--neon); color: var(--neon); display: none;"></div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="currentPassword">Password Attuale</label>
+        <input type="password" id="currentPassword" class="login-form-input" placeholder="••••••••••••"
+          autocomplete="current-password" />
+      </div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="newPassword">Nuova Password</label>
+        <input type="password" id="newPassword" class="login-form-input" placeholder="Minimo 8 caratteri"
+          autocomplete="new-password" minlength="8" />
+      </div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="confirmNewPassword">Conferma Nuova Password</label>
+        <input type="password" id="confirmNewPassword" class="login-form-input" placeholder="Ripeti la nuova password"
+          autocomplete="new-password" />
+      </div>
+
+      <button id="btnChangePassword" class="login-btn" onclick="submitChangePassword()">
+        Cambia Password
+      </button>
+
+      <button class="login-btn-secondary" onclick="closeChangePasswordModal()">
+        Annulla
       </button>
     </div>
-
   </div>
-</div>
 
-<!-- ══ MODAL: NUOVA PARTITA ══ -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">🎳 Nuova Partita</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr 100px 100px;gap:0.8rem">
-        <div class="form-group">
-          <label class="form-label">Data</label>
-          <input type="date" class="form-input" id="sessionDate"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Luogo</label>
-          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">N° Game</label>
-          <select class="form-input" id="numGames" onchange="buildGameRows()">
-            <option value="1">1 game</option>
-            <option value="2" selected>2 game</option>
-            <option value="3">3 game</option>
-            <option value="4">4 game</option>
-            <option value="5">5 game</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">€ / game</label>
-          <input type="number" class="form-input" id="sessionCost" placeholder="es. 4" min="0" step="0.5"/>
-        </div>
-      </div>
-      <!-- ══ MODALITÀ TUTTI CONTRO TUTTI ══ -->
-      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border:1px solid rgba(232,255,0,0.15);border-radius:6px;margin-bottom:0.8rem">
-        <input type="checkbox" id="ffaMode" onchange="setFFAMode(this.checked)" style="width:16px;height:16px;accent-color:var(--neon);cursor:pointer"/>
-        <label for="ffaMode" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--neon);cursor:pointer">🏆 Tutti contro tutti</label>
-        <span id="ffaNote" style="display:none;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted)">— Il primo non paga</span>
-      </div>
-      <div id="teamsSection">
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title team-a-title">⚡ Squadra A</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
-        </div>
-        <div class="team-section-body">
-          <div class="form-group">
-            <label class="form-label">Nome squadra</label>
-            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
-          </div>
-          <div id="teamARows"></div>
-          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
-        </div>
-      </div>
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title team-b-title">🔥 Squadra B</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
-        </div>
-        <div class="team-section-body">
-          <div class="form-group">
-            <label class="form-label">Nome squadra</label>
-            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
-          </div>
-          <div id="teamBRows"></div>
-          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
-        </div>
-      </div>
-      </div><!-- /teamsSection -->
-      <!-- ══ SEZIONE FFA ══ -->
-      <div id="ffaSection" style="display:none">
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title" style="color:var(--neon)">🏆 Tutti contro tutti</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo non paga</span>
-        </div>
-        <div class="team-section-body">
-          <div id="ffaRows"></div>
-          <button class="btn-add-player" onclick="addFFARow()">+ Aggiungi giocatore</button>
-        </div>
-      </div>
-      </div><!-- /ffaSection -->
-      <div id="soloSection">
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)" id="soloSectionNote">Giocatori extra — non partecipano alla sfida</span>
-        </div>
-        <div class="team-section-body">
-          <div id="soloRows"></div>
-          <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
-        </div>
-      </div>
-      </div><!-- /soloSection -->
-      <div class="form-group">
-        <label class="form-label">Note (opzionale)</label>
-        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
-      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
-<div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="gModalTitle">➕ Nuovo Giocatore</div>
-      <button class="modal-close" onclick="closeGModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Avatar</label>
-        <div class="emoji-grid" id="emojiGrid"></div>
-        <input type="hidden" id="selectedEmoji" value="🎳"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nome *</label>
-        <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Soprannome</label>
-        <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50"/>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeGModal()">Annulla</button>
-      <button class="btn-primary" id="btnSavePlayer" onclick="savePlayer()">Salva</button>
-    </div>
-  </div>
-</div>
-
-<script src="../assets/js/auth.js"></script>
-<script src="../assets/js/modal-giocatore.js"></script>
-<script src="../assets/js/modal-nuova-partita.js"></script>
-<script src="../assets/js/screenshot.js"></script>
-<script src="../assets/js/profilo.js"></script>
-
-<!-- ══ MODAL: CAMBIO PASSWORD ══ -->
-<div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
-  <div class="login-modal">
-    <div class="login-modal-header">
-      <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
-      <div class="login-modal-subtitle">Modifica le tue credenziali</div>
-      <button class="modal-close" onclick="closeChangePasswordModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
-    </div>
-
-    <div id="changePasswordError" class="login-error"></div>
-    <div id="changePasswordSuccess" class="login-error" style="background: rgba(232,255,0,0.1); border-color: var(--neon); color: var(--neon); display: none;"></div>
-
-    <div class="login-form-group">
-      <label class="login-form-label" for="currentPassword">Password Attuale</label>
-      <input 
-        type="password" 
-        id="currentPassword" 
-        class="login-form-input" 
-        placeholder="••••••••••••"
-        autocomplete="current-password"
-      />
-    </div>
-
-    <div class="login-form-group">
-      <label class="login-form-label" for="newPassword">Nuova Password</label>
-      <input 
-        type="password" 
-        id="newPassword" 
-        class="login-form-input" 
-        placeholder="Minimo 8 caratteri"
-        autocomplete="new-password"
-        minlength="8"
-      />
-    </div>
-
-    <div class="login-form-group">
-      <label class="login-form-label" for="confirmNewPassword">Conferma Nuova Password</label>
-      <input 
-        type="password" 
-        id="confirmNewPassword" 
-        class="login-form-input" 
-        placeholder="Ripeti la nuova password"
-        autocomplete="new-password"
-      />
-    </div>
-
-    <button id="btnChangePassword" class="login-btn" onclick="submitChangePassword()">
-      Cambia Password
-    </button>
-
-    <button class="login-btn-secondary" onclick="closeChangePasswordModal()">
-      Annulla
-    </button>
-  </div>
-</div>
-
-<script src="../assets/js/change-password.js"></script>
+  <script src="../assets/js/change-password.js"></script>
 
 </body>
+
 </html>

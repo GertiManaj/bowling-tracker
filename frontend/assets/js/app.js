@@ -27,10 +27,10 @@ async function loadStats() {
   try {
     const data = await fetch(`${API}/stats.php`).then(r => r.json());
 
-    document.getElementById('stat-sessioni').textContent     = data.totale_sessioni ?? '—';
+    document.getElementById('stat-sessioni').textContent = data.totale_sessioni ?? '—';
     document.getElementById('stat-sessioni-sub').textContent = "dall'inizio";
-    document.getElementById('stat-record').textContent       = data.record_assoluto ?? '—';
-    document.getElementById('stat-media').textContent        = data.media_gruppo ?? '—';
+    document.getElementById('stat-record').textContent = data.record_assoluto ?? '—';
+    document.getElementById('stat-media').textContent = data.media_gruppo ?? '—';
 
     if (data.record_holder) {
       document.getElementById('stat-record-sub').textContent =
@@ -52,8 +52,8 @@ async function loadStats() {
 
 let leaderboardMode = 'all'; // 'all' | 'last'
 window.leaderboardMode = 'all'; // sincronizza subito su window
-let cachedPlayers   = [];
-let cachedSessions  = [];
+let cachedPlayers = [];
+let cachedSessions = [];
 
 function setLeaderboardMode(mode, btn) {
   leaderboardMode = mode;
@@ -61,15 +61,15 @@ function setLeaderboardMode(mode, btn) {
   // Reset tutti i toggle
   document.querySelectorAll('.lb-toggle-btn').forEach(b => {
     b.classList.remove('active');
-    b.style.background   = 'none';
-    b.style.borderColor  = 'var(--border)';
-    b.style.color        = 'var(--text-muted)';
+    b.style.background = 'none';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--text-muted)';
   });
   // Attiva quello cliccato
   btn.classList.add('active');
-  btn.style.background  = 'rgba(232,255,0,0.08)';
+  btn.style.background = 'rgba(232,255,0,0.08)';
   btn.style.borderColor = 'rgba(232,255,0,0.4)';
-  btn.style.color       = 'var(--neon)';
+  btn.style.color = 'var(--neon)';
   renderLeaderboard();
 
   // Aggiorna testo bottone salva foto
@@ -99,30 +99,30 @@ function renderLeaderboard() {
 
 // ── ORDINAMENTO CLASSIFICA ───────────────────
 let lbSortField = 'media';
-let lbSortDir   = 'desc';
+let lbSortDir = 'desc';
 
 function sortLeaderboard(field) {
   if (lbSortField === field) {
     lbSortDir = lbSortDir === 'desc' ? 'asc' : 'desc';
   } else {
     lbSortField = field;
-    lbSortDir   = 'desc';
+    lbSortDir = 'desc';
   }
   renderAllTimeLeaderboard();
 }
 
 function getLbValue(p, field) {
-  if (field === 'media')      return parseFloat(p.media)      || 0;
-  if (field === 'record')     return parseInt(p.record)       || 0;
-  if (field === 'partite')    return parseInt(p.partite)      || 0;
+  if (field === 'media') return parseFloat(p.media) || 0;
+  if (field === 'record') return parseInt(p.record) || 0;
+  if (field === 'partite') return parseInt(p.partite) || 0;
   if (field === 'win_pct') {
-    const scs  = parseInt(p.serate_con_squadra) || 0;
+    const scs = parseInt(p.serate_con_squadra) || 0;
     const vitt = parseInt(p.vittorie_squadra) || 0;
     return scs > 0 ? Math.round(vitt / scs * 100) : 0;
   }
   if (field === 'top_scorer') return parseInt(p.volte_top_scorer) || 0;
-  if (field === 'forma')      return (p.ultimi_risultati || []).filter(r => r === 'V').length;
-  if (field === 'saldo')      return p.saldo_pagamenti != null ? parseFloat(p.saldo_pagamenti) : -1;
+  if (field === 'forma') return (p.ultimi_risultati || []).filter(r => r === 'V').length;
+  if (field === 'saldo') return p.saldo_pagamenti != null ? parseFloat(p.saldo_pagamenti) : -1;
   return 0;
 }
 
@@ -170,32 +170,32 @@ function renderAllTimeLeaderboard() {
     <div ${hStyle('saldo')}>💶 ${arrow('saldo')}</div>`;
   document.getElementById('lb-header').style.gridTemplateColumns = cols;
 
-  const maxM    = sorted.length ? Math.max(...sorted.map(p => parseFloat(p.media) || 0)) : 1;
-  const medals  = ['🥇','🥈','🥉'];
-  const mColors = ['var(--gold)','var(--silver)','var(--bronze)'];
-  const bColors = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
+  const maxM = sorted.length ? Math.max(...sorted.map(p => parseFloat(p.media) || 0)) : 1;
+  const medals = ['🥇', '🥈', '🥉'];
+  const mColors = ['var(--gold)', 'var(--silver)', 'var(--bronze)'];
+  const bColors = ['var(--neon)', 'var(--neon3)', 'var(--neon4)', 'var(--neon2)'];
 
   let html = '';
   sorted.forEach((p, i) => {
-    const bc    = bColors[i % bColors.length];
-    const pct   = maxM > 0 ? Math.round(parseFloat(p.media) / maxM * 100) : 0;
+    const bc = bColors[i % bColors.length];
+    const pct = maxM > 0 ? Math.round(parseFloat(p.media) / maxM * 100) : 0;
     const delay = (i * 0.07).toFixed(2);
     const rankEl = i < 3
       ? `<div class="rank" style="color:${mColors[i]};text-shadow:0 0 10px ${mColors[i]}88">${medals[i]}</div>`
-      : `<div class="rank-other">${i+1}</div>`;
+      : `<div class="rank-other">${i + 1}</div>`;
 
-    const nc = i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text)';
+    const nc = i === 0 ? 'var(--gold)' : i === 1 ? 'var(--silver)' : i === 2 ? 'var(--bronze)' : 'var(--text)';
 
     // Calcola valori colonne
-    const serate           = parseInt(p.partite) || 0;
-    const sfide            = parseInt(p.sfide) || 0;
-    const vittorie         = parseInt(p.vittorie_squadra) || 0;
-    const pareggi          = parseInt(p.pareggi_squadra) || 0;
+    const serate = parseInt(p.partite) || 0;
+    const sfide = parseInt(p.sfide) || 0;
+    const vittorie = parseInt(p.vittorie_squadra) || 0;
+    const pareggi = parseInt(p.pareggi_squadra) || 0;
     const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
-    const sconfitte        = serateConSquadra - vittorie - pareggi;
-    const totaleRisultati  = vittorie + pareggi + sconfitte;
-    const hasSfide         = totaleRisultati > 0;
-    const winPct           = hasSfide ? Math.round(vittorie / totaleRisultati * 100) : null;
+    const sconfitte = serateConSquadra - vittorie - pareggi;
+    const totaleRisultati = vittorie + pareggi + sconfitte;
+    const hasSfide = totaleRisultati > 0;
+    const winPct = hasSfide ? Math.round(vittorie / totaleRisultati * 100) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
     // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
@@ -227,21 +227,21 @@ function renderAllTimeLeaderboard() {
       <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:${cols}">
         ${rankEl}
         <div class="player-info">
-          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
+          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
           <div>
             <div class="player-name">${p.name}</div>
-            <div class="player-tag">${p.partite} serate · ${p.game_totali||0} game</div>
+            <div class="player-tag">${p.partite} serate · ${p.game_totali || 0} game</div>
           </div>
         </div>
-        <div class="stat-cell" style="${cellStyle('media') || 'color:'+nc}">
-          <strong>${p.media??'—'}</strong>
+        <div class="stat-cell" style="${cellStyle('media') || 'color:' + nc}">
+          <strong>${p.media ?? '—'}</strong>
           <div class="mini-bar-bg">
             <div class="mini-bar-fill" style="width:0%;background:${bc};box-shadow:0 0 6px ${bc}" data-w="${pct}%"></div>
           </div>
         </div>
-        <div class="stat-cell best" style="${cellStyle('record')}">${p.record??'—'}</div>
+        <div class="stat-cell best" style="${cellStyle('record')}">${p.record ?? '—'}</div>
         <div class="stat-cell col-partite" style="${cellStyle('partite')}">${sfide > 0 ? sfide : '—'}</div>
-        <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct+'%' : '—'}</div>
+        <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct + '%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
         <div class="stat-cell" style="${cellStyle('saldo') || (p.saldo_pagamenti === 0 ? 'color:var(--neon)' : p.saldo_pagamenti > 0 ? 'color:var(--neon2)' : '')}">
@@ -256,7 +256,7 @@ function renderAllTimeLeaderboard() {
       <div class="leaderboard-row" style="grid-template-columns:${cols};opacity:0.4">
         <div class="rank-other">—</div>
         <div class="player-info">
-          <div class="avatar" style="border-color:var(--border)">${p.emoji||'🎳'}</div>
+          <div class="avatar" style="border-color:var(--border)">${p.emoji || '🎳'}</div>
           <div>
             <div class="player-name">${p.name}</div>
             <div class="player-tag">0 serate · 0 game</div>
@@ -305,10 +305,10 @@ function renderLastSessionLeaderboard() {
   }
 
   const lastSession = sessions[0];
-  const scores      = lastSession.scores || [];
-  const teams       = lastSession.teams  || [];
-  const isFFA       = lastSession.mode === 'ffa';
-  const numGames    = scores.length ? Math.max(...scores.map(s => s.game_number||1)) : 1;
+  const scores = lastSession.scores || [];
+  const teams = lastSession.teams || [];
+  const isFFA = lastSession.mode === 'ffa';
+  const numGames = scores.length ? Math.max(...scores.map(s => s.game_number || 1)) : 1;
 
   // Raggruppa per giocatore
   const byPlayer = {};
@@ -321,9 +321,9 @@ function renderLastSessionLeaderboard() {
     byPlayer[pname].games++;
   });
 
-  const sorted   = Object.values(byPlayer).sort((a,b) => b.total - a.total);
-  const medals   = ['🥇','🥈','🥉'];
-  const bColors  = ['var(--neon)','var(--neon3)','var(--neon4)','var(--neon2)'];
+  const sorted = Object.values(byPlayer).sort((a, b) => b.total - a.total);
+  const medals = ['🥇', '🥈', '🥉'];
+  const bColors = ['var(--neon)', 'var(--neon3)', 'var(--neon4)', 'var(--neon2)'];
 
   let winningTeam = null;
   let maxFFAScore = 0;
@@ -369,28 +369,28 @@ function renderLastSessionLeaderboard() {
 
   let html = '';
   sorted.forEach((p, i) => {
-    const bc      = bColors[i % bColors.length];
-    const delay   = (i * 0.07).toFixed(2);
-    const rankEl  = i < 3
-      ? `<div class="rank" style="color:${['var(--gold)','var(--silver)','var(--bronze)'][i]}">${medals[i]}</div>`
-      : `<div class="rank-other">${i+1}</div>`;
+    const bc = bColors[i % bColors.length];
+    const delay = (i * 0.07).toFixed(2);
+    const rankEl = i < 3
+      ? `<div class="rank" style="color:${['var(--gold)', 'var(--silver)', 'var(--bronze)'][i]}">${medals[i]}</div>`
+      : `<div class="rank-other">${i + 1}</div>`;
     const mediaGame = p.games > 0 ? (p.total / p.games).toFixed(1) : '—';
 
     let teamCell = '', resultCell = '';
 
     if (p.isSolo) {
-      teamCell   = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:var(--neon3)">Singolo</div>`;
+      teamCell = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:var(--neon3)">Singolo</div>`;
       resultCell = `<div class="stat-cell"><span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">fuori sfida</span></div>`;
     } else if (p.isFFA) {
       const isWinner = ffaWinnersN === 1 && p.total === maxFFAScore;
-      teamCell   = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:var(--neon)">🏆 FFA</div>`;
+      teamCell = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:var(--neon)">🏆 FFA</div>`;
       resultCell = `<div class="stat-cell"><span class="team-tag ${isWinner ? 'win' : 'lose'}" style="font-size:0.65rem">${isWinner ? '1° 🏆' : 'PAGA'}</span></div>`;
     } else {
-      const isWin  = winningTeam !== null && p.team === winningTeam;
+      const isWin = winningTeam !== null && p.team === winningTeam;
       const isDraw = winningTeam === null && p.team;
-      const tag    = isWin ? 'WIN' : isDraw ? 'PARI' : 'LOSE';
-      const cls    = isWin ? 'win' : isDraw ? 'draw' : 'lose';
-      teamCell   = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:${isWin?'var(--neon)':'var(--neon2)'}">${p.team||'—'}</div>`;
+      const tag = isWin ? 'WIN' : isDraw ? 'PARI' : 'LOSE';
+      const cls = isWin ? 'win' : isDraw ? 'draw' : 'lose';
+      teamCell = `<div class="stat-cell col-partite" style="font-size:0.75rem;color:${isWin ? 'var(--neon)' : 'var(--neon2)'}">${p.team || '—'}</div>`;
       resultCell = `<div class="stat-cell"><span class="team-tag ${cls}" style="font-size:0.65rem">${tag}</span></div>`;
     }
 
@@ -398,13 +398,13 @@ function renderLastSessionLeaderboard() {
       <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:48px 1fr 90px 90px 100px 90px">
         ${rankEl}
         <div class="player-info">
-          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji||'🎳'}</div>
+          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
           <div>
             <div class="player-name">${p.name}</div>
             <div class="player-tag">${numGames} game</div>
           </div>
         </div>
-        <div class="stat-cell" style="color:${i===0?'var(--gold)':'var(--text)'}"><strong>${p.total}</strong></div>
+        <div class="stat-cell" style="color:${i === 0 ? 'var(--gold)' : 'var(--text)'}"><strong>${p.total}</strong></div>
         <div class="stat-cell" style="color:var(--neon3)">${mediaGame}</div>
         ${teamCell}
         ${resultCell}
@@ -424,7 +424,7 @@ async function loadSessions() {
     // Lista ultime 5
     let html = '';
     sessions.slice(0, 5).forEach(s => {
-      const sc    = s.scores || [];
+      const sc = s.scores || [];
       const names = [...new Set(sc.map(x => x.player_name))].join(' · ');
 
       // Calcola totale per giocatore (somma tutti i game)
@@ -465,15 +465,15 @@ async function loadSessions() {
 }
 
 function renderLastSession(s) {
-  const teams    = s.teams  || [];
-  const scores   = s.scores || [];
-  const isFFA    = (s.mode === 'ffa');
+  const teams = s.teams || [];
+  const scores = s.scores || [];
+  const isFFA = (s.mode === 'ffa');
   const numGames = scores.length > 0 ? Math.max(...scores.map(sc => sc.game_number || 1)) : 1;
-  const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
+  const tColors = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
 
   const makeGamesHtml = (games) => numGames > 1
-    ? games.sort((a,b) => a.game - b.game).map(g =>
-        `<span style="font-size:0.68rem;color:var(--text-muted)">G${g.game}:${g.score}</span>`).join(' ')
+    ? games.sort((a, b) => a.game - b.game).map(g =>
+      `<span style="font-size:0.68rem;color:var(--text-muted)">G${g.game}:${g.score}</span>`).join(' ')
     : '';
 
   const makePlayerRow = (p, isTop, topColor) => `
@@ -481,7 +481,7 @@ function renderLastSession(s) {
       <span>${p.emoji || '🎳'} ${p.name}</span>
       <div style="display:flex;align-items:center;gap:0.5rem">
         ${makeGamesHtml(p.games) ? `<span style="font-family:'Share Tech Mono',monospace">${makeGamesHtml(p.games)}</span>` : ''}
-        <span class="team-player-score" style="${isTop ? 'color:'+topColor : ''}">${p.total}</span>
+        <span class="team-player-score" style="${isTop ? 'color:' + topColor : ''}">${p.total}</span>
       </div>
     </div>`;
 
@@ -497,8 +497,8 @@ function renderLastSession(s) {
       ffaByPlayer[pname].total += parseInt(sc.score) || 0;
       ffaByPlayer[pname].games.push({ game: sc.game_number || 1, score: sc.score });
     });
-    const ffaList  = Object.values(ffaByPlayer).sort((a,b) => b.total - a.total);
-    const maxFFA   = ffaList.length ? ffaList[0].total : 0;
+    const ffaList = Object.values(ffaByPlayer).sort((a, b) => b.total - a.total);
+    const maxFFA = ffaList.length ? ffaList[0].total : 0;
     const winnersN = ffaList.filter(p => p.total === maxFFA).length;
 
     const ffaRows = ffaList.map(p => {
@@ -525,7 +525,7 @@ function renderLastSession(s) {
     });
     scores.forEach(sc => {
       if (!sc.team_name || sc.team_name === '__FFA__' || !byTeam[sc.team_name]) return;
-      const team  = byTeam[sc.team_name];
+      const team = byTeam[sc.team_name];
       const pname = sc.player_name;
       if (!team.players[pname]) team.players[pname] = { name: pname, emoji: sc.emoji, total: 0, games: [] };
       team.players[pname].total += parseInt(sc.score) || 0;
@@ -535,27 +535,27 @@ function renderLastSession(s) {
       t.total = Object.values(t.players).reduce((s, p) => s + p.total, 0);
     });
     const teamList = Object.values(byTeam);
-    const maxT     = teamList.length ? Math.max(...teamList.map(t => t.total)) : 0;
+    const maxT = teamList.length ? Math.max(...teamList.map(t => t.total)) : 0;
     const drawCount = teamList.filter(t => t.total === maxT).length;
 
     teamList.forEach((t, i) => {
-      const win  = t.total === maxT && maxT > 0 && drawCount === 1;
+      const win = t.total === maxT && maxT > 0 && drawCount === 1;
       const draw = t.total === maxT && drawCount > 1;
-      const c    = tColors[i % tColors.length];
+      const c = tColors[i % tColors.length];
       const maxScore = Object.values(t.players).length
         ? Math.max(...Object.values(t.players).map(p => p.total)) : 0;
       const plHtml = Object.values(t.players).map(p =>
         makePlayerRow(p, p.total === maxScore, 'var(--gold)')
       ).join('');
-      const tag   = win ? 'VITTORIA' : draw ? 'PAREGGIO' : 'SCONFITTA';
-      const cls   = win ? 'win' : draw ? 'draw' : 'lose';
+      const tag = win ? 'VITTORIA' : draw ? 'PAREGGIO' : 'SCONFITTA';
+      const cls = win ? 'win' : draw ? 'draw' : 'lose';
       mainHtml += `
         <div class="team-block">
           <div class="team-header">
             <span class="team-name-lbl" style="color:${c}">${t.name}</span>
             <div style="display:flex;align-items:center;gap:0.5rem">
               <span class="team-tag ${cls}">${tag}</span>
-              <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${win?c:'var(--text-muted)'}">${t.total}</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${win ? c : 'var(--text-muted)'}">${t.total}</span>
             </div>
           </div>
           <div class="team-players">${plHtml}</div>
@@ -660,15 +660,15 @@ async function openModal() {
   }
 
   // Reset campi
-  document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('sessionLocation').value = '';
-  document.getElementById('sessionNotes').value    = '';
-  document.getElementById('teamAName').value       = '';
-  document.getElementById('teamBName').value       = '';
-  document.getElementById('numGames').value        = '2';
-  document.getElementById('totalA').textContent    = 'Totale: 0';
-  document.getElementById('totalB').textContent    = 'Totale: 0';
-  document.getElementById('soloRows').innerHTML    = '';
+  document.getElementById('sessionNotes').value = '';
+  document.getElementById('teamAName').value = '';
+  document.getElementById('teamBName').value = '';
+  document.getElementById('numGames').value = '2';
+  document.getElementById('totalA').textContent = 'Totale: 0';
+  document.getElementById('totalB').textContent = 'Totale: 0';
+  document.getElementById('soloRows').innerHTML = '';
 
   buildGameRows();
   document.getElementById('modalOverlay').classList.add('open');
@@ -703,14 +703,14 @@ function handleOverlayClick(e) {
 }
 
 function addPlayerRow(team, selectedId = null, numGames = null) {
-  const ng   = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
+  const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
   ).join('');
 
   // Crea input score per ogni game
-  const gameInputs = Array.from({length: ng}, (_, i) =>
-    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="calcTotals();validateScoreInput(this)"/>`
+  const gameInputs = Array.from({ length: ng }, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}" oninput="calcTotals();validateScoreInput(this)"/>`
   ).join('');
 
   const row = document.createElement('div');
@@ -727,12 +727,12 @@ function addPlayerRow(team, selectedId = null, numGames = null) {
 }
 
 function addSoloRow(selectedId = null, numGames = null) {
-  const ng   = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
+  const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
   ).join('');
-  const gameInputs = Array.from({length: ng}, (_, i) =>
-    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}"/>`
+  const gameInputs = Array.from({ length: ng }, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}"/>`
   ).join('');
 
   const row = document.createElement('div');
@@ -754,7 +754,7 @@ function getSoloPlayers() {
     if (!pid) return;
     row.querySelectorAll('.score-input').forEach(input => {
       const gameNum = parseInt(input.dataset.game);
-      const score   = input.value;
+      const score = input.value;
       if (score) solo.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
     });
   });
@@ -787,7 +787,7 @@ async function saveSession() {
   const numGames = parseInt(document.getElementById('numGames').value) || 1;
   const teams = [];
   ['A', 'B'].forEach(t => {
-    const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
+    const name = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
     const players = [];
     document.querySelectorAll(`#team${t}Rows .player-row`).forEach(row => {
       const pid = row.querySelector('select')?.value;
@@ -795,7 +795,7 @@ async function saveSession() {
       // Un record per ogni game
       row.querySelectorAll('.score-input').forEach(input => {
         const gameNum = parseInt(input.dataset.game);
-        const score   = input.value;
+        const score = input.value;
         if (score) players.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
       });
     });
@@ -843,13 +843,13 @@ async function saveSession() {
   }
 
   try {
-    const res  = await fetch(`${API}/sessions.php`, {
+    const res = await fetch(`${API}/sessions.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         date,
         location: document.getElementById('sessionLocation').value || 'Bowling',
-        notes:    document.getElementById('sessionNotes').value,
+        notes: document.getElementById('sessionNotes').value,
         teams,
         solo_players: getSoloPlayers()
       })
@@ -886,18 +886,18 @@ function renderCalendar() {
   const widget = document.getElementById('calendarWidget');
   if (!widget) return;
 
-  const sessions     = cachedSessions || [];
+  const sessions = cachedSessions || [];
   const sessionDates = {};
   sessions.forEach(s => { sessionDates[s.date] = s; });
 
-  const year        = calendarDate.getFullYear();
-  const month       = calendarDate.getMonth();
-  const monthName   = new Date(year, month, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-  const firstDay    = new Date(year, month, 1).getDay();
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const monthName = new Date(year, month, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today       = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  const dayHeaders  = ['L','M','M','G','V','S','D'];
+  const dayHeaders = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
 
   let html = `
     <div class="calendar-nav">
@@ -910,18 +910,18 @@ function renderCalendar() {
       ${Array(startOffset).fill('<div class="calendar-day empty"></div>').join('')}`;
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const pad      = String(d).padStart(2,'0');
-    const mPad     = String(month+1).padStart(2,'0');
-    const dateStr  = `${year}-${mPad}-${pad}`;
-    const hasSess  = sessionDates[dateStr];
-    const isToday  = dateStr === today;
+    const pad = String(d).padStart(2, '0');
+    const mPad = String(month + 1).padStart(2, '0');
+    const dateStr = `${year}-${mPad}-${pad}`;
+    const hasSess = sessionDates[dateStr];
+    const isToday = dateStr === today;
 
     let cls = 'calendar-day';
     if (hasSess) cls += ' has-session';
     if (isToday) cls += ' today';
 
     const onclick = hasSess ? `onclick="scrollToSession('${dateStr}')"` : '';
-    const title   = hasSess ? `title="${hasSess.location}"` : '';
+    const title = hasSess ? `title="${hasSess.location}"` : '';
 
     html += `<div class="${cls}" ${onclick} ${title}>${d}</div>`;
   }
@@ -942,7 +942,7 @@ function scrollToSession(dateStr) {
 // ── SUGGERITORE SQUADRE ──────────────────────
 
 let suggestSelected = new Set();
-let suggestLivelli  = {}; // { player_id: score_stimato } per nuovi giocatori
+let suggestLivelli = {}; // { player_id: score_stimato } per nuovi giocatori
 
 function clearSuggestSelection() {
   suggestSelected.clear();
@@ -959,9 +959,9 @@ function buildSuggestPlayers() {
 
   container.innerHTML = cachedPlayers.map(p => {
     const isSelected = suggestSelected.has(p.id);
-    const nPartite   = parseInt(p.partite) || 0;
-    const isNew      = nPartite === 0;
-    const badge      = nPartite > 0
+    const nPartite = parseInt(p.partite) || 0;
+    const isNew = nPartite === 0;
+    const badge = nPartite > 0
       ? `<span style="font-size:0.6rem;opacity:0.6">(${nPartite})</span>`
       : `<span style="font-size:0.6rem;background:var(--neon3);color:#000;border-radius:3px;padding:0 3px">🆕</span>`;
 
@@ -984,7 +984,7 @@ function buildSuggestPlayers() {
             cursor:pointer;letter-spacing:0.05em;
           ">
             <option value="">— Livello —</option>
-            <option value="80"  ${suggestLivelli[p.id] == 80  ? 'selected' : ''}>🟢 Principiante (~80)</option>
+            <option value="80"  ${suggestLivelli[p.id] == 80 ? 'selected' : ''}>🟢 Principiante (~80)</option>
             <option value="130" ${suggestLivelli[p.id] == 130 ? 'selected' : ''}>🟡 Medio (~130)</option>
             <option value="180" ${suggestLivelli[p.id] == 180 ? 'selected' : ''}>🔴 Esperto (~180)</option>
           </select>` : ''}
@@ -1020,40 +1020,39 @@ async function suggestTeams() {
   }
 
   const btn = document.getElementById('btnSuggest');
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = '⏳ Calcolo in corso...';
 
   try {
     const payload = { player_ids: [...suggestSelected], livelli: suggestLivelli };
-    const res  = await fetch(`${API}/suggest.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-    const data = await res.json();
+    const res = await authFetch(`${API}/suggest.php`, { method: 'POST', body: JSON.stringify(payload) }); const data = await res.json();
     if (data.error) { showToast(data.error, 'error'); return; }
-    window._lastSuggestData  = data.proposal1;
+    window._lastSuggestData = data.proposal1;
     window._lastSuggestData2 = data.proposal2;
     renderSuggestResult(data.proposal1, data.proposal2);
-  } catch(e) {
+  } catch (e) {
     showToast('Errore nel calcolo', 'error');
   }
 
-  btn.disabled    = false;
+  btn.disabled = false;
   btn.textContent = `🎯 Suggerisci squadre (${suggestSelected.size} giocatori)`;
 }
 
 function renderSuggestResult(data1, data2) {
   const dot = r => {
-    if (r==='V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#22c55e;color:#000;font-size:0.38rem;font-weight:700">V</span>';
-    if (r==='P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.38rem;font-weight:700">P</span>';
+    if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#22c55e;color:#000;font-size:0.38rem;font-weight:700">V</span>';
+    if (r === 'P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.38rem;font-weight:700">P</span>';
     return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#555570;color:#fff;font-size:0.38rem;font-weight:700">N</span>';
   };
   const emptyDot = '<span style="display:inline-flex;width:11px;height:11px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>';
 
   function playerLine(p) {
-    const cached    = (window.cachedPlayers || []).find(cp => cp.id === p.id);
+    const cached = (window.cachedPlayers || []).find(cp => cp.id === p.id);
     const risultati = cached?.ultimi_risultati || [];
-    const dots      = Array(Math.max(0,5-risultati.length)).fill(emptyDot).join('') + risultati.map(dot).join('');
-    const media     = p.livello_manuale ? `~${p.livello_manuale}` : (p.media_storica > 0 ? p.media_storica : '—');
+    const dots = Array(Math.max(0, 5 - risultati.length)).fill(emptyDot).join('') + risultati.map(dot).join('');
+    const media = p.livello_manuale ? `~${p.livello_manuale}` : (p.media_storica > 0 ? p.media_storica : '—');
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid var(--border)22;gap:0.3rem;min-width:0">
-      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${p.emoji||'🎳'} ${p.name}</div>
+      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${p.emoji || '🎳'} ${p.name}</div>
       <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0">
         <div style="display:flex;gap:1px">${dots}</div>
       </div>
@@ -1062,7 +1061,7 @@ function renderSuggestResult(data1, data2) {
 
   function proposalHtml(data, idx, label) {
     return `
-    <div class="suggest-proposal" id="proposal-${idx}" style="border:2px solid ${idx===1 ? 'var(--neon)' : 'var(--border)'};border-radius:8px;cursor:pointer;transition:border-color 0.2s" onclick="selectProposal(${idx})">
+    <div class="suggest-proposal" id="proposal-${idx}" style="border:2px solid ${idx === 1 ? 'var(--neon)' : 'var(--border)'};border-radius:8px;cursor:pointer;transition:border-color 0.2s" onclick="selectProposal(${idx})">
       <div style="background:var(--surface2);padding:0.35rem 0.6rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);letter-spacing:0.1em">${label}</span>
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:${data.diff < 20 ? 'var(--neon)' : 'var(--neon4)'}">Δ ${data.diff}</span>

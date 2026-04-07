@@ -3,30 +3,30 @@
 // ============================================
 
 const TICKETS_API = '/api/tickets.php';
-let allTickets    = [];
+let allTickets = [];
 let currentFilter = 'all';
-let replyingId    = null;
+let replyingId = null;
 
 const STATUS_LABEL = {
-  open:        '🔴 Aperto',
+  open: '🔴 Aperto',
   in_progress: '🟡 In lavorazione',
-  resolved:    '🟢 Risolto',
-  rejected:    '⚫ Rifiutato',
+  resolved: '🟢 Risolto',
+  rejected: '⚫ Rifiutato',
 };
 const STATUS_COLOR = {
-  open:        '#ff3cac',
+  open: '#ff3cac',
   in_progress: '#f59e0b',
-  resolved:    '#e8ff00',
-  rejected:    '#666680',
+  resolved: '#e8ff00',
+  rejected: '#666680',
 };
 const TYPE_LABEL = {
-  bug:        '🐛 Bug',
-  feature:    '✨ Feature',
+  bug: '🐛 Bug',
+  feature: '✨ Feature',
   correction: '✏️ Correzione',
 };
 
 // ── INIT ─────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   setTimeout(initTicketsPage, 400);
 });
 
@@ -54,7 +54,7 @@ async function submitNewTicket() {
   btn.disabled = true; btn.textContent = 'Invio...';
 
   try {
-    const res  = await fetch(TICKETS_API, {
+    const res = await fetch(TICKETS_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, name, description: desc })
@@ -69,7 +69,7 @@ async function submitNewTicket() {
     } else {
       showToast(data.error || 'Errore', 'error');
     }
-  } catch(e) { showToast('Errore di connessione', 'error'); }
+  } catch (e) { showToast('Errore di connessione', 'error'); }
 
   btn.disabled = false; btn.textContent = '🎫 Invia';
 }
@@ -89,19 +89,19 @@ function hideTicketConfirm() {
 // ── CERCA TICKET PER NUMERO ───────────────────
 async function searchTicket() {
   const val = document.getElementById('searchTicketId').value.trim().replace('#', '');
-  const id  = parseInt(val);
+  const id = parseInt(val);
   if (!id) { showToast('Inserisci un numero valido', 'error'); return; }
 
   try {
     const data = await fetch(`${TICKETS_API}?id=${id}`).then(r => r.json());
     if (data.error) { showToast('Ticket #' + id + ' non trovato', 'error'); return; }
     renderSingleTicket(data);
-  } catch(e) { showToast('Errore di connessione', 'error'); }
+  } catch (e) { showToast('Errore di connessione', 'error'); }
 }
 
 function renderSingleTicket(t) {
-  const sc   = STATUS_COLOR[t.status] || '#666680';
-  const date = new Date(t.created_at).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
+  const sc = STATUS_COLOR[t.status] || '#666680';
+  const date = new Date(t.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
   const replyHtml = t.reply ? `
     <div style="margin-top:0.7rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border-left:3px solid #e8ff00;border-radius:0 4px 4px 0">
       <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#e8ff00;letter-spacing:0.1em;margin-bottom:0.2rem">RISPOSTA ADMIN</div>
@@ -115,8 +115,8 @@ function renderSingleTicket(t) {
     <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${sc};border-radius:8px;padding:1rem 1.2rem;margin-top:1rem">
       <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)">#${t.id}</span>
-        <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;background:var(--surface2);padding:0.15rem 0.4rem;border-radius:3px">${TYPE_LABEL[t.type]||t.type}</span>
-        <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:${sc}">${STATUS_LABEL[t.status]||t.status}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;background:var(--surface2);padding:0.15rem 0.4rem;border-radius:3px">${TYPE_LABEL[t.type] || t.type}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:${sc}">${STATUS_LABEL[t.status] || t.status}</span>
         ${t.name ? `<span style="font-size:0.8rem;color:var(--text-muted)">da <strong style="color:var(--text)">${t.name}</strong></span>` : ''}
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);margin-left:auto">${date}</span>
       </div>
@@ -131,7 +131,7 @@ async function loadAllTickets() {
     const data = await fetch(TICKETS_API).then(r => r.json());
     allTickets = data.tickets || [];
     renderAdminTickets();
-  } catch(e) {
+  } catch (e) {
     document.getElementById('adminTicketsList').innerHTML =
       '<div style="padding:2rem;text-align:center;color:var(--neon2)">Errore nel caricamento</div>';
   }
@@ -156,8 +156,8 @@ function renderAdminTickets() {
   }
 
   container.innerHTML = filtered.map(t => {
-    const sc   = STATUS_COLOR[t.status] || '#666680';
-    const date = new Date(t.created_at).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
+    const sc = STATUS_COLOR[t.status] || '#666680';
+    const date = new Date(t.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
     const replyHtml = t.reply ? `
       <div style="margin-top:0.6rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border-left:3px solid #e8ff00;border-radius:0 4px 4px 0">
         <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#e8ff00;letter-spacing:0.1em;margin-bottom:0.2rem">TUA RISPOSTA</div>
@@ -168,8 +168,8 @@ function renderAdminTickets() {
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
             <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted)">#${t.id}</span>
-            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;background:var(--surface2);padding:0.15rem 0.4rem;border-radius:3px">${TYPE_LABEL[t.type]||t.type}</span>
-            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:${sc}">${STATUS_LABEL[t.status]||t.status}</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;background:var(--surface2);padding:0.15rem 0.4rem;border-radius:3px">${TYPE_LABEL[t.type] || t.type}</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:${sc}">${STATUS_LABEL[t.status] || t.status}</span>
             ${t.name ? `<span style="font-size:0.8rem;color:var(--text-muted)">da <strong style="color:var(--text)">${t.name}</strong></span>` : '<span style="font-size:0.75rem;color:var(--text-muted)">Anonimo</span>'}
           </div>
           <div style="display:flex;align-items:center;gap:0.6rem">
@@ -188,12 +188,12 @@ function openReplyModal(id) {
   const t = allTickets.find(x => x.id === id);
   if (!t) return;
   replyingId = id;
-  document.getElementById('replyModalTitle').textContent = `📝 Ticket #${id} — ${TYPE_LABEL[t.type]||t.type}`;
+  document.getElementById('replyModalTitle').textContent = `📝 Ticket #${id} — ${TYPE_LABEL[t.type] || t.type}`;
   document.getElementById('replyTicketInfo').innerHTML =
-    `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.3rem">${t.name ? 'Da: '+t.name : 'Anonimo'}</div>` +
+    `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.3rem">${t.name ? 'Da: ' + t.name : 'Anonimo'}</div>` +
     `<div style="font-size:0.88rem;line-height:1.5">${t.description}</div>`;
   document.getElementById('replyStatus').value = t.status;
-  document.getElementById('replyText').value   = t.reply || '';
+  document.getElementById('replyText').value = t.reply || '';
   document.getElementById('replyOverlay').classList.add('open');
 }
 
@@ -205,11 +205,10 @@ function closeReplyModal() {
 async function submitReply() {
   if (!replyingId) return;
   const status = document.getElementById('replyStatus').value;
-  const reply  = document.getElementById('replyText').value.trim();
+  const reply = document.getElementById('replyText').value.trim();
   try {
-    const res  = await fetch(TICKETS_API, {
+    const res = await authFetch(TICKETS_API, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: replyingId, status, reply })
     });
     const data = await res.json();
@@ -221,10 +220,10 @@ async function submitReply() {
     } else {
       showToast(data.error || 'Errore', 'error');
     }
-  } catch(e) { showToast('Errore di connessione', 'error'); }
+  } catch (e) { showToast('Errore di connessione', 'error'); }
 }
 
 // Enter per cercare
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
   if (e.key === 'Enter' && document.activeElement?.id === 'searchTicketId') searchTicket();
 });

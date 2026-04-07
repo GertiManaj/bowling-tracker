@@ -6,23 +6,23 @@
 
 // Colori accent ciclici per le card
 const CARD_COLORS = [
-  'var(--neon)',  'var(--neon3)', 'var(--neon4)',
-  'var(--neon2)', 'var(--gold)',  '#a78bfa',
-  '#34d399',     '#fb923c',      '#60a5fa'
+  'var(--neon)', 'var(--neon3)', 'var(--neon4)',
+  'var(--neon2)', 'var(--gold)', '#a78bfa',
+  '#34d399', '#fb923c', '#60a5fa'
 ];
 
 // Stato locale
 
 let currentSort = 'name';
-let editingId   = null;
-let deletingId  = null;
+let editingId = null;
+let deletingId = null;
 
 // ── UTILITY ──────────────────────────────────
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
-  t.className   = `toast ${type} show`;
+  t.className = `toast ${type} show`;
   setTimeout(() => t.className = 'toast', 3500);
 }
 
@@ -42,26 +42,26 @@ async function loadPlayers() {
 
 function updateHeroBar() {
   const withGames = allPlayers.filter(p => p.partite > 0);
-  const best      = withGames.reduce((a, b) => parseFloat(b.media) > parseFloat(a.media) ? b : a, withGames[0] || {});
-  const recordP   = withGames.reduce((a, b) => (b.record > a.record ? b : a), withGames[0] || {});
+  const best = withGames.reduce((a, b) => parseFloat(b.media) > parseFloat(a.media) ? b : a, withGames[0] || {});
+  const recordP = withGames.reduce((a, b) => (b.record > a.record ? b : a), withGames[0] || {});
   const totPartite = allPlayers.reduce((s, p) => s + parseInt(p.partite || 0), 0);
 
-  document.getElementById('stat-totali').textContent  = allPlayers.length;
+  document.getElementById('stat-totali').textContent = allPlayers.length;
   document.getElementById('stat-partite').textContent = totPartite;
 
   if (best?.media) {
-    document.getElementById('stat-best-avg').textContent      = best.media;
+    document.getElementById('stat-best-avg').textContent = best.media;
     document.getElementById('stat-best-avg-name').textContent = `${best.emoji || '🎳'} ${best.name}`;
   } else {
-    document.getElementById('stat-best-avg').textContent      = '—';
+    document.getElementById('stat-best-avg').textContent = '—';
     document.getElementById('stat-best-avg-name').textContent = 'nessuna partita';
   }
 
   if (recordP?.record) {
-    document.getElementById('stat-record').textContent      = recordP.record;
+    document.getElementById('stat-record').textContent = recordP.record;
     document.getElementById('stat-record-name').textContent = `${recordP.emoji || '🎳'} ${recordP.name}`;
   } else {
-    document.getElementById('stat-record').textContent      = '—';
+    document.getElementById('stat-record').textContent = '—';
     document.getElementById('stat-record-name').textContent = 'nessuna partita';
   }
 }
@@ -69,8 +69,8 @@ function updateHeroBar() {
 // ── RENDER GRIGLIA ───────────────────────────
 
 function renderPlayers() {
-  const query    = document.getElementById('searchInput').value.toLowerCase();
-  let   filtered = allPlayers.filter(p =>
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = allPlayers.filter(p =>
     p.name.toLowerCase().includes(query) ||
     (p.nickname || '').toLowerCase().includes(query)
   );
@@ -90,7 +90,7 @@ function renderPlayers() {
   }
 
   grid.innerHTML = filtered.map((p, i) => {
-    const color   = CARD_COLORS[i % CARD_COLORS.length];
+    const color = CARD_COLORS[i % CARD_COLORS.length];
     const hasData = parseInt(p.partite) > 0;
 
     const statsHtml = hasData ? `
@@ -134,9 +134,9 @@ function renderPlayers() {
 
 function sortPlayers(list, by) {
   return [...list].sort((a, b) => {
-    if (by === 'name')    return a.name.localeCompare(b.name);
-    if (by === 'media')   return (parseFloat(b.media) || 0) - (parseFloat(a.media) || 0);
-    if (by === 'record')  return (parseInt(b.record)  || 0) - (parseInt(a.record)  || 0);
+    if (by === 'name') return a.name.localeCompare(b.name);
+    if (by === 'media') return (parseFloat(b.media) || 0) - (parseFloat(a.media) || 0);
+    if (by === 'record') return (parseInt(b.record) || 0) - (parseInt(a.record) || 0);
     if (by === 'partite') return (parseInt(b.partite) || 0) - (parseInt(a.partite) || 0);
     return 0;
   });
@@ -175,13 +175,12 @@ async function confirmDelete() {
   if (!deletingId) return;
 
   const btn = document.getElementById('btnDelete');
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'Eliminazione...';
 
   try {
-    const res  = await fetch(`${API}/players.php`, {
+    const res = await authFetch(`${API}/players.php`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: deletingId })
     });
     const data = await res.json();
@@ -198,7 +197,7 @@ async function confirmDelete() {
     console.error(e);
   }
 
-  btn.disabled    = false;
+  btn.disabled = false;
   btn.textContent = 'Elimina';
 }
 

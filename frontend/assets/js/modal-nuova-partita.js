@@ -19,15 +19,15 @@ async function openModal() {
     allPlayers = [];
   }
 
-  document.getElementById('sessionDate').value     = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('sessionLocation').value = '';
-  document.getElementById('sessionNotes').value    = '';
-  document.getElementById('teamAName').value       = '';
-  document.getElementById('teamBName').value       = '';
-  document.getElementById('numGames').value        = '2';
-  document.getElementById('totalA').textContent    = 'Totale: 0';
-  document.getElementById('totalB').textContent    = 'Totale: 0';
-  document.getElementById('soloRows').innerHTML    = '';
+  document.getElementById('sessionNotes').value = '';
+  document.getElementById('teamAName').value = '';
+  document.getElementById('teamBName').value = '';
+  document.getElementById('numGames').value = '2';
+  document.getElementById('totalA').textContent = 'Totale: 0';
+  document.getElementById('totalB').textContent = 'Totale: 0';
+  document.getElementById('soloRows').innerHTML = '';
   const costEl = document.getElementById('sessionCost');
   if (costEl) costEl.value = '';
   const ffaRows = document.getElementById('ffaRows');
@@ -70,17 +70,17 @@ function closeModal() {
 
 // ── MODALITÀ TUTTI CONTRO TUTTI ──────────────
 function setFFAMode(active) {
-  const teamsSection   = document.getElementById('teamsSection');
-  const ffaSection     = document.getElementById('ffaSection');
-  const soloSection    = document.getElementById('soloSection');
-  const ffaNote        = document.getElementById('ffaNote');
-  const soloNote       = document.getElementById('soloSectionNote');
+  const teamsSection = document.getElementById('teamsSection');
+  const ffaSection = document.getElementById('ffaSection');
+  const soloSection = document.getElementById('soloSection');
+  const ffaNote = document.getElementById('ffaNote');
+  const soloNote = document.getElementById('soloSectionNote');
 
-  if (teamsSection) teamsSection.style.display = active ? 'none'   : 'block';
-  if (ffaSection)   ffaSection.style.display   = active ? 'block'  : 'none';
-  if (soloSection)  soloSection.style.display  = 'block'; // sempre visibile
-  if (ffaNote)      ffaNote.style.display      = active ? 'inline' : 'none';
-  if (soloNote)     soloNote.textContent       = active
+  if (teamsSection) teamsSection.style.display = active ? 'none' : 'block';
+  if (ffaSection) ffaSection.style.display = active ? 'block' : 'none';
+  if (soloSection) soloSection.style.display = 'block'; // sempre visibile
+  if (ffaNote) ffaNote.style.display = active ? 'inline' : 'none';
+  if (soloNote) soloNote.textContent = active
     ? 'Giocatori extra — non partecipano al FFA'
     : 'Giocatori extra — non partecipano alla sfida';
 
@@ -97,8 +97,8 @@ function addFFARow(selectedId = null, numGames = null) {
   const opts = allPlayers.map(p =>
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
   ).join('');
-  const gameInputs = Array.from({length: ng}, (_, i) =>
-    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="validateScoreInput(this)"/>`
+  const gameInputs = Array.from({ length: ng }, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}" oninput="validateScoreInput(this)"/>`
   ).join('');
 
   const row = document.createElement('div');
@@ -121,7 +121,7 @@ function getFFAPlayers() {
     if (!pid) return;
     row.querySelectorAll('.score-input').forEach(input => {
       const gameNum = parseInt(input.dataset.game);
-      const score   = input.value;
+      const score = input.value;
       if (score) ffa.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
     });
   });
@@ -139,8 +139,8 @@ function addPlayerRow(team, selectedId = null, numGames = null) {
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
   ).join('');
 
-  const gameInputs = Array.from({length: ng}, (_, i) =>
-    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}" oninput="calcTotals();validateScoreInput(this)"/>`
+  const gameInputs = Array.from({ length: ng }, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}" oninput="calcTotals();validateScoreInput(this)"/>`
   ).join('');
 
   const row = document.createElement('div');
@@ -162,8 +162,8 @@ function addSoloRow(selectedId = null, numGames = null) {
   const opts = allPlayers.map(p =>
     `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
   ).join('');
-  const gameInputs = Array.from({length: ng}, (_, i) =>
-    `<input type="number" class="form-input score-input" placeholder="G${i+1}" min="0" max="300" data-game="${i+1}"/>`
+  const gameInputs = Array.from({ length: ng }, (_, i) =>
+    `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}"/>`
   ).join('');
 
   const row = document.createElement('div');
@@ -186,7 +186,7 @@ function getSoloPlayers() {
     if (!pid) return;
     row.querySelectorAll('.score-input').forEach(input => {
       const gameNum = parseInt(input.dataset.game);
-      const score   = input.value;
+      const score = input.value;
       if (score) solo.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
     });
   });
@@ -235,22 +235,22 @@ async function saveSession() {
   const isFFA = document.getElementById('ffaMode')?.checked;
   const teams = [];
   if (!isFFA) ['A', 'B'].forEach(t => {
-    const name    = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
+    const name = document.getElementById(`team${t}Name`).value || `Squadra ${t}`;
     const players = [];
     document.querySelectorAll(`#team${t}Rows .player-row`).forEach(row => {
       const pid = row.querySelector('select')?.value;
       if (!pid) return;
       row.querySelectorAll('.score-input').forEach(input => {
         const gameNum = parseInt(input.dataset.game);
-        const score   = input.value;
+        const score = input.value;
         if (score) players.push({ player_id: parseInt(pid), score: parseInt(score), game_number: gameNum });
       });
     });
     if (players.length > 0) teams.push({ name, players });
   });
 
-  const ffaPlayers   = isFFA ? getFFAPlayers() : [];
-  const soloPlayers  = getSoloPlayers();
+  const ffaPlayers = isFFA ? getFFAPlayers() : [];
+  const soloPlayers = getSoloPlayers();
 
   // Validazione 0-300
   const allScoreInputs = document.querySelectorAll('#teamARows .score-input, #teamBRows .score-input, #ffaRows .score-input, #soloRows .score-input');
@@ -297,22 +297,21 @@ async function saveSession() {
     const payload = {
       date,
       location: document.getElementById('sessionLocation').value || 'Bowling',
-      notes:    document.getElementById('sessionNotes').value,
+      notes: document.getElementById('sessionNotes').value,
       cost_per_game: (() => {
         const v = document.getElementById('sessionCost')?.value;
         return (v !== '' && v != null) ? parseFloat(v) : null;
       })(),
       mode: isFFA ? 'ffa' : 'teams',
       teams,
-      ffa_players:  ffaPlayers,
+      ffa_players: ffaPlayers,
       solo_players: soloPlayers
     };
 
     if (sessionEditId) payload.id = sessionEditId;
 
-    const res = await fetch(`${API}/sessions.php`, {
-      method:  sessionEditId ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await authFetch(`${API}/sessions.php`, {
+      method: sessionEditId ? 'PUT' : 'POST',
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -323,12 +322,12 @@ async function saveSession() {
       // Resetta editingId se era una modifica
       if (typeof editingId !== 'undefined') editingId = null;
       // Ricarica dati della pagina corrente
-      if (typeof loadAll        === 'function') loadAll();
-      if (typeof loadSessions   === 'function') loadSessions();
-      if (typeof loadLeaderboard=== 'function') loadLeaderboard();
-      if (typeof loadStats      === 'function') loadStats();
-      if (typeof loadHof        === 'function') loadHof();
-      if (typeof loadPlayers    === 'function') loadPlayers();
+      if (typeof loadAll === 'function') loadAll();
+      if (typeof loadSessions === 'function') loadSessions();
+      if (typeof loadLeaderboard === 'function') loadLeaderboard();
+      if (typeof loadStats === 'function') loadStats();
+      if (typeof loadHof === 'function') loadHof();
+      if (typeof loadPlayers === 'function') loadPlayers();
     } else {
       showToast(data.error || 'Errore nel salvataggio', 'error');
     }

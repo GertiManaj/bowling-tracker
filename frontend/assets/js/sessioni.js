@@ -6,15 +6,15 @@
 
 let allSessions = [];
 
-let editingId   = null;
-let deletingId  = null;
+let editingId = null;
+let deletingId = null;
 
 // ── UTILITY ──────────────────────────────────
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
-  t.className   = `toast ${type} show`;
+  t.className = `toast ${type} show`;
   setTimeout(() => t.className = 'toast', 3500);
 }
 
@@ -54,15 +54,15 @@ async function loadAll() {
 
 function updateHeroBar() {
   const allScores = allSessions.flatMap(s => s.scores || []);
-  const total     = allSessions.length;
-  const media     = allScores.length
+  const total = allSessions.length;
+  const media = allScores.length
     ? (allScores.reduce((s, x) => s + parseInt(x.score), 0) / allScores.length).toFixed(1)
     : '—';
-  const best   = allScores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
+  const best = allScores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
   const ultima = allSessions[0];
 
   document.getElementById('stat-totali').textContent = total || '—';
-  document.getElementById('stat-media').textContent  = media;
+  document.getElementById('stat-media').textContent = media;
   document.getElementById('stat-record').textContent = best.score || '—';
 
   if (best.score) {
@@ -80,16 +80,16 @@ function updateHeroBar() {
 // ── RENDER LISTA ─────────────────────────────
 
 function renderSessions() {
-  const query      = document.getElementById('searchInput').value.toLowerCase();
+  const query = document.getElementById('searchInput').value.toLowerCase();
   const filterFrom = document.getElementById('filterFrom').value;
-  const filterTo   = document.getElementById('filterTo').value;
+  const filterTo = document.getElementById('filterTo').value;
 
   const filtered = allSessions.filter(s => {
-    const scores  = s.scores || [];
+    const scores = s.scores || [];
     const players = [...new Set(scores.map(x => x.player_name))].join(' ').toLowerCase();
-    const matchQ  = !query || s.location.toLowerCase().includes(query) || players.includes(query);
-    const matchF  = !filterFrom || s.date >= filterFrom;
-    const matchT  = !filterTo   || s.date <= filterTo;
+    const matchQ = !query || s.location.toLowerCase().includes(query) || players.includes(query);
+    const matchF = !filterFrom || s.date >= filterFrom;
+    const matchT = !filterTo || s.date <= filterTo;
     return matchQ && matchF && matchT;
   });
 
@@ -108,11 +108,11 @@ function renderSessions() {
   }
 
   document.getElementById('sessions-list').innerHTML = filtered.map((s, i) => {
-    const scores  = s.scores  || [];
-    const teams   = s.teams   || [];
+    const scores = s.scores || [];
+    const teams = s.teams || [];
     const players = [...new Set(scores.map(x => x.player_name))];
-    const best    = scores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
-    const delay   = (i * 0.04).toFixed(2);
+    const best = scores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
+    const delay = (i * 0.04).toFixed(2);
 
     // Modalità sessione
     const isFFA = (s.mode === 'ffa');
@@ -137,11 +137,11 @@ function renderSessions() {
 
     const teamList = Object.values(byTeam);
     const maxTotal = teamList.length ? Math.max(...teamList.map(t => t.total)) : 0;
-    const tColors  = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
+    const tColors = ['var(--neon)', 'var(--neon2)', 'var(--neon3)', 'var(--neon4)'];
 
     // ── Render squadre normali ──
     const teamsHtml = !isFFA ? teamList.map((t, ti) => {
-      const win   = t.total === maxTotal && maxTotal > 0 && teamList.filter(x => x.total === maxTotal).length === 1;
+      const win = t.total === maxTotal && maxTotal > 0 && teamList.filter(x => x.total === maxTotal).length === 1;
       const isDraw = teamList.filter(x => x.total === maxTotal).length > 1;
       const color = tColors[ti % tColors.length];
       const byPlayer = {};
@@ -157,9 +157,9 @@ function renderSessions() {
 
       const rows = Object.values(byPlayer).map(p => {
         const gamesHtml = p.games.length > 1
-          ? p.games.sort((a,b) => a.game - b.game).map(g =>
-              `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
-            ).join(' ')
+          ? p.games.sort((a, b) => a.game - b.game).map(g =>
+            `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
+          ).join(' ')
           : '';
         const isTop = p.total === maxPlayerScore;
         return `
@@ -173,8 +173,8 @@ function renderSessions() {
       }).join('');
 
       const tag = win ? '<span class="team-tag win">VITTORIA</span>'
-                : isDraw ? '<span class="team-tag draw">PAREGGIO</span>'
-                : '<span class="team-tag lose">SCONFITTA</span>';
+        : isDraw ? '<span class="team-tag draw">PAREGGIO</span>'
+          : '<span class="team-tag lose">SCONFITTA</span>';
 
       return `
         <div class="detail-team">
@@ -198,16 +198,16 @@ function renderSessions() {
         ffaByPlayer[sc.player_name].games.push({ game: sc.game_number || 1, score: sc.score });
         ffaByPlayer[sc.player_name].total += parseInt(sc.score) || 0;
       });
-      const ffaPlayers = Object.values(ffaByPlayer).sort((a,b) => b.total - a.total);
+      const ffaPlayers = Object.values(ffaByPlayer).sort((a, b) => b.total - a.total);
       const maxFFAScore = ffaPlayers.length ? ffaPlayers[0].total : 0;
       const winnersCount = ffaPlayers.filter(p => p.total === maxFFAScore).length;
 
       const ffaRows = ffaPlayers.map((p, idx) => {
         const isWinner = winnersCount === 1 && p.total === maxFFAScore;
         const gamesHtml = p.games.length > 1
-          ? p.games.sort((a,b) => a.game - b.game).map(g =>
-              `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
-            ).join(' ')
+          ? p.games.sort((a, b) => a.game - b.game).map(g =>
+            `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
+          ).join(' ')
           : '';
         return `
           <div class="detail-player-row">
@@ -241,9 +241,9 @@ function renderSessions() {
 
       const soloRows = Object.values(byPlayer).map(p => {
         const gamesHtml = p.games.length > 1
-          ? p.games.sort((a,b) => a.game - b.game).map(g =>
-              `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
-            ).join(' ')
+          ? p.games.sort((a, b) => a.game - b.game).map(g =>
+            `<span style="font-size:0.7rem;color:var(--text-muted)">G${g.game}:</span><span style="color:var(--neon3)">${g.score}</span>`
+          ).join(' ')
           : '';
         return `
           <div class="detail-player-row">
@@ -287,8 +287,8 @@ function renderSessions() {
         </div>
         <div class="session-card-detail">
           ${teamList.length || soloScores.length || ffaScores.length
-            ? `<div class="detail-teams">${isFFA ? ffaHtml : teamsHtml}${soloHtml}</div>`
-            : '<div style="color:var(--text-muted);font-size:0.8rem">Nessun punteggio registrato</div>'}
+        ? `<div class="detail-teams">${isFFA ? ffaHtml : teamsHtml}${soloHtml}</div>`
+        : '<div style="color:var(--text-muted);font-size:0.8rem">Nessun punteggio registrato</div>'}
           ${notesHtml}
           <div class="detail-actions action-btn-wrap">
             <button class="detail-action-btn edit"   onclick="openEditModal(${s.id})">✏ Modifica</button>
@@ -307,8 +307,8 @@ function filterSessions() { renderSessions(); }
 
 function resetFilters() {
   document.getElementById('searchInput').value = '';
-  document.getElementById('filterFrom').value  = '';
-  document.getElementById('filterTo').value    = '';
+  document.getElementById('filterFrom').value = '';
+  document.getElementById('filterTo').value = '';
   renderSessions();
 }
 
@@ -320,12 +320,12 @@ function openEditModal(id) {
 
   editingId = id;
   document.getElementById('modalTitle').textContent = '✏ Modifica Sessione';
-  document.getElementById('sessionDate').value      = s.date;
-  document.getElementById('sessionLocation').value  = s.location || '';
-  document.getElementById('sessionNotes').value     = s.notes    || '';
+  document.getElementById('sessionDate').value = s.date;
+  document.getElementById('sessionLocation').value = s.location || '';
+  document.getElementById('sessionNotes').value = s.notes || '';
   const costEl = document.getElementById('sessionCost');
   if (costEl) costEl.value = s.cost_per_game != null ? s.cost_per_game : '';
-  document.getElementById('btnSave').textContent    = 'Aggiorna';
+  document.getElementById('btnSave').textContent = 'Aggiorna';
 
   // Determina numGames dalla sessione (massimo game_number trovato)
   const allGameNums = (s.scores || []).map(sc => sc.game_number || 1);
@@ -334,11 +334,11 @@ function openEditModal(id) {
 
   document.getElementById('teamARows').innerHTML = '';
   document.getElementById('teamBRows').innerHTML = '';
-  document.getElementById('soloRows').innerHTML  = '';
-  document.getElementById('totalA').textContent  = 'Totale: 0';
-  document.getElementById('totalB').textContent  = 'Totale: 0';
+  document.getElementById('soloRows').innerHTML = '';
+  document.getElementById('totalA').textContent = 'Totale: 0';
+  document.getElementById('totalB').textContent = 'Totale: 0';
 
-  const teams  = s.teams  || [];
+  const teams = s.teams || [];
   const scores = s.scores || [];
 
   // Raggruppa scores per team_name, poi per player_id
@@ -368,7 +368,7 @@ function openEditModal(id) {
       // Precompila i punteggi nei campi appena creati
       const rows = document.querySelectorAll('#teamARows .player-row');
       const lastRow = rows[rows.length - 1];
-      p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+      p.games.sort((a, b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
         if (input) input.value = g.score;
       });
@@ -386,7 +386,7 @@ function openEditModal(id) {
       addPlayerRow('B', p.player_id, numGames);
       const rows = document.querySelectorAll('#teamBRows .player-row');
       const lastRow = rows[rows.length - 1];
-      p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+      p.games.sort((a, b) => a.game_number - b.game_number).forEach(g => {
         const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
         if (input) input.value = g.score;
       });
@@ -406,7 +406,7 @@ function openEditModal(id) {
     addSoloRow(p.player_id, numGames);
     const rows = document.querySelectorAll('#soloRows .solo-row');
     const lastRow = rows[rows.length - 1];
-    p.games.sort((a,b) => a.game_number - b.game_number).forEach(g => {
+    p.games.sort((a, b) => a.game_number - b.game_number).forEach(g => {
       const input = lastRow.querySelector(`.score-input[data-game="${g.game_number}"]`);
       if (input) input.value = g.score;
     });
@@ -435,14 +435,13 @@ function handleDeleteOverlayClick(e) {
 async function confirmDelete() {
   if (!deletingId) return;
   const btn = document.getElementById('btnDelete');
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'Eliminazione...';
 
   try {
-    const res  = await fetch(`${API}/sessions.php`, {
+    const res = await authFetch(`${API}/sessions.php`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: deletingId })
+      body: JSON.stringify({ id: deleteId })
     });
     const data = await res.json();
     if (data.success) {
@@ -456,7 +455,7 @@ async function confirmDelete() {
     showToast('Errore di connessione', 'error');
   }
 
-  btn.disabled    = false;
+  btn.disabled = false;
   btn.textContent = 'Elimina';
 }
 

@@ -1,550 +1,568 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#e8ff00"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Strike Zone"/>
-  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Strike Zone" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <title>🎳 Strike Zone — Statistiche</title>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../assets/css/style.css"/>
-  <link rel="stylesheet" href="../assets/css/statistiche.css?v=3"/>
-  <link rel="stylesheet" href="../assets/css/auth.css"/>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="stylesheet" href="../assets/css/statistiche.css?v=3" />
+  <link rel="stylesheet" href="../assets/css/auth.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="../assets/js/shared.js"></script>
+  <script src="../assets/js/auth-fetch.js"></script> <!-- ← NUOVO -->
+  <script src="../assets/js/header.js"></script>
 </head>
+
 <body>
 
-<div id="app-header" data-active="statistiche"></div>
-<script src="../assets/js/header.js"></script>
+  <div id="app-header" data-active="statistiche"></div>
+  <script src="../assets/js/header.js"></script>
 
-<!-- ══ HERO BAR ══ -->
-<div class="hero-bar">
-  <div class="hero-bar-inner">
-    <div class="hero-stat">
-      <div class="hero-stat-label">Sessioni nel periodo</div>
-      <div class="hero-stat-value neon" id="stat-sessioni">—</div>
-      <div class="hero-stat-sub">totale</div>
-    </div>
-    <div class="hero-stat">
-      <div class="hero-stat-label">Record assoluto</div>
-      <div class="hero-stat-value pink" id="stat-record">—</div>
-      <div class="hero-stat-sub" id="stat-record-sub">—</div>
-    </div>
-    <div class="hero-stat">
-      <div class="hero-stat-label">Media del gruppo</div>
-      <div class="hero-stat-value cyan" id="stat-media">—</div>
-      <div class="hero-stat-sub">tutti i punteggi</div>
-    </div>
-    <div class="hero-stat">
-      <div class="hero-stat-label">Ultima sessione</div>
-      <div class="hero-stat-value orange" id="stat-ultima">—</div>
-      <div class="hero-stat-sub" id="stat-ultima-sub">—</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MAIN ══ -->
-<main class="main-stats">
-
-  <!-- ── FILTRO PERIODO ── -->
-  <div class="period-bar">
-    <span class="period-label">Periodo:</span>
-    <div class="period-btns">
-      <button class="period-btn" onclick="setPeriod('month')">Ultimo mese</button>
-      <button class="period-btn" onclick="setPeriod('3months')">3 mesi</button>
-      <button class="period-btn" onclick="setPeriod('year')">Anno</button>
-      <button class="period-btn active" onclick="setPeriod('all')">Tutto</button>
-    </div>
-    <div class="period-custom">
-      <input type="date" class="form-input period-input" id="periodFrom" onchange="applyCustomPeriod()"/>
-      <span style="color:var(--text-muted);font-size:0.8rem">→</span>
-      <input type="date" class="form-input period-input" id="periodTo" onchange="applyCustomPeriod()"/>
-    </div>
-  </div>
-
-  <!-- ── CLASSIFICA GENERALE ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
-      Classifica Generale
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
-      <button id="btnSaveClassificaStats" onclick="saveClassificaStatistiche()" class="btn-screenshot">📸 Salva classifica</button>
-    </div>
-    <div class="rank-controls">
-      <span class="chart-hint">Ordina per:</span>
-      <div class="metric-btns">
-        <button class="metric-btn rank-metric active" data-metric="media"           onclick="setRankMetric(this)">Media</button>
-        <button class="metric-btn rank-metric"        data-metric="record"          onclick="setRankMetric(this)">Record</button>
-        <button class="metric-btn rank-metric"        data-metric="win_pct"         onclick="setRankMetric(this)">% Vitt</button>
-        <button class="metric-btn rank-metric"        data-metric="sfide"           onclick="setRankMetric(this)">Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_sfide"   onclick="setRankMetric(this)">Part.</button>
-        <button class="metric-btn rank-metric"        data-metric="partite_singolo" onclick="setRankMetric(this)">Solo</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_sfide"    onclick="setRankMetric(this)">€ Sfide</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_singolo"  onclick="setRankMetric(this)">€ Solo</button>
-        <button class="metric-btn rank-metric"        data-metric="pagato_totale"   onclick="setRankMetric(this)">€ Tot</button>
-        <button class="metric-btn rank-metric"        data-metric="vitt"            onclick="setRankMetric(this)">V/N/P</button>
-        <button class="metric-btn rank-metric"        data-metric="media_recente"   onclick="setRankMetric(this)">Forma</button>
+  <!-- ══ HERO BAR ══ -->
+  <div class="hero-bar">
+    <div class="hero-bar-inner">
+      <div class="hero-stat">
+        <div class="hero-stat-label">Sessioni nel periodo</div>
+        <div class="hero-stat-value neon" id="stat-sessioni">—</div>
+        <div class="hero-stat-sub">totale</div>
       </div>
-    </div>
-    <div class="podium-wrap" id="podiumWrap"></div>
-    <div class="rank-table-wrap">
-      <div class="rank-table-header">
-        <div>#</div>
-        <div>Giocatore</div>
-        <div class="rank-col" id="thMedia"         style="cursor:pointer" onclick="setRankMetricById('media')">Media ↕</div>
-        <div class="rank-col" id="thRecord"        style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕</div>
-        <div class="rank-col" id="thWin"           style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
-        <div class="rank-col" id="thSfide"         style="cursor:pointer" onclick="setRankMetricById('sfide')">Sfide ↕</div>
-        <div class="rank-col" id="thPartiteSfide"  style="cursor:pointer" onclick="setRankMetricById('partite_sfide')">Part. ↕</div>
-        <div class="rank-col" id="thSingolo"       style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">Solo ↕</div>
-        <div class="rank-col" id="thPagatoSfide"   style="cursor:pointer" onclick="setRankMetricById('pagato_sfide')">€ Sfide ↕</div>
-        <div class="rank-col" id="thPagatoSingolo" style="cursor:pointer" onclick="setRankMetricById('pagato_singolo')">€ Solo ↕</div>
-        <div class="rank-col" id="thPagatoTotale"  style="cursor:pointer" onclick="setRankMetricById('pagato_totale')">€ Tot ↕</div>
-        <div class="rank-col" id="thVitt"          style="cursor:pointer" onclick="setRankMetricById('vitt')">V/N/P ↕</div>
-        <div class="rank-col" id="thForma"         style="cursor:pointer" onclick="setRankMetricById('media_recente')">Forma ↕</div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">Record assoluto</div>
+        <div class="hero-stat-value pink" id="stat-record">—</div>
+        <div class="hero-stat-sub" id="stat-record-sub">—</div>
       </div>
-      <div id="rankTableBody"></div>
-      <!-- Legenda pallini -->
-      <div style="display:flex;align-items:center;gap:1rem;padding:0.6rem 1rem;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);flex-wrap:wrap">
-        <span style="letter-spacing:0.1em">FORMA (ULTIMI 5):</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span> Vittoria</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span> Sconfitta</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span> Pareggio</span>
-        <span style="display:flex;align-items:center;gap:0.3rem"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span> Nessun dato</span>
+      <div class="hero-stat">
+        <div class="hero-stat-label">Media del gruppo</div>
+        <div class="hero-stat-value cyan" id="stat-media">—</div>
+        <div class="hero-stat-sub">tutti i punteggi</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">Ultima sessione</div>
+        <div class="hero-stat-value orange" id="stat-ultima">—</div>
+        <div class="hero-stat-sub" id="stat-ultima-sub">—</div>
       </div>
     </div>
   </div>
 
-  <!-- ── ANDAMENTO NEL TEMPO ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent"></span>
-      Andamento nel Tempo
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Seleziona i giocatori:</span>
-        <div id="trendPlayerBtns" class="player-filter-btns"></div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="trendChart"></canvas>
-      </div>
-    </div>
-  </div>
+  <!-- ══ MAIN ══ -->
+  <main class="main-stats">
 
-  <!-- ── ANDAMENTO PAGAMENTI ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-      Andamento Pagamenti Cumulativi
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Seleziona i giocatori:</span>
-        <div id="paymentPlayerBtns" class="player-filter-btns"></div>
+    <!-- ── FILTRO PERIODO ── -->
+    <div class="period-bar">
+      <span class="period-label">Periodo:</span>
+      <div class="period-btns">
+        <button class="period-btn" onclick="setPeriod('month')">Ultimo mese</button>
+        <button class="period-btn" onclick="setPeriod('3months')">3 mesi</button>
+        <button class="period-btn" onclick="setPeriod('year')">Anno</button>
+        <button class="period-btn active" onclick="setPeriod('all')">Tutto</button>
       </div>
-      <div class="chart-wrap">
-        <canvas id="paymentChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CONFRONTO GIOCATORI ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
-      Confronto Giocatori
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <div class="metric-btns">
-          <button class="metric-btn active" onclick="setMetric('media',this)">Media</button>
-          <button class="metric-btn" onclick="setMetric('record',this)">Record</button>
-          <button class="metric-btn" onclick="setMetric('partite',this)">Partite</button>
-        </div>
-      </div>
-      <div class="chart-wrap" style="height:280px">
-        <canvas id="compareChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── DISTRIBUZIONE + VITTORIE ── -->
-  <div class="stats-two-col">
-
-    <div class="stats-section">
-      <div class="section-title">
-        <span class="accent" style="background:var(--neon4);box-shadow:0 0 8px var(--neon4)"></span>
-        Distribuzione Punteggi
-      </div>
-      <div class="chart-card">
-        <div class="chart-controls">
-          <select class="form-input" id="distPlayer" onchange="renderDistribution()" style="width:auto;font-size:0.85rem">
-            <option value="all">Tutti i giocatori</option>
-          </select>
-        </div>
-        <div class="chart-wrap" style="height:240px">
-          <canvas id="distChart"></canvas>
-        </div>
+      <div class="period-custom">
+        <input type="date" class="form-input period-input" id="periodFrom" onchange="applyCustomPeriod()" />
+        <span style="color:var(--text-muted);font-size:0.8rem">→</span>
+        <input type="date" class="form-input period-input" id="periodTo" onchange="applyCustomPeriod()" />
       </div>
     </div>
 
+    <!-- ── CLASSIFICA GENERALE ── -->
     <div class="stats-section">
       <div class="section-title">
         <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
-        Vittorie Squadra vs Top Score
+        Classifica Generale
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
+        <button id="btnSaveClassificaStats" onclick="saveClassificaStatistiche()" class="btn-screenshot">📸 Salva
+          classifica</button>
+      </div>
+      <div class="rank-controls">
+        <span class="chart-hint">Ordina per:</span>
+        <div class="metric-btns">
+          <button class="metric-btn rank-metric active" data-metric="media" onclick="setRankMetric(this)">Media</button>
+          <button class="metric-btn rank-metric" data-metric="record" onclick="setRankMetric(this)">Record</button>
+          <button class="metric-btn rank-metric" data-metric="win_pct" onclick="setRankMetric(this)">% Vitt</button>
+          <button class="metric-btn rank-metric" data-metric="sfide" onclick="setRankMetric(this)">Sfide</button>
+          <button class="metric-btn rank-metric" data-metric="partite_sfide"
+            onclick="setRankMetric(this)">Part.</button>
+          <button class="metric-btn rank-metric" data-metric="partite_singolo"
+            onclick="setRankMetric(this)">Solo</button>
+          <button class="metric-btn rank-metric" data-metric="pagato_sfide" onclick="setRankMetric(this)">€
+            Sfide</button>
+          <button class="metric-btn rank-metric" data-metric="pagato_singolo" onclick="setRankMetric(this)">€
+            Solo</button>
+          <button class="metric-btn rank-metric" data-metric="pagato_totale" onclick="setRankMetric(this)">€
+            Tot</button>
+          <button class="metric-btn rank-metric" data-metric="vitt" onclick="setRankMetric(this)">V/N/P</button>
+          <button class="metric-btn rank-metric" data-metric="media_recente"
+            onclick="setRankMetric(this)">Forma</button>
+        </div>
+      </div>
+      <div class="podium-wrap" id="podiumWrap"></div>
+      <div class="rank-table-wrap">
+        <div class="rank-table-header">
+          <div>#</div>
+          <div>Giocatore</div>
+          <div class="rank-col" id="thMedia" style="cursor:pointer" onclick="setRankMetricById('media')">Media ↕</div>
+          <div class="rank-col" id="thRecord" style="cursor:pointer" onclick="setRankMetricById('record')">Record ↕
+          </div>
+          <div class="rank-col" id="thWin" style="cursor:pointer" onclick="setRankMetricById('win_pct')">% Vitt ↕</div>
+          <div class="rank-col" id="thSfide" style="cursor:pointer" onclick="setRankMetricById('sfide')">Sfide ↕</div>
+          <div class="rank-col" id="thPartiteSfide" style="cursor:pointer" onclick="setRankMetricById('partite_sfide')">
+            Part. ↕</div>
+          <div class="rank-col" id="thSingolo" style="cursor:pointer" onclick="setRankMetricById('partite_singolo')">
+            Solo ↕</div>
+          <div class="rank-col" id="thPagatoSfide" style="cursor:pointer" onclick="setRankMetricById('pagato_sfide')">€
+            Sfide ↕</div>
+          <div class="rank-col" id="thPagatoSingolo" style="cursor:pointer"
+            onclick="setRankMetricById('pagato_singolo')">€ Solo ↕</div>
+          <div class="rank-col" id="thPagatoTotale" style="cursor:pointer" onclick="setRankMetricById('pagato_totale')">
+            € Tot ↕</div>
+          <div class="rank-col" id="thVitt" style="cursor:pointer" onclick="setRankMetricById('vitt')">V/N/P ↕</div>
+          <div class="rank-col" id="thForma" style="cursor:pointer" onclick="setRankMetricById('media_recente')">Forma ↕
+          </div>
+        </div>
+        <div id="rankTableBody"></div>
+        <!-- Legenda pallini -->
+        <div
+          style="display:flex;align-items:center;gap:1rem;padding:0.6rem 1rem;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);flex-wrap:wrap">
+          <span style="letter-spacing:0.1em">FORMA (ULTIMI 5):</span>
+          <span style="display:flex;align-items:center;gap:0.3rem"><span
+              style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#22c55e;color:#000;font-size:0.5rem;font-weight:700">V</span>
+            Vittoria</span>
+          <span style="display:flex;align-items:center;gap:0.3rem"><span
+              style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.5rem;font-weight:700">P</span>
+            Sconfitta</span>
+          <span style="display:flex;align-items:center;gap:0.3rem"><span
+              style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#555570;color:#fff;font-size:0.5rem;font-weight:700">N</span>
+            Pareggio</span>
+          <span style="display:flex;align-items:center;gap:0.3rem"><span
+              style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#2a2a44;border:1px solid #3a3a5a"></span>
+            Nessun dato</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANDAMENTO NEL TEMPO ── -->
+    <div class="stats-section">
+      <div class="section-title">
+        <span class="accent"></span>
+        Andamento nel Tempo
       </div>
       <div class="chart-card">
-        <div class="wins-list" id="winsList"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── TESTA A TESTA ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-      Testa a Testa
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Seleziona due giocatori:</span>
-        <select class="form-input" id="h2hP1" onchange="renderH2H()" style="width:auto">
-          <option value="">— Giocatore 1 —</option>
-        </select>
-        <select class="form-input" id="h2hP2" onchange="renderH2H()" style="width:auto">
-          <option value="">— Giocatore 2 —</option>
-        </select>
-      </div>
-      <div id="h2hResult" class="h2h-result"></div>
-    </div>
-  </div>
-
-  <!-- ── CHIMICA DI SQUADRA ── -->
-  <div class="stats-section">
-    <div class="section-title">
-      <span class="accent" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>
-      Chimica di Squadra
-    </div>
-    <div class="chart-card">
-      <div class="chart-controls">
-        <span class="chart-hint">Filtra per giocatore:</span>
-        <select class="form-input" id="chemPlayer" onchange="renderChemistry()" style="width:auto">
-          <option value="">Tutti</option>
-        </select>
-      </div>
-      <div class="chemistry-table" id="chemistryTable"></div>
-    </div>
-  </div>
-
-</main>
-
-<footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
-
-<!-- ══ MODAL: NUOVA PARTITA ══ -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">🎳 Nuova Partita</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr 100px 100px;gap:0.8rem">
-        <div class="form-group">
-          <label class="form-label">Data</label>
-          <input type="date" class="form-input" id="sessionDate"/>
+        <div class="chart-controls">
+          <span class="chart-hint">Seleziona i giocatori:</span>
+          <div id="trendPlayerBtns" class="player-filter-btns"></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Luogo</label>
-          <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio"/>
+        <div class="chart-wrap">
+          <canvas id="trendChart"></canvas>
         </div>
-        <div class="form-group">
-          <label class="form-label">N° Game</label>
-          <select class="form-input" id="numGames" onchange="buildGameRows()">
-            <option value="1">1 game</option>
-            <option value="2" selected>2 game</option>
-            <option value="3">3 game</option>
-            <option value="4">4 game</option>
-            <option value="5">5 game</option>
+      </div>
+    </div>
+
+    <!-- ── ANDAMENTO PAGAMENTI ── -->
+    <div class="stats-section">
+      <div class="section-title">
+        <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+        Andamento Pagamenti Cumulativi
+      </div>
+      <div class="chart-card">
+        <div class="chart-controls">
+          <span class="chart-hint">Seleziona i giocatori:</span>
+          <div id="paymentPlayerBtns" class="player-filter-btns"></div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="paymentChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONFRONTO GIOCATORI ── -->
+    <div class="stats-section">
+      <div class="section-title">
+        <span class="accent" style="background:var(--neon3);box-shadow:0 0 8px var(--neon3)"></span>
+        Confronto Giocatori
+      </div>
+      <div class="chart-card">
+        <div class="chart-controls">
+          <div class="metric-btns">
+            <button class="metric-btn active" onclick="setMetric('media',this)">Media</button>
+            <button class="metric-btn" onclick="setMetric('record',this)">Record</button>
+            <button class="metric-btn" onclick="setMetric('partite',this)">Partite</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="compareChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DISTRIBUZIONE + VITTORIE ── -->
+    <div class="stats-two-col">
+
+      <div class="stats-section">
+        <div class="section-title">
+          <span class="accent" style="background:var(--neon4);box-shadow:0 0 8px var(--neon4)"></span>
+          Distribuzione Punteggi
+        </div>
+        <div class="chart-card">
+          <div class="chart-controls">
+            <select class="form-input" id="distPlayer" onchange="renderDistribution()"
+              style="width:auto;font-size:0.85rem">
+              <option value="all">Tutti i giocatori</option>
+            </select>
+          </div>
+          <div class="chart-wrap" style="height:240px">
+            <canvas id="distChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <div class="section-title">
+          <span class="accent" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></span>
+          Vittorie Squadra vs Top Score
+        </div>
+        <div class="chart-card">
+          <div class="wins-list" id="winsList"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── TESTA A TESTA ── -->
+    <div class="stats-section">
+      <div class="section-title">
+        <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+        Testa a Testa
+      </div>
+      <div class="chart-card">
+        <div class="chart-controls">
+          <span class="chart-hint">Seleziona due giocatori:</span>
+          <select class="form-input" id="h2hP1" onchange="renderH2H()" style="width:auto">
+            <option value="">— Giocatore 1 —</option>
+          </select>
+          <select class="form-input" id="h2hP2" onchange="renderH2H()" style="width:auto">
+            <option value="">— Giocatore 2 —</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">€ / game</label>
-          <input type="number" class="form-input" id="sessionCost" placeholder="es. 4" min="0" step="0.5"/>
-        </div>
-      </div>
-      <!-- ══ MODALITÀ TUTTI CONTRO TUTTI ══ -->
-      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border:1px solid rgba(232,255,0,0.15);border-radius:6px;margin-bottom:0.8rem">
-        <input type="checkbox" id="ffaMode" onchange="setFFAMode(this.checked)" style="width:16px;height:16px;accent-color:var(--neon);cursor:pointer"/>
-        <label for="ffaMode" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--neon);cursor:pointer">🏆 Tutti contro tutti</label>
-        <span id="ffaNote" style="display:none;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted)">— Il primo non paga</span>
-      </div>
-      <div id="teamsSection">
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title team-a-title">⚡ Squadra A</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalA">Totale: 0</span>
-        </div>
-        <div class="team-section-body">
-          <div class="form-group">
-            <label class="form-label">Nome squadra</label>
-            <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini"/>
-          </div>
-          <div id="teamARows"></div>
-          <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
-        </div>
-      </div>
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title team-b-title">🔥 Squadra B</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)" id="totalB">Totale: 0</span>
-        </div>
-        <div class="team-section-body">
-          <div class="form-group">
-            <label class="form-label">Nome squadra</label>
-            <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme"/>
-          </div>
-          <div id="teamBRows"></div>
-          <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
-        </div>
-      </div>
-      </div><!-- /teamsSection -->
-      <!-- ══ SEZIONE FFA ══ -->
-      <div id="ffaSection" style="display:none">
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title" style="color:var(--neon)">🏆 Tutti contro tutti</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo non paga</span>
-        </div>
-        <div class="team-section-body">
-          <div id="ffaRows"></div>
-          <button class="btn-add-player" onclick="addFFARow()">+ Aggiungi giocatore</button>
-        </div>
-      </div>
-      </div><!-- /ffaSection -->
-      <div id="soloSection">
-      <div class="team-section">
-        <div class="team-section-header">
-          <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
-          <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)" id="soloSectionNote">Giocatori extra — non partecipano alla sfida</span>
-        </div>
-        <div class="team-section-body">
-          <div id="soloRows"></div>
-          <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
-        </div>
-      </div>
-      </div><!-- /soloSection -->
-      <div class="form-group">
-        <label class="form-label">Note (opzionale)</label>
-        <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳"/>
+        <div id="h2hResult" class="h2h-result"></div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal()">Annulla</button>
-      <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
+
+    <!-- ── CHIMICA DI SQUADRA ── -->
+    <div class="stats-section">
+      <div class="section-title">
+        <span class="accent" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>
+        Chimica di Squadra
+      </div>
+      <div class="chart-card">
+        <div class="chart-controls">
+          <span class="chart-hint">Filtra per giocatore:</span>
+          <select class="form-input" id="chemPlayer" onchange="renderChemistry()" style="width:auto">
+            <option value="">Tutti</option>
+          </select>
+        </div>
+        <div class="chemistry-table" id="chemistryTable"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>STRIKE ZONE &nbsp;·&nbsp; BOWLING TRACKER &nbsp;·&nbsp; 🎳</footer>
+
+  <!-- ══ MODAL: NUOVA PARTITA ══ -->
+  <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🎳 Nuova Partita</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 100px 100px;gap:0.8rem">
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input type="date" class="form-input" id="sessionDate" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Luogo</label>
+            <input type="text" class="form-input" id="sessionLocation" placeholder="es. Bowling Palaghiaccio" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">N° Game</label>
+            <select class="form-input" id="numGames" onchange="buildGameRows()">
+              <option value="1">1 game</option>
+              <option value="2" selected>2 game</option>
+              <option value="3">3 game</option>
+              <option value="4">4 game</option>
+              <option value="5">5 game</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">€ / game</label>
+            <input type="number" class="form-input" id="sessionCost" placeholder="es. 4" min="0" step="0.5" />
+          </div>
+        </div>
+        <!-- ══ MODALITÀ TUTTI CONTRO TUTTI ══ -->
+        <div
+          style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;background:rgba(232,255,0,0.05);border:1px solid rgba(232,255,0,0.15);border-radius:6px;margin-bottom:0.8rem">
+          <input type="checkbox" id="ffaMode" onchange="setFFAMode(this.checked)"
+            style="width:16px;height:16px;accent-color:var(--neon);cursor:pointer" />
+          <label for="ffaMode"
+            style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--neon);cursor:pointer">🏆
+            Tutti contro tutti</label>
+          <span id="ffaNote"
+            style="display:none;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted)">— Il
+            primo non paga</span>
+        </div>
+        <div id="teamsSection">
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title team-a-title">⚡ Squadra A</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)"
+                id="totalA">Totale: 0</span>
+            </div>
+            <div class="team-section-body">
+              <div class="form-group">
+                <label class="form-label">Nome squadra</label>
+                <input type="text" class="form-input" id="teamAName" placeholder="es. Fulmini" />
+              </div>
+              <div id="teamARows"></div>
+              <button class="btn-add-player" onclick="addPlayerRow('A')">+ Aggiungi giocatore</button>
+            </div>
+          </div>
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title team-b-title">🔥 Squadra B</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted)"
+                id="totalB">Totale: 0</span>
+            </div>
+            <div class="team-section-body">
+              <div class="form-group">
+                <label class="form-label">Nome squadra</label>
+                <input type="text" class="form-input" id="teamBName" placeholder="es. Fiamme" />
+              </div>
+              <div id="teamBRows"></div>
+              <button class="btn-add-player" onclick="addPlayerRow('B')">+ Aggiungi giocatore</button>
+            </div>
+          </div>
+        </div><!-- /teamsSection -->
+        <!-- ══ SEZIONE FFA ══ -->
+        <div id="ffaSection" style="display:none">
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title" style="color:var(--neon)">🏆 Tutti contro tutti</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)">Il primo
+                non paga</span>
+            </div>
+            <div class="team-section-body">
+              <div id="ffaRows"></div>
+              <button class="btn-add-player" onclick="addFFARow()">+ Aggiungi giocatore</button>
+            </div>
+          </div>
+        </div><!-- /ffaSection -->
+        <div id="soloSection">
+          <div class="team-section">
+            <div class="team-section-header">
+              <span class="team-section-title" style="color:var(--neon3)">👤 Giocatori singoli</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted)"
+                id="soloSectionNote">Giocatori extra — non partecipano alla sfida</span>
+            </div>
+            <div class="team-section-body">
+              <div id="soloRows"></div>
+              <button class="btn-add-player" onclick="addSoloRow()">+ Aggiungi giocatore singolo</button>
+            </div>
+          </div>
+        </div><!-- /soloSection -->
+        <div class="form-group">
+          <label class="form-label">Note (opzionale)</label>
+          <input type="text" class="form-input" id="sessionNotes" placeholder="es. Miglior serata dell'anno 🎳" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">Annulla</button>
+        <button class="btn-primary" id="btnSave" onclick="saveSession()">Salva Partita</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ══ MODAL LOGIN ══ -->
-<!-- ══ LOGIN MODAL WITH OTP ══ -->
-<div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
-  <div class="login-modal">
-    
-    <!-- STEP 1: Email + Password -->
-    <div id="loginStep1" class="login-step" style="display: block;">
-      <div class="login-modal-header">
-        <div class="login-modal-title">🎳 ACCEDI</div>
-        <div class="login-modal-subtitle">Bowling Tracker</div>
-      </div>
+  <!-- ══ MODAL LOGIN ══ -->
+  <!-- ══ LOGIN MODAL WITH OTP ══ -->
+  <div id="loginModalOverlay" class="login-modal-overlay" onclick="handleLoginOverlayClick(event)">
+    <div class="login-modal">
 
-      <div id="loginError" class="login-error"></div>
-
-      <div class="login-form-group">
-        <label class="login-form-label" for="loginEmail">Email</label>
-        <input 
-          type="email" 
-          id="loginEmail" 
-          class="login-form-input" 
-          placeholder="tua-email@example.com"
-          autocomplete="email"
-        />
-      </div>
-
-      <div class="login-form-group">
-        <label class="login-form-label" for="loginPassword">Password</label>
-        <input 
-          type="password" 
-          id="loginPassword" 
-          class="login-form-input" 
-          placeholder="••••••••••••"
-          autocomplete="current-password"
-        />
-      </div>
-
-      <button id="btnLoginSubmit" class="login-btn" onclick="submitLogin()">
-        Continua
-      </button>
-
-      <div style="text-align: center; margin: 0.8rem 0;">
-        <a href="reset-password-request.html" style="color: var(--text-muted); text-decoration: none; font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-decoration: underline;">
-          Password dimenticata?
-        </a>
-      </div>
-
-      <button class="login-btn-secondary" onclick="closeLoginModal()">
-        Annulla
-      </button>
-    </div>
-
-    <!-- STEP 2: OTP Code -->
-    <div id="loginStep2" class="login-step">
-      <div class="login-modal-header">
-        <div class="login-modal-title">📧 CODICE OTP</div>
-        <div class="login-modal-subtitle">Verifica Sicurezza</div>
-      </div>
-
-      <div class="otp-info">
-        <div class="otp-info-text">
-          Abbiamo inviato un codice di 6 cifre a:
+      <!-- STEP 1: Email + Password -->
+      <div id="loginStep1" class="login-step" style="display: block;">
+        <div class="login-modal-header">
+          <div class="login-modal-title">🎳 ACCEDI</div>
+          <div class="login-modal-subtitle">Bowling Tracker</div>
         </div>
-        <div class="otp-info-email" id="otpEmailDisplay"></div>
-      </div>
 
-      <div id="otpError" class="login-error"></div>
+        <div id="loginError" class="login-error"></div>
 
-      <div class="otp-inputs-container">
-        <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-        <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-      </div>
+        <div class="login-form-group">
+          <label class="login-form-label" for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" class="login-form-input" placeholder="tua-email@example.com"
+            autocomplete="email" />
+        </div>
 
-      <div class="otp-timer-section">
-        <div class="otp-timer-label">Scade tra</div>
-        <div id="otpTimer" class="otp-timer">--:--</div>
-      </div>
+        <div class="login-form-group">
+          <label class="login-form-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="login-form-input" placeholder="••••••••••••"
+            autocomplete="current-password" />
+        </div>
 
-      <button id="btnOTPSubmit" class="login-btn" onclick="submitOTP()">
-        Verifica
-      </button>
+        <button id="btnLoginSubmit" class="login-btn" onclick="submitLogin()">
+          Continua
+        </button>
 
-      <div class="otp-resend-section">
-        <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
-          Rinvia codice
+        <div style="text-align: center; margin: 0.8rem 0;">
+          <a href="reset-password-request.html"
+            style="color: var(--text-muted); text-decoration: none; font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-decoration: underline;">
+            Password dimenticata?
+          </a>
+        </div>
+
+        <button class="login-btn-secondary" onclick="closeLoginModal()">
+          Annulla
         </button>
       </div>
 
-      <button class="otp-back-btn" onclick="goBackToStep1()">
-        ← Torna indietro
+      <!-- STEP 2: OTP Code -->
+      <div id="loginStep2" class="login-step">
+        <div class="login-modal-header">
+          <div class="login-modal-title">📧 CODICE OTP</div>
+          <div class="login-modal-subtitle">Verifica Sicurezza</div>
+        </div>
+
+        <div class="otp-info">
+          <div class="otp-info-text">
+            Abbiamo inviato un codice di 6 cifre a:
+          </div>
+          <div class="otp-info-email" id="otpEmailDisplay"></div>
+        </div>
+
+        <div id="otpError" class="login-error"></div>
+
+        <div class="otp-inputs-container">
+          <input type="text" id="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input type="text" id="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        </div>
+
+        <div class="otp-timer-section">
+          <div class="otp-timer-label">Scade tra</div>
+          <div id="otpTimer" class="otp-timer">--:--</div>
+        </div>
+
+        <button id="btnOTPSubmit" class="login-btn" onclick="submitOTP()">
+          Verifica
+        </button>
+
+        <div class="otp-resend-section">
+          <button id="btnResendOTP" class="otp-resend-btn" onclick="resendOTP()">
+            Rinvia codice
+          </button>
+        </div>
+
+        <button class="otp-back-btn" onclick="goBackToStep1()">
+          ← Torna indietro
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ MODAL: CAMBIO PASSWORD ══ -->
+  <div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
+    <div class="login-modal">
+      <div class="login-modal-header">
+        <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
+        <div class="login-modal-subtitle">Modifica le tue credenziali</div>
+        <button class="modal-close" onclick="closeChangePasswordModal()"
+          style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div id="changePasswordError" class="login-error"></div>
+      <div id="changePasswordSuccess" class="login-error"
+        style="background: rgba(232,255,0,0.1); border-color: var(--neon); color: var(--neon); display: none;"></div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="currentPassword">Password Attuale</label>
+        <input type="password" id="currentPassword" class="login-form-input" placeholder="••••••••••••"
+          autocomplete="current-password" />
+      </div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="newPassword">Nuova Password</label>
+        <input type="password" id="newPassword" class="login-form-input" placeholder="Minimo 8 caratteri"
+          autocomplete="new-password" minlength="8" />
+      </div>
+
+      <div class="login-form-group">
+        <label class="login-form-label" for="confirmNewPassword">Conferma Nuova Password</label>
+        <input type="password" id="confirmNewPassword" class="login-form-input" placeholder="Ripeti la nuova password"
+          autocomplete="new-password" />
+      </div>
+
+      <button id="btnChangePassword" class="login-btn" onclick="submitChangePassword()">
+        Cambia Password
+      </button>
+
+      <button class="login-btn-secondary" onclick="closeChangePasswordModal()">
+        Annulla
       </button>
     </div>
-
   </div>
-</div>
-
-<!-- ══ MODAL: CAMBIO PASSWORD ══ -->
-<div id="changePasswordOverlay" class="login-modal-overlay" onclick="handleChangePasswordOverlayClick(event)">
-  <div class="login-modal">
-    <div class="login-modal-header">
-      <div class="login-modal-title">🔐 CAMBIA PASSWORD</div>
-      <div class="login-modal-subtitle">Modifica le tue credenziali</div>
-      <button class="modal-close" onclick="closeChangePasswordModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
-    </div>
-
-    <div id="changePasswordError" class="login-error"></div>
-    <div id="changePasswordSuccess" class="login-error" style="background: rgba(232,255,0,0.1); border-color: var(--neon); color: var(--neon); display: none;"></div>
-
-    <div class="login-form-group">
-      <label class="login-form-label" for="currentPassword">Password Attuale</label>
-      <input 
-        type="password" 
-        id="currentPassword" 
-        class="login-form-input" 
-        placeholder="••••••••••••"
-        autocomplete="current-password"
-      />
-    </div>
-
-    <div class="login-form-group">
-      <label class="login-form-label" for="newPassword">Nuova Password</label>
-      <input 
-        type="password" 
-        id="newPassword" 
-        class="login-form-input" 
-        placeholder="Minimo 8 caratteri"
-        autocomplete="new-password"
-        minlength="8"
-      />
-    </div>
-
-    <div class="login-form-group">
-      <label class="login-form-label" for="confirmNewPassword">Conferma Nuova Password</label>
-      <input 
-        type="password" 
-        id="confirmNewPassword" 
-        class="login-form-input" 
-        placeholder="Ripeti la nuova password"
-        autocomplete="new-password"
-      />
-    </div>
-
-    <button id="btnChangePassword" class="login-btn" onclick="submitChangePassword()">
-      Cambia Password
-    </button>
-
-    <button class="login-btn-secondary" onclick="closeChangePasswordModal()">
-      Annulla
-    </button>
-  </div>
-</div>
 
 
-<div class="toast" id="toast"></div>
+  <div class="toast" id="toast"></div>
 
-<!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
-<div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="gModalTitle">➕ Nuovo Giocatore</div>
-      <button class="modal-close" onclick="closeGModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Avatar</label>
-        <div class="emoji-grid" id="emojiGrid"></div>
-        <input type="hidden" id="selectedEmoji" value="🎳"/>
+  <!-- ══ MODAL: AGGIUNGI / MODIFICA GIOCATORE ══ -->
+  <div class="modal-overlay" id="gModalOverlay" onclick="handleGModalOverlayClick(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="gModalTitle">➕ Nuovo Giocatore</div>
+        <button class="modal-close" onclick="closeGModal()">✕</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Nome *</label>
-        <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50"/>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Avatar</label>
+          <div class="emoji-grid" id="emojiGrid"></div>
+          <input type="hidden" id="selectedEmoji" value="🎳" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome *</label>
+          <input type="text" class="form-input" id="playerName" placeholder="es. Marco" maxlength="50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Soprannome</label>
+          <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50" />
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Soprannome</label>
-        <input type="text" class="form-input" id="playerNickname" placeholder="es. The Wolf" maxlength="50"/>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeGModal()">Annulla</button>
+        <button class="btn-primary" id="btnSavePlayer" onclick="savePlayer()">Salva</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeGModal()">Annulla</button>
-      <button class="btn-primary" id="btnSavePlayer" onclick="savePlayer()">Salva</button>
-    </div>
   </div>
-</div>
 
-<script src="../assets/js/auth.js"></script>
-<script src="../assets/js/change-password.js"></script>
-<script src="../assets/js/modal-giocatore.js"></script>
-<script src="../assets/js/modal-nuova-partita.js"></script>
-<script src="../assets/js/statistiche.js"></script>
-<script src="../assets/js/screenshot.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/change-password.js"></script>
+  <script src="../assets/js/modal-giocatore.js"></script>
+  <script src="../assets/js/modal-nuova-partita.js"></script>
+  <script src="../assets/js/statistiche.js"></script>
+  <script src="../assets/js/screenshot.js"></script>
 </body>
+
 </html>
