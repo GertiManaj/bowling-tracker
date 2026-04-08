@@ -1065,16 +1065,22 @@ function suggestTeams() {
   // ── PROPOSTA 1: OPPOSTI (strong-weak pairing) ──────────────────
   // Accoppia 1°↔ultimo, 2°↔penultimo, ecc. — ogni coppia va alla stessa squadra
   function strongWeakPairing(sorted) {
-    const teamA = [], teamB = [];
     const n = sorted.length;
+    const teamA = [], teamB = [];
     const pairs = [];
     for (let i = 0; i < Math.floor(n / 2); i++) {
       pairs.push([sorted[i], sorted[n - 1 - i]]);
     }
-    if (n % 2 === 1) pairs.push([sorted[Math.floor(n / 2)]]);
-    pairs.forEach((pair, idx) => {
-      pair.forEach(p => (idx % 2 === 0 ? teamA : teamB).push(p));
-    });
+    const middle = (n % 2 === 1) ? sorted[Math.floor(n / 2)] : null;
+    for (let i = 0; i < pairs.length; i++) {
+      const [strong, weak] = pairs[i];
+      if (i % 2 === 0) { teamA.push(strong); teamB.push(weak); }
+      else             { teamB.push(strong); teamA.push(weak); }
+    }
+    if (middle) {
+      if (teamA.length <= teamB.length) teamA.push(middle);
+      else teamB.push(middle);
+    }
     return { teamA, teamB };
   }
 
