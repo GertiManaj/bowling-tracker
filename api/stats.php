@@ -169,46 +169,37 @@ foreach ($leaderboard as $pl) {
     $pid = $pl['id'];
     $params = array_merge([$pid], $dateParams);
 
-    // Serate con squadra (filtrate per periodo)
+    // Serate con squadra (solo teams, FFA escluso — identico a leaderboard.php)
     $qSCS = $pdo->prepare("
         SELECT DISTINCT sc.session_id, sc.team_id
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
+        JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
+          AND t.name != '__FFA__'
+          AND COALESCE(se.mode,'teams') != 'ffa'
         " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
     ");
     $qSCS->execute($params);
     $sessRows = $qSCS->fetchAll();
 
-    // Deduplicazione: una riga per sessione (prende il primo team_id)
     $sessMap = [];
     foreach ($sessRows as $sr) {
-        $sid = $sr['session_id'];
-        if (!isset($sessMap[$sid])) $sessMap[$sid] = $sr['team_id'];
+        $sid = (int)$sr['session_id'];
+        if (!isset($sessMap[$sid])) $sessMap[$sid] = (int)$sr['team_id'];
     }
 
     $vittorie = 0;
     $pareggi  = 0;
 
     foreach ($sessMap as $sid => $tid) {
-        // Usa il cache già calcolato se disponibile
-        $teamTotals = $teamTotalCache[$sid] ?? [];
-
-        if (empty($teamTotals)) {
-            // Fallback: ricalcola
-            $qTT = $pdo->prepare('SELECT team_id, SUM(score) AS tot FROM scores WHERE session_id = ? AND team_id IS NOT NULL GROUP BY team_id');
-            $qTT->execute([$sid]);
-            foreach ($qTT->fetchAll() as $t) $teamTotals[$t['team_id']] = (int)$t['tot'];
-        }
-
-        if (empty($teamTotals) || !isset($teamTotals[$tid])) continue;
-
-        $myTot  = (int)$teamTotals[$tid];
-        $maxTot = max($teamTotals);
-        $winCnt = count(array_filter($teamTotals, fn($t) => (int)$t === $maxTot));
-
-        if ($myTot === $maxTot && $winCnt > 1) $pareggi++;
-        elseif ($myTot === $maxTot)             $vittorie++;
+        $tots = $teamTotalCache[$sid] ?? [];
+        if (empty($tots) || !isset($tots[$tid])) continue;
+        $myTot  = $tots[$tid];
+        $maxTot = max($tots);
+        // N solo se TUTTI i team pareggiano (identico a leaderboard.php)
+        if ($myTot === $maxTot && count(array_unique($tots)) === 1) $pareggi++;
+        elseif ($myTot === $maxTot) $vittorie++;
     }
 
     $vittorieMap[$pid]      = $vittorie;
