@@ -223,8 +223,16 @@ function renderAllTimeLeaderboard() {
       ? 'color:var(--neon);font-weight:700'
       : '';
 
+    const isSelected = suggestSelected.has(p.id);
+    const rowSelStyle = isSelected
+      ? 'background:rgba(232,255,0,0.07);border-left:2px solid rgba(232,255,0,0.5);'
+      : 'border-left:2px solid transparent;';
+
     html += `
-      <div class="leaderboard-row" style="animation-delay:${delay}s;grid-template-columns:${cols}">
+      <div class="leaderboard-row" data-player-id="${p.id}"
+           onclick="toggleSuggestPlayer(${p.id}, this)"
+           title="Clicca per selezionare nella Suggeritore Squadre"
+           style="animation-delay:${delay}s;grid-template-columns:${cols};cursor:pointer;${rowSelStyle}transition:background 0.15s,border-color 0.15s">
         ${rankEl}
         <div class="player-info">
           <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
@@ -946,6 +954,10 @@ let suggestLivelli = {}; // { player_id: score_stimato } per nuovi giocatori
 function clearSuggestSelection() {
   suggestSelected.clear();
   suggestLivelli = {};
+  document.querySelectorAll('.leaderboard-row[data-player-id]').forEach(row => {
+    row.style.background = '';
+    row.style.borderLeft = '2px solid transparent';
+  });
   buildSuggestPlayers();
   document.getElementById('suggestResult').innerHTML = '';
   const btn = document.getElementById('btnSuggest');
@@ -1004,6 +1016,12 @@ function toggleSuggestPlayer(id, btn) {
   } else {
     suggestSelected.add(id);
   }
+  // Aggiorna visivamente tutte le righe classifica con questo giocatore
+  const sel = suggestSelected.has(id);
+  document.querySelectorAll(`.leaderboard-row[data-player-id="${id}"]`).forEach(row => {
+    row.style.background = sel ? 'rgba(232,255,0,0.07)' : '';
+    row.style.borderLeft = sel ? '2px solid rgba(232,255,0,0.5)' : '2px solid transparent';
+  });
   buildSuggestPlayers();
   const btn2 = document.getElementById('btnSuggest');
   if (btn2) btn2.textContent = suggestSelected.size >= 2
