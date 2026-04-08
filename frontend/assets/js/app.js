@@ -1030,29 +1030,64 @@ function toggleSuggestPlayer(id, btn) {
 }
 
 
-async function suggestTeams() {
+function suggestTeams() {
   if (suggestSelected.size < 2) {
     showToast('Seleziona almeno 2 giocatori', 'error');
     return;
   }
 
-  const btn = document.getElementById('btnSuggest');
-  btn.disabled = true;
-  btn.textContent = '⏳ Calcolo in corso...';
+  // Costruisci lista giocatori selezionati con score effettivo
+  const players = cachedPlayers
+    .filter(p => suggestSelected.has(p.id))
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      emoji: p.emoji || '🎳',
+      media_storica: parseFloat(p.media) || 0,
+      livello_manuale: suggestLivelli[p.id] || null,
+      _score: suggestLivelli[p.id] || parseFloat(p.media) || 0
+    }));
 
-  try {
-    const payload = { player_ids: [...suggestSelected], livelli: suggestLivelli };
-    const res = await authFetch(`${API}/suggest.php`, { method: 'POST', body: JSON.stringify(payload) }); const data = await res.json();
-    if (data.error) { showToast(data.error, 'error'); return; }
-    window._lastSuggestData = data.proposal1;
-    window._lastSuggestData2 = data.proposal2;
-    renderSuggestResult(data.proposal1, data.proposal2);
-  } catch (e) {
-    showToast('Errore nel calcolo', 'error');
+  // Ordina per score decrescente (più forte → più debole)
+  players.sort((a, b) => b._score - a._score);
+
+  // Snake draft: A,B,B,A,A,B,B,A...
+  // swapAB=true → B,A,A,B,B,A,A,B (proposta alternativa)
+  function snakeDraft(sorted, swapAB) {
+    const teamA = [], teamB = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const pair = Math.floor(i / 2);
+      const posInPair = i % 2;
+      let goToA = (pair % 2 === 0) ? (posInPair === 0) : (posInPair === 1);
+      if (swapAB) goToA = !goToA;
+      if (goToA) teamA.push(sorted[i]);
+      else teamB.push(sorted[i]);
+    }
+    return { teamA, teamB };
   }
 
-  btn.disabled = false;
-  btn.textContent = `🎯 Suggerisci squadre (${suggestSelected.size} giocatori)`;
+  function makeProposal(teamA, teamB) {
+    const avgA = teamA.length ? teamA.reduce((s, p) => s + p._score, 0) / teamA.length : 0;
+    const avgB = teamB.length ? teamB.reduce((s, p) => s + p._score, 0) / teamB.length : 0;
+    return {
+      teamA,
+      teamB,
+      scoreA: avgA.toFixed(1),
+      scoreB: avgB.toFixed(1),
+      diff: Math.abs(avgA - avgB).toFixed(1)
+    };
+  }
+
+  const { teamA: a1, teamB: b1 } = snakeDraft(players, false);
+  const proposal1 = makeProposal(a1, b1);
+
+  // Proposta 2: snake con assegnazione A/B invertita
+  const { teamA: a2, teamB: b2 } = snakeDraft(players, true);
+  const proposal2 = makeProposal(a2, b2);
+
+  window._lastSuggestData = proposal1;
+  window._lastSuggestData2 = proposal2;
+  renderSuggestResult(proposal1, proposal2);
 }
 
 function renderSuggestResult(data1, data2) {
