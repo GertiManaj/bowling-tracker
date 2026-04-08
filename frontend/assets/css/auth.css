@@ -18,7 +18,7 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-.login-modal-overlay.show {
+.login-modal-overlay.open {
   display: flex;
 }
 
