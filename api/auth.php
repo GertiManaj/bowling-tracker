@@ -239,6 +239,33 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
             exit;
         }
         
+        // ── TRUSTED DEVICE: salta OTP se dispositivo fidato ──
+        $tdCookie = $_COOKIE['trusted_device'] ?? null;
+        if ($tdCookie && strlen($tdCookie) === 64 && ctype_xdigit($tdCookie)) {
+            $tdHash = hash('sha256', $tdCookie);
+            $stmtTD = $pdo->prepare("
+                SELECT id FROM trusted_devices
+                WHERE token_hash = ? AND admin_id = ? AND expires_at > NOW()
+                LIMIT 1
+            ");
+            $stmtTD->execute([$tdHash, $admin['id']]);
+            $td = $stmtTD->fetch(PDO::FETCH_ASSOC);
+            if ($td) {
+                $pdo->prepare("UPDATE trusted_devices SET last_used_at = NOW() WHERE id = ?")->execute([$td['id']]);
+                $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")->execute([$admin['id']]);
+                logLogin($pdo, $admin['id'], $email, true);
+                $jwtTrusted = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn);
+                echo json_encode([
+                    'success'        => true,
+                    'trusted_device' => true,
+                    'token'          => $jwtTrusted,
+                    'expires_in'     => $expiresIn,
+                    'admin'          => ['id' => $admin['id'], 'email' => $admin['email'], 'name' => $admin['name']]
+                ]);
+                exit;
+            }
+        }
+
         // Genera OTP
         $otpLength = (int)(getenv('OTP_LENGTH') ?: 6);
         $code = generateOTP($otpLength);
@@ -335,7 +362,42 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Genera JWT
         $token = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn);
-        
+
+        // ── TRUSTED DEVICE: imposta cookie se richiesto ──
+        if (!empty($body['remember_device'])) {
+            $rawToken  = bin2hex(random_bytes(32));
+            $tdHash    = hash('sha256', $rawToken);
+            $tdExpires = date('Y-m-d H:i:s', time() + (7 * 24 * 60 * 60));
+            $ua        = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
+            $ip        = $_SERVER['REMOTE_ADDR'] ?? null;
+
+            // Max 5 dispositivi per admin: elimina il più vecchio se necessario
+            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM trusted_devices WHERE admin_id = ?");
+            $countStmt->execute([$admin['id']]);
+            if ((int)$countStmt->fetchColumn() >= 5) {
+                $pdo->prepare("
+                    DELETE FROM trusted_devices WHERE id = (
+                        SELECT id FROM (SELECT id FROM trusted_devices WHERE admin_id = ? ORDER BY created_at ASC LIMIT 1) sub
+                    )
+                ")->execute([$admin['id']]);
+            }
+
+            $pdo->prepare("
+                INSERT INTO trusted_devices (admin_id, token_hash, device_identifier, user_agent, ip_address, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ")->execute([$admin['id'], $tdHash, $ua, $ua, $ip, $tdExpires]);
+
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            setcookie('trusted_device', $rawToken, [
+                'expires'  => time() + (7 * 24 * 60 * 60),
+                'path'     => '/',
+                'secure'   => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        }
+
         echo json_encode([
             'success' => true,
             'token' => $token,
@@ -346,7 +408,7 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'name' => $admin['name']
             ]
         ]);
-        
+
     } catch (Exception $e) {
         error_log("OTP verify error: " . $e->getMessage());
         http_response_code(500);
@@ -448,10 +510,14 @@ if ($_GET['action'] === 'change-password' && $_SERVER['REQUEST_METHOD'] === 'POS
         }
         
         $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-        
+
         $stmt = $pdo->prepare("UPDATE admins SET password_hash = ? WHERE id = ?");
         $stmt->execute([$newHash, $admin['id']]);
-        
+
+        // Revoca tutti i dispositivi fidati
+        $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$admin['id']]);
+        setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+
         echo json_encode(['success' => true, 'message' => 'Password aggiornata con successo']);
         
     } catch (Exception $e) {
@@ -573,14 +639,18 @@ if ($_GET['action'] === 'reset-password' && $_SERVER['REQUEST_METHOD'] === 'POST
         
         // Aggiorna password
         $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-        
+
         $stmt = $pdo->prepare("UPDATE admins SET password_hash = ? WHERE id = ?");
         $stmt->execute([$newHash, $reset['admin_id']]);
-        
+
         // Marca token come usato
         $stmt = $pdo->prepare("UPDATE password_resets SET used = 1, used_at = NOW() WHERE id = ?");
         $stmt->execute([$reset['id']]);
-        
+
+        // Revoca tutti i dispositivi fidati
+        $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$reset['admin_id']]);
+        setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+
         echo json_encode(['success' => true, 'message' => 'Password reimpostata con successo']);
         
     } catch (Exception $e) {

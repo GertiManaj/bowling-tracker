@@ -116,12 +116,26 @@ async function submitLogin() {
     const data = await res.json();
 
     if (data.success) {
-      // Salva email per step 2
+      // Trusted device: skip OTP, login diretto
+      if (data.trusted_device && data.token) {
+        saveToken(data.token);
+        window.isLoggedIn = true;
+        closeLoginModal();
+        applyAuthUI();
+        if (typeof loadStats === 'function') loadStats();
+        if (typeof loadLeaderboard === 'function') loadLeaderboard();
+        if (typeof loadSessions === 'function') loadSessions();
+        if (typeof loadPlayers === 'function') loadPlayers();
+        if (typeof loadAll === 'function') loadAll();
+        if (typeof loadProfile === 'function') loadProfile();
+        showToast('Accesso effettuato!', 'success');
+        return;
+      }
+
+      // Flusso normale: mostra step OTP
       otpEmail = email;
-      
-      // Mostra step 2 (OTP input)
       showOTPStep(data.expires_at);
-      
+
     } else {
       errEl.textContent = data.error || 'Credenziali non valide';
       errEl.style.display = 'block';
@@ -143,12 +157,23 @@ async function submitLogin() {
 function showOTPStep(expiresAt) {
   document.getElementById('loginStep1').style.display = 'none';
   document.getElementById('loginStep2').style.display = 'block';
-  
+
+  // Inietta checkbox "Ricorda dispositivo" se non ancora presente
+  if (!document.getElementById('rememberDevice')) {
+    const checkDiv = document.createElement('div');
+    checkDiv.className = 'trusted-device-option';
+    checkDiv.innerHTML =
+      '<label class="trusted-device-label">' +
+        '<input type="checkbox" id="rememberDevice" class="trusted-device-check" />' +
+        '<span>Ricorda questo dispositivo per 7 giorni</span>' +
+      '</label>';
+    const btn = document.getElementById('btnOTPSubmit');
+    if (btn) btn.parentNode.insertBefore(checkDiv, btn);
+  }
+
   // Focus sul primo input
-  setTimeout(() => {
-    document.getElementById('otp1').focus();
-  }, 100);
-  
+  setTimeout(() => { document.getElementById('otp1').focus(); }, 100);
+
   // Avvia countdown
   startOTPTimer(expiresAt);
 }
@@ -203,10 +228,11 @@ async function submitOTP() {
   errEl.style.display = 'none';
   
   try {
+    const rememberDevice = document.getElementById('rememberDevice')?.checked ?? false;
     const res = await fetch(`${AUTH_API}?action=verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: otpEmail, code })
+      body: JSON.stringify({ email: otpEmail, code, remember_device: rememberDevice })
     });
     
     const data = await res.json();

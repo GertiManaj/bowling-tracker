@@ -94,6 +94,27 @@ function runMigrations(PDO $pdo) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 
+    // ── MIGRATION 008: trusted_devices ──
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS trusted_devices (
+            id                INT AUTO_INCREMENT PRIMARY KEY,
+            admin_id          INT NOT NULL,
+            token_hash        VARCHAR(64) NOT NULL UNIQUE,
+            device_identifier VARCHAR(500) DEFAULT NULL,
+            user_agent        TEXT DEFAULT NULL,
+            ip_address        VARCHAR(45) DEFAULT NULL,
+            created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            expires_at        TIMESTAMP NOT NULL,
+            last_used_at      TIMESTAMP NULL DEFAULT NULL,
+            INDEX idx_admin  (admin_id),
+            INDEX idx_token  (token_hash),
+            INDEX idx_expires (expires_at),
+            FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    // Cleanup scaduti silenzioso
+    try { $pdo->exec("DELETE FROM trusted_devices WHERE expires_at < NOW()"); } catch (Exception $e) {}
+
     // ── CREA ADMIN DI DEFAULT SE NON ESISTE ──
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM admins")->fetchColumn();
