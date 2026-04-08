@@ -195,7 +195,7 @@ function renderAllTimeLeaderboard() {
     const sconfitte = serateConSquadra - vittorie - pareggi;
     const totaleRisultati = vittorie + pareggi + sconfitte;
     const hasSfide = totaleRisultati > 0;
-    const winPct = hasSfide ? Math.round(vittorie / totaleRisultati * 100) : null;
+    const winPct = hasSfide ? parseFloat((vittorie / totaleRisultati * 100).toFixed(1)) : null;
     const topScore = parseInt(p.volte_top_scorer) || 0;
     // forma calcolata tramite ultimi_risultati
     const mediaVal = parseFloat(p.media) || 0;
@@ -249,7 +249,7 @@ function renderAllTimeLeaderboard() {
         </div>
         <div class="stat-cell best" style="${cellStyle('record')}">${p.record ?? '—'}</div>
         <div class="stat-cell col-partite" style="${cellStyle('partite')}">${sfide > 0 ? sfide : '—'}</div>
-        <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct + '%' : '—'}</div>
+        <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct.toFixed(1) + '%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
         <div class="stat-cell" style="${cellStyle('saldo') || (p.saldo_pagamenti === 0 ? 'color:var(--neon)' : p.saldo_pagamenti > 0 ? 'color:var(--neon2)' : '')}">

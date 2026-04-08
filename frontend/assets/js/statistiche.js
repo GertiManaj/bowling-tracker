@@ -46,7 +46,7 @@ function computeRankValue(p, metric) {
   if (metric === 'win_pct') {
     const scs  = parseInt(p.serate_con_squadra) || 0;
     const wins = parseInt(p.vittorie_squadra) || 0;
-    return scs > 0 ? Math.round(wins / scs * 100) : null;
+    return scs > 0 ? parseFloat((wins / scs * 100).toFixed(1)) : null;
   }
   if (metric === 'vitt')           return parseInt(p.vittorie_squadra) || 0;
   if (metric === 'media_recente')  return p.media_recente ? parseFloat(p.media_recente) : null;
@@ -158,7 +158,7 @@ function renderRanking() {
     const pareggi          = parseInt(p.pareggi_squadra)  || 0;
     const serateConSquadra = parseInt(p.serate_con_squadra) || 0;
     const hasSfide         = serateConSquadra > 0;
-    const winPct           = hasSfide ? Math.round(vittorie / serateConSquadra * 100) : null;
+    const winPct           = hasSfide ? parseFloat((vittorie / serateConSquadra * 100).toFixed(1)) : null;
     const sconfitte        = hasSfide ? Math.max(0, serateConSquadra - vittorie - pareggi) : null;
 
     // Colonna V/N/P
@@ -198,7 +198,7 @@ function renderRanking() {
         </div>
         <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}" style="${isActive('media')?'':'color:var(--neon)'}">${p.media ?? '—'}</div>
         <div class="rank-table-val ${isActive('record') ? 'active-val' : ''}" style="${isActive('record')?'':'color:var(--neon3)'}">${p.record ?? '—'}</div>
-        <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct+'%' : '—'}</div>
+        <div class="rank-table-val ${isActive('win_pct') ? 'active-val' : ''}">${winPct != null ? winPct.toFixed(1)+'%' : '—'}</div>
         <div class="rank-table-val ${isActive('sfide') ? 'active-val' : ''}">${serateConSquadra || '—'}</div>
         <div class="rank-table-val ${isActive('partite_sfide') ? 'active-val' : ''}">${parseInt(p.partite_sfide) || 0}</div>
         <div class="rank-table-val ${isActive('partite_singolo') ? 'active-val' : ''}">${p.partite_singolo != null ? parseInt(p.partite_singolo) : 0}</div>
