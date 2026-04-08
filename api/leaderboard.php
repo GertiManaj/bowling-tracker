@@ -28,6 +28,36 @@ $stmt = $pdo->query('
 ');
 $players = $stmt->fetchAll();
 
+// ── CACHE PRE-CALCOLATA (evita query ripetute nel loop) ───────────
+
+// Modalità per sessione
+$sessionModes = [];
+foreach ($pdo->query("SELECT id, COALESCE(mode,'teams') AS mode FROM sessions") as $s) {
+    $sessionModes[(int)$s['id']] = $s['mode'];
+}
+
+// Totali per team (solo sessioni teams, esclude __FFA__)
+$teamTotalCache = [];
+foreach ($pdo->query("
+    SELECT t.id AS team_id, sc.session_id, SUM(sc.score) AS tot
+    FROM scores sc JOIN teams t ON sc.team_id = t.id
+    WHERE t.name != '__FFA__'
+    GROUP BY t.id, sc.session_id
+") as $tt) {
+    $teamTotalCache[(int)$tt['session_id']][(int)$tt['team_id']] = (int)$tt['tot'];
+}
+
+// Totali individuali FFA (per player, per sessione)
+$ffaTotalCache = [];
+foreach ($pdo->query("
+    SELECT sc.player_id, sc.session_id, SUM(sc.score) AS tot
+    FROM scores sc JOIN teams t ON sc.team_id = t.id
+    WHERE t.name = '__FFA__'
+    GROUP BY sc.player_id, sc.session_id
+") as $ft) {
+    $ffaTotalCache[(int)$ft['session_id']][(int)$ft['player_id']] = (int)$ft['tot'];
+}
+
 foreach ($players as &$player) {
     $id = $player['id'];
 
@@ -44,47 +74,35 @@ foreach ($players as &$player) {
     $recent = array_reverse($s->fetchAll(PDO::FETCH_COLUMN));
     $player['trend'] = array_map('intval', $recent);
 
-    // ── VITTORIE/PAREGGI SQUADRA (LOGICA IDENTICA A stats.php) ──
+    // ── VITTORIE/PAREGGI SQUADRA (solo sessioni teams, FFA escluso) ──
     $qSCS = $pdo->prepare("
         SELECT DISTINCT sc.session_id, sc.team_id
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
+        JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
+          AND t.name != '__FFA__'
+          AND COALESCE(se.mode,'teams') != 'ffa'
     ");
     $qSCS->execute([$id]);
     $sessRows = $qSCS->fetchAll();
 
-    // Deduplicazione: una riga per sessione (prende il primo team_id)
     $sessMap = [];
     foreach ($sessRows as $sr) {
-        $sid = $sr['session_id'];
-        if (!isset($sessMap[$sid])) $sessMap[$sid] = $sr['team_id'];
+        $sid = (int)$sr['session_id'];
+        if (!isset($sessMap[$sid])) $sessMap[$sid] = (int)$sr['team_id'];
     }
 
     $vittorie = 0;
     $pareggi  = 0;
 
     foreach ($sessMap as $sid => $tid) {
-        // Calcola totali team per questa sessione
-        $qTT = $pdo->prepare('
-            SELECT team_id, SUM(score) AS tot
-            FROM scores
-            WHERE session_id = ? AND team_id IS NOT NULL
-            GROUP BY team_id
-        ');
-        $qTT->execute([$sid]);
-        $teamTotals = [];
-        foreach ($qTT->fetchAll() as $t) {
-            $teamTotals[$t['team_id']] = (int)$t['tot'];
-        }
-
-        if (empty($teamTotals) || !isset($teamTotals[$tid])) continue;
-
-        $myTot  = (int)$teamTotals[$tid];
-        $maxTot = max($teamTotals);
-        $winCnt = count(array_filter($teamTotals, fn($t) => (int)$t === $maxTot));
-
-        if ($myTot === $maxTot && $winCnt > 1) $pareggi++;
+        $tots = $teamTotalCache[$sid] ?? [];
+        if (empty($tots) || !isset($tots[$tid])) continue;
+        $myTot  = $tots[$tid];
+        $maxTot = max($tots);
+        // N solo se TUTTI i team pareggiano (logica allineata a stats.php)
+        if ($myTot === $maxTot && count(array_unique($tots)) === 1) $pareggi++;
         elseif ($myTot === $maxTot) $vittorie++;
     }
 
@@ -129,52 +147,49 @@ foreach ($players as &$player) {
     $qTop->execute([$id]);
     $player['volte_top_scorer'] = (int)$qTop->fetchColumn();
 
-    // ── ULTIMI 5 RISULTATI (V/P/N) ──
+    // ── ULTIMI 5 RISULTATI (V/P/N) — FFA gestito individualmente ──
     $qSess = $pdo->prepare("
-        SELECT DISTINCT sc.session_id
+        SELECT DISTINCT sc.session_id, COALESCE(se.mode,'teams') AS mode,
+               t.name AS team_name, sc.team_id
         FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        LEFT JOIN teams t ON sc.team_id = t.id
         WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
         ORDER BY sc.session_id DESC
         LIMIT 5
     ");
     $qSess->execute([$id]);
-    $lastSessions = $qSess->fetchAll(PDO::FETCH_COLUMN);
 
+    $seen      = [];
     $risultati = [];
-    foreach ($lastSessions as $sessId) {
-        // Prendi il team_id del giocatore in questa sessione
-        $qMyTeam = $pdo->prepare('
-            SELECT team_id FROM scores
-            WHERE session_id = ? AND player_id = ? AND team_id IS NOT NULL
-            LIMIT 1
-        ');
-        $qMyTeam->execute([$sessId, $id]);
-        $myTeamId = $qMyTeam->fetchColumn();
-        
-        if (!$myTeamId) continue;
+    foreach ($qSess->fetchAll() as $r) {
+        $sid      = (int)$r['session_id'];
+        $mode     = $r['mode'];
+        $teamName = $r['team_name'];
+        $tid      = (int)$r['team_id'];
 
-        // Calcola totali team
-        $qTT = $pdo->prepare('
-            SELECT team_id, SUM(score) AS tot
-            FROM scores
-            WHERE session_id = ? AND team_id IS NOT NULL
-            GROUP BY team_id
-        ');
-        $qTT->execute([$sessId]);
-        $teamTotals = [];
-        foreach ($qTT->fetchAll() as $t) {
-            $teamTotals[$t['team_id']] = (int)$t['tot'];
+        if (isset($seen[$sid])) continue;
+        $seen[$sid] = true;
+
+        if ($mode === 'ffa' && $teamName === '__FFA__') {
+            // FFA: confronto punteggi individuali
+            $ffaScores = $ffaTotalCache[$sid] ?? [];
+            if (empty($ffaScores) || !isset($ffaScores[$id])) continue;
+            $myTotal  = $ffaScores[$id];
+            $maxTotal = max($ffaScores);
+            $topCount = count(array_filter($ffaScores, fn($s) => $s === $maxTotal));
+            $risultati[] = ($myTotal === $maxTotal && $topCount === 1) ? 'V' : 'P';
+        } else {
+            // Sessione teams normale
+            $tots = $teamTotalCache[$sid] ?? [];
+            if (empty($tots) || !isset($tots[$tid])) continue;
+            $myTotal  = $tots[$tid];
+            $maxTotal = max($tots);
+            // N solo se tutti i team pareggiano (allineato a stats.php)
+            if ($myTotal === $maxTotal && count(array_unique($tots)) === 1) $risultati[] = 'N';
+            elseif ($myTotal === $maxTotal) $risultati[] = 'V';
+            else $risultati[] = 'P';
         }
-
-        if (!isset($teamTotals[$myTeamId])) continue;
-
-        $myTotal = $teamTotals[$myTeamId];
-        $maxTotal = max($teamTotals);
-        $winCnt = count(array_filter($teamTotals, fn($t) => $t === $maxTotal));
-
-        if ($myTotal === $maxTotal && $winCnt > 1) $risultati[] = 'N';
-        elseif ($myTotal === $maxTotal) $risultati[] = 'V';
-        else $risultati[] = 'P';
     }
 
     $player['ultimi_risultati'] = array_reverse($risultati);
