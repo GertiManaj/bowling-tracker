@@ -10,7 +10,7 @@ function openChangePasswordModal() {
     return;
   }
   
-  overlay.classList.add('show');
+  overlay.classList.add('open');
   
   // Reset form
   document.getElementById('currentPassword').value = '';
@@ -25,7 +25,7 @@ function openChangePasswordModal() {
 function closeChangePasswordModal() {
   const overlay = document.getElementById('changePasswordOverlay');
   if (overlay) {
-    overlay.classList.remove('show');
+    overlay.classList.remove('open');
   }
 }
 
@@ -126,7 +126,7 @@ async function submitChangePassword() {
 // Enter per submit nel modal cambio password
 document.addEventListener('keydown', function(e) {
   const overlay = document.getElementById('changePasswordOverlay');
-  if (overlay && overlay.classList.contains('show') && e.key === 'Enter') {
+  if (overlay && overlay.classList.contains('open') && e.key === 'Enter') {
     submitChangePassword();
   }
 });
