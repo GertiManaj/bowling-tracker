@@ -1081,8 +1081,18 @@ function suggestTeams() {
   const { teamA: a1, teamB: b1 } = snakeDraft(players, false);
   const proposal1 = makeProposal(a1, b1);
 
-  // Proposta 2: snake con assegnazione A/B invertita
-  const { teamA: a2, teamB: b2 } = snakeDraft(players, true);
+  // Proposta 2: greedy balancing — ogni giocatore va alla squadra col totale più basso
+  function greedyBalance(sorted) {
+    const teamA = [], teamB = [];
+    let sumA = 0, sumB = 0;
+    for (const player of sorted) {
+      if (sumA <= sumB) { teamA.push(player); sumA += player._score; }
+      else              { teamB.push(player); sumB += player._score; }
+    }
+    return { teamA, teamB };
+  }
+
+  const { teamA: a2, teamB: b2 } = greedyBalance(players);
   const proposal2 = makeProposal(a2, b2);
 
   window._lastSuggestData = proposal1;
