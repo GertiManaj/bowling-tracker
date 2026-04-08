@@ -1062,46 +1062,6 @@ function suggestTeams() {
     };
   }
 
-  // ── PROPOSTA 1: OPPOSTI (strong-weak pairing) ──────────────────
-  // Accoppia 1°↔ultimo, 2°↔penultimo, ecc. — ogni coppia va alla stessa squadra
-  function strongWeakPairing(sorted) {
-    const n = sorted.length;
-    const teamA = [], teamB = [];
-    const pairs = [];
-    for (let i = 0; i < Math.floor(n / 2); i++) {
-      pairs.push([sorted[i], sorted[n - 1 - i]]);
-    }
-    const middle = (n % 2 === 1) ? sorted[Math.floor(n / 2)] : null;
-    for (let i = 0; i < pairs.length; i++) {
-      const [strong, weak] = pairs[i];
-      if (i % 2 === 0) { teamA.push(strong); teamB.push(weak); }
-      else             { teamB.push(strong); teamA.push(weak); }
-    }
-    if (middle) {
-      if (teamA.length <= teamB.length) teamA.push(middle);
-      else teamB.push(middle);
-    }
-    return { teamA, teamB };
-  }
-
-  const { teamA: a1, teamB: b1 } = strongWeakPairing(players);
-  const proposal1 = makeProposal(a1, b1, 'OPPOSTI');
-
-  // ── PROPOSTA 2: FORMA RECENTE (snake su score recente) ─────────
-  // Ricalcola _score pesando gli ultimi risultati disponibili
-  const playersRecent = players.map(p => {
-    const cached = cachedPlayers.find(cp => cp.id === p.id);
-    const risultati = cached?.ultimi_risultati || [];
-    // Conta V/P/N negli ultimi 5: V=+5%, P=-5% sulla media
-    let formaMod = 0;
-    risultati.slice(-3).forEach(r => {
-      if (r === 'V') formaMod += 0.05;
-      else if (r === 'P') formaMod -= 0.05;
-    });
-    return { ...p, _score: p._score * (1 + formaMod) };
-  });
-  playersRecent.sort((a, b) => b._score - a._score);
-
   function snakeDraft(sorted) {
     const teamA = [], teamB = [];
     for (let i = 0; i < sorted.length; i++) {
@@ -1113,15 +1073,88 @@ function suggestTeams() {
     return { teamA, teamB };
   }
 
-  const { teamA: a2, teamB: b2 } = snakeDraft(playersRecent);
-  const proposal2 = makeProposal(a2, b2, 'FORMA RECENTE');
+  function greedyBalance(sorted) {
+    const teamA = [], teamB = [];
+    let sumA = 0, sumB = 0;
+    for (const p of sorted) {
+      if (sumA <= sumB) { teamA.push(p); sumA += p._score; }
+      else              { teamB.push(p); sumB += p._score; }
+    }
+    return { teamA, teamB };
+  }
 
-  window._lastSuggestData = proposal1;
+  // ── PROPOSTA 1: CLUSTER TRIPLO ─────────────────────────────────
+  function clusterTriple(sorted) {
+    const n = sorted.length;
+    const third = Math.ceil(n / 3);
+    const top = sorted.slice(0, third);
+    const mid = sorted.slice(third, third * 2);
+    const low = sorted.slice(third * 2);
+    const teamA = [], teamB = [];
+    top.forEach((p, i) => (i % 2 === 0 ? teamA : teamB).push(p));
+    mid.forEach((p, i) => (i % 2 === 0 ? teamB : teamA).push(p));
+    low.forEach((p, i) => (i % 2 === 0 ? teamA : teamB).push(p));
+    return { teamA, teamB };
+  }
+
+  const { teamA: a1, teamB: b1 } = clusterTriple(players);
+  const proposal1 = makeProposal(a1, b1, 'CLUSTER TRIPLO');
+
+  // ── PROPOSTA 2: MINI-MAX OTTIMIZZATO ───────────────────────────
+  function miniMaxOptimal(sorted) {
+    const n = sorted.length;
+    if (n > 10) return { ...greedyBalance(sorted), _method: 'GREEDY' };
+
+    const half = Math.floor(n / 2);
+    let bestDiff = Infinity, bestA = [], bestB = [];
+
+    function combinations(arr, k) {
+      if (k === 0) return [[]];
+      if (arr.length < k) return [];
+      const [first, ...rest] = arr;
+      return [
+        ...combinations(rest, k - 1).map(c => [first, ...c]),
+        ...combinations(rest, k)
+      ];
+    }
+
+    for (const teamA of combinations(sorted, half)) {
+      const teamB = sorted.filter(p => !teamA.includes(p));
+      const avgA = teamA.reduce((s, p) => s + p._score, 0) / teamA.length;
+      const avgB = teamB.reduce((s, p) => s + p._score, 0) / teamB.length;
+      const diff = Math.abs(avgA - avgB);
+      if (diff < bestDiff) { bestDiff = diff; bestA = teamA; bestB = teamB; }
+    }
+
+    return { teamA: bestA, teamB: bestB, _method: 'MINI-MAX' };
+  }
+
+  const mm = miniMaxOptimal(players);
+  const proposal2 = makeProposal(mm.teamA, mm.teamB, mm._method || 'MINI-MAX');
+
+  // ── PROPOSTA 3: FORMA RECENTE (snake su score pesato) ──────────
+  const playersRecent = players.map(p => {
+    const cached = cachedPlayers.find(cp => cp.id === p.id);
+    const risultati = cached?.ultimi_risultati || [];
+    let formaMod = 0;
+    risultati.slice(-3).forEach(r => {
+      if (r === 'V') formaMod += 0.05;
+      else if (r === 'P') formaMod -= 0.05;
+    });
+    return { ...p, _score: p._score * (1 + formaMod) };
+  });
+  playersRecent.sort((a, b) => b._score - a._score);
+
+  const { teamA: a3, teamB: b3 } = snakeDraft(playersRecent);
+  const proposal3 = makeProposal(a3, b3, 'FORMA RECENTE');
+
+  window._lastSuggestData  = proposal1;
   window._lastSuggestData2 = proposal2;
-  renderSuggestResult(proposal1, proposal2);
+  window._lastSuggestData3 = proposal3;
+  renderSuggestResult(proposal1, proposal2, proposal3);
 }
 
-function renderSuggestResult(data1, data2) {
+function renderSuggestResult(data1, data2, data3) {
   const dot = r => {
     if (r === 'V') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#22c55e;color:#000;font-size:0.38rem;font-weight:700">V</span>';
     if (r === 'P') return '<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;background:#ef4444;color:#fff;font-size:0.38rem;font-weight:700">P</span>';
@@ -1171,6 +1204,7 @@ function renderSuggestResult(data1, data2) {
     <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.4rem">
       ${proposalHtml(data1, 1, 'PROPOSTA 1')}
       ${proposalHtml(data2, 2, 'PROPOSTA 2')}
+      ${data3 ? proposalHtml(data3, 3, 'PROPOSTA 3') : ''}
     </div>
     <button onclick="useSuggestedTeams()" class="btn-primary" style="width:100%;margin-top:0.5rem;font-size:0.78rem;padding:0.45rem">
       ✓ Usa la proposta selezionata
@@ -1186,7 +1220,9 @@ function selectProposal(idx) {
 
 function useSuggestedTeams() {
   const idx = window._selectedProposal || 1;
-  const resultData = idx === 2 ? window._lastSuggestData2 : window._lastSuggestData;
+  const resultData = idx === 3 ? window._lastSuggestData3
+                   : idx === 2 ? window._lastSuggestData2
+                   :             window._lastSuggestData;
 
   openModal().then(() => {
     document.getElementById('teamARows').innerHTML = '';
