@@ -169,8 +169,8 @@ foreach ($leaderboard as $pl) {
     $pid = $pl['id'];
     $params = array_merge([$pid], $dateParams);
 
-    // Serate con squadra (solo teams, FFA escluso — identico a leaderboard.php)
-    $qSCS = $pdo->prepare("
+    // ── VITTORIE/PAREGGI: sessioni teams ──
+    $qTeam = $pdo->prepare("
         SELECT DISTINCT sc.session_id, sc.team_id
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
@@ -180,31 +180,55 @@ foreach ($leaderboard as $pl) {
           AND COALESCE(se.mode,'teams') != 'ffa'
         " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
     ");
-    $qSCS->execute($params);
-    $sessRows = $qSCS->fetchAll();
-
+    $qTeam->execute($params);
     $sessMap = [];
-    foreach ($sessRows as $sr) {
+    foreach ($qTeam->fetchAll() as $sr) {
         $sid = (int)$sr['session_id'];
         if (!isset($sessMap[$sid])) $sessMap[$sid] = (int)$sr['team_id'];
     }
 
+    // ── FFA: sessioni individuali ──
+    $qFFA = $pdo->prepare("
+        SELECT DISTINCT sc.session_id
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        JOIN teams t ON sc.team_id = t.id
+        WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
+          AND t.name = '__FFA__'
+          AND COALESCE(se.mode,'teams') = 'ffa'
+        " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
+    ");
+    $qFFA->execute($params);
+    $ffaSessions = $qFFA->fetchAll(PDO::FETCH_COLUMN);
+
     $vittorie = 0;
     $pareggi  = 0;
 
+    // Sessioni teams: V se squadra ha il max, N se pareggio completo
     foreach ($sessMap as $sid => $tid) {
         $tots = $teamTotalCache[$sid] ?? [];
         if (empty($tots) || !isset($tots[$tid])) continue;
         $myTot  = $tots[$tid];
         $maxTot = max($tots);
-        // N solo se TUTTI i team pareggiano (identico a leaderboard.php)
         if ($myTot === $maxTot && count(array_unique($tots)) === 1) $pareggi++;
         elseif ($myTot === $maxTot) $vittorie++;
     }
 
+    // Sessioni FFA: V solo per il 1° classificato unico, tutti gli altri P
+    foreach ($ffaSessions as $sid) {
+        $sid       = (int)$sid;
+        $ffaScores = $ffaTotalCache[$sid] ?? [];
+        if (empty($ffaScores) || !isset($ffaScores[$pid])) continue;
+        $myTotal  = $ffaScores[$pid];
+        $maxTotal = max($ffaScores);
+        $topCount = count(array_filter($ffaScores, fn($s) => $s === $maxTotal));
+        if ($myTotal === $maxTotal && $topCount === 1) $vittorie++;
+        // altrimenti: sconfitta → calcolata come serate - vittorie - pareggi
+    }
+
     $vittorieMap[$pid]      = $vittorie;
     $pareggiMap[$pid]       = $pareggi;
-    $serateSquadraMap[$pid] = count($sessMap);
+    $serateSquadraMap[$pid] = count($sessMap) + count($ffaSessions);
 }
 
 // Inietta tutti i campi nella leaderboard

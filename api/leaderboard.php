@@ -74,8 +74,8 @@ foreach ($players as &$player) {
     $recent = array_reverse($s->fetchAll(PDO::FETCH_COLUMN));
     $player['trend'] = array_map('intval', $recent);
 
-    // ── VITTORIE/PAREGGI SQUADRA (solo sessioni teams, FFA escluso) ──
-    $qSCS = $pdo->prepare("
+    // ── VITTORIE/PAREGGI: sessioni teams ──
+    $qTeam = $pdo->prepare("
         SELECT DISTINCT sc.session_id, sc.team_id
         FROM scores sc
         JOIN sessions se ON sc.session_id = se.id
@@ -84,31 +84,54 @@ foreach ($players as &$player) {
           AND t.name != '__FFA__'
           AND COALESCE(se.mode,'teams') != 'ffa'
     ");
-    $qSCS->execute([$id]);
-    $sessRows = $qSCS->fetchAll();
-
+    $qTeam->execute([$id]);
     $sessMap = [];
-    foreach ($sessRows as $sr) {
+    foreach ($qTeam->fetchAll() as $sr) {
         $sid = (int)$sr['session_id'];
         if (!isset($sessMap[$sid])) $sessMap[$sid] = (int)$sr['team_id'];
     }
 
+    // ── FFA: sessioni individuali ──
+    $qFFA = $pdo->prepare("
+        SELECT DISTINCT sc.session_id
+        FROM scores sc
+        JOIN sessions se ON sc.session_id = se.id
+        JOIN teams t ON sc.team_id = t.id
+        WHERE sc.player_id = ? AND sc.team_id IS NOT NULL
+          AND t.name = '__FFA__'
+          AND COALESCE(se.mode,'teams') = 'ffa'
+    ");
+    $qFFA->execute([$id]);
+    $ffaSessions = $qFFA->fetchAll(PDO::FETCH_COLUMN);
+
     $vittorie = 0;
     $pareggi  = 0;
 
+    // Sessioni teams: V se squadra ha il max, N se pareggio completo
     foreach ($sessMap as $sid => $tid) {
         $tots = $teamTotalCache[$sid] ?? [];
         if (empty($tots) || !isset($tots[$tid])) continue;
         $myTot  = $tots[$tid];
         $maxTot = max($tots);
-        // N solo se TUTTI i team pareggiano (logica allineata a stats.php)
         if ($myTot === $maxTot && count(array_unique($tots)) === 1) $pareggi++;
         elseif ($myTot === $maxTot) $vittorie++;
     }
 
-    $player['vittorie_squadra'] = $vittorie;
-    $player['pareggi_squadra'] = $pareggi;
-    $player['serate_con_squadra'] = count($sessMap);
+    // Sessioni FFA: V solo per il 1° classificato unico, tutti gli altri P
+    foreach ($ffaSessions as $sid) {
+        $sid       = (int)$sid;
+        $ffaScores = $ffaTotalCache[$sid] ?? [];
+        if (empty($ffaScores) || !isset($ffaScores[$id])) continue;
+        $myTotal  = $ffaScores[$id];
+        $maxTotal = max($ffaScores);
+        $topCount = count(array_filter($ffaScores, fn($s) => $s === $maxTotal));
+        if ($myTotal === $maxTotal && $topCount === 1) $vittorie++;
+        // altrimenti: sconfitta → calcolata come serate - vittorie - pareggi
+    }
+
+    $player['vittorie_squadra']   = $vittorie;
+    $player['pareggi_squadra']    = $pareggi;
+    $player['serate_con_squadra'] = count($sessMap) + count($ffaSessions);
 
     // ── VOLTE TOP SCORER (ESCLUSI PAREGGI) ──
     $qTop = $pdo->prepare('
