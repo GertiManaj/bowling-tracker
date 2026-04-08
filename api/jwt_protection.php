@@ -30,7 +30,7 @@ function requireAuth($protectedMethods = ['POST', 'PUT', 'DELETE']) {
     }
     
     $token = $matches[1];
-    $secret = getenv('JWT_SECRET') ?: 'strike_zone_jwt_secret_2024_change_me';
+    $secret = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
     
     // Verifica struttura token (3 parti: header.payload.signature)
     $parts = explode('.', $token);

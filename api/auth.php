@@ -218,19 +218,32 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
     
     try {
         $pdo = getPDO();
-        
+
+        // ── RATE LIMITING: max 10 tentativi falliti per IP negli ultimi 15 minuti ──
+        $clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $stmtRL = $pdo->prepare("
+            SELECT COUNT(*) FROM login_logs
+            WHERE ip_address = ? AND success = 0 AND created_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        ");
+        $stmtRL->execute([$clientIp]);
+        if ((int)$stmtRL->fetchColumn() >= 10) {
+            http_response_code(429);
+            echo json_encode(['success' => false, 'error' => 'Troppi tentativi. Riprova tra 15 minuti.']);
+            exit;
+        }
+
         // Trova admin
         $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = :email AND active = 1");
         $stmt->execute([':email' => $email]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$admin) {
             logLogin($pdo, null, $email, false, 'Email non trovata');
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Credenziali non valide']);
             exit;
         }
-        
+
         // Verifica password hashata
         if (!password_verify($password, $admin['password_hash'])) {
             logLogin($pdo, $admin['id'], $email, false, 'Password errata');
