@@ -1051,49 +1051,64 @@ function suggestTeams() {
   // Ordina per score decrescente (più forte → più debole)
   players.sort((a, b) => b._score - a._score);
 
-  // Snake draft: A,B,B,A,A,B,B,A...
-  // swapAB=true → B,A,A,B,B,A,A,B (proposta alternativa)
-  function snakeDraft(sorted, swapAB) {
-    const teamA = [], teamB = [];
-    for (let i = 0; i < sorted.length; i++) {
-      const pair = Math.floor(i / 2);
-      const posInPair = i % 2;
-      let goToA = (pair % 2 === 0) ? (posInPair === 0) : (posInPair === 1);
-      if (swapAB) goToA = !goToA;
-      if (goToA) teamA.push(sorted[i]);
-      else teamB.push(sorted[i]);
-    }
-    return { teamA, teamB };
-  }
-
-  function makeProposal(teamA, teamB) {
+  function makeProposal(teamA, teamB, method) {
     const avgA = teamA.length ? teamA.reduce((s, p) => s + p._score, 0) / teamA.length : 0;
     const avgB = teamB.length ? teamB.reduce((s, p) => s + p._score, 0) / teamB.length : 0;
     return {
-      teamA,
-      teamB,
+      teamA, teamB, method,
       scoreA: avgA.toFixed(1),
       scoreB: avgB.toFixed(1),
       diff: Math.abs(avgA - avgB).toFixed(1)
     };
   }
 
-  const { teamA: a1, teamB: b1 } = snakeDraft(players, false);
-  const proposal1 = makeProposal(a1, b1);
-
-  // Proposta 2: greedy balancing — ogni giocatore va alla squadra col totale più basso
-  function greedyBalance(sorted) {
+  // ── PROPOSTA 1: OPPOSTI (strong-weak pairing) ──────────────────
+  // Accoppia 1°↔ultimo, 2°↔penultimo, ecc. — ogni coppia va alla stessa squadra
+  function strongWeakPairing(sorted) {
     const teamA = [], teamB = [];
-    let sumA = 0, sumB = 0;
-    for (const player of sorted) {
-      if (sumA <= sumB) { teamA.push(player); sumA += player._score; }
-      else              { teamB.push(player); sumB += player._score; }
+    const n = sorted.length;
+    const pairs = [];
+    for (let i = 0; i < Math.floor(n / 2); i++) {
+      pairs.push([sorted[i], sorted[n - 1 - i]]);
+    }
+    if (n % 2 === 1) pairs.push([sorted[Math.floor(n / 2)]]);
+    pairs.forEach((pair, idx) => {
+      pair.forEach(p => (idx % 2 === 0 ? teamA : teamB).push(p));
+    });
+    return { teamA, teamB };
+  }
+
+  const { teamA: a1, teamB: b1 } = strongWeakPairing(players);
+  const proposal1 = makeProposal(a1, b1, 'OPPOSTI');
+
+  // ── PROPOSTA 2: FORMA RECENTE (snake su score recente) ─────────
+  // Ricalcola _score pesando gli ultimi risultati disponibili
+  const playersRecent = players.map(p => {
+    const cached = cachedPlayers.find(cp => cp.id === p.id);
+    const risultati = cached?.ultimi_risultati || [];
+    // Conta V/P/N negli ultimi 5: V=+5%, P=-5% sulla media
+    let formaMod = 0;
+    risultati.slice(-3).forEach(r => {
+      if (r === 'V') formaMod += 0.05;
+      else if (r === 'P') formaMod -= 0.05;
+    });
+    return { ...p, _score: p._score * (1 + formaMod) };
+  });
+  playersRecent.sort((a, b) => b._score - a._score);
+
+  function snakeDraft(sorted) {
+    const teamA = [], teamB = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const pair = Math.floor(i / 2);
+      const posInPair = i % 2;
+      const goToA = (pair % 2 === 0) ? (posInPair === 0) : (posInPair === 1);
+      if (goToA) teamA.push(sorted[i]); else teamB.push(sorted[i]);
     }
     return { teamA, teamB };
   }
 
-  const { teamA: a2, teamB: b2 } = greedyBalance(players);
-  const proposal2 = makeProposal(a2, b2);
+  const { teamA: a2, teamB: b2 } = snakeDraft(playersRecent);
+  const proposal2 = makeProposal(a2, b2, 'FORMA RECENTE');
 
   window._lastSuggestData = proposal1;
   window._lastSuggestData2 = proposal2;
@@ -1125,7 +1140,10 @@ function renderSuggestResult(data1, data2) {
     return `
     <div class="suggest-proposal" id="proposal-${idx}" style="border:2px solid ${idx === 1 ? 'var(--neon)' : 'var(--border)'};border-radius:8px;cursor:pointer;transition:border-color 0.2s" onclick="selectProposal(${idx})">
       <div style="background:var(--surface2);padding:0.35rem 0.6rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
-        <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);letter-spacing:0.1em">${label}</span>
+        <div style="display:flex;flex-direction:column;gap:0.1rem">
+          <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);letter-spacing:0.1em">${label}</span>
+          ${data.method ? `<span style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:var(--neon3);letter-spacing:0.08em">METODO: ${data.method}</span>` : ''}
+        </div>
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:${data.diff < 20 ? 'var(--neon)' : 'var(--neon4)'}">Δ ${data.diff}</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
