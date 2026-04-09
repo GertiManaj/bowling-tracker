@@ -267,6 +267,27 @@ function renderSLStats(data) {
   );
 }
 
+// ── DATETIME FORMATTER (UTC → Europe/Rome) ──
+// MySQL ritorna "2024-01-09 16:48:20" senza timezone.
+// Aggiungiamo 'T' e 'Z' per forzare la lettura come UTC,
+// poi convertiamo al fuso italiano.
+function formatSLDateTime(utcString) {
+  try {
+    const date = new Date(utcString.replace(' ', 'T') + 'Z');
+    return date.toLocaleString('it-IT', {
+      day:      '2-digit',
+      month:    '2-digit',
+      year:     'numeric',
+      hour:     '2-digit',
+      minute:   '2-digit',
+      second:   '2-digit',
+      timeZone: 'Europe/Rome'
+    });
+  } catch (e) {
+    return utcString;
+  }
+}
+
 // ── RENDER TABLE ──
 function renderSLTable(logs) {
   if (!logs.length) {
@@ -276,7 +297,7 @@ function renderSLTable(logs) {
   const rows = logs.map(function (log, idx) {
     const sev      = escSL(log.severity);
     const rowClass = sev === 'CRITICAL' ? 'sl-row-critical' : sev === 'WARNING' ? 'sl-row-warning' : '';
-    const dt       = log.created_at ? new Date(log.created_at).toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '—';
+    const dt       = log.created_at ? formatSLDateTime(log.created_at) : '—';
     const admin    = log.admin_name ? escSL(log.admin_name) : (log.admin_email ? escSL(log.admin_email) : '—');
     const ip       = log.ip_address ? escSL(log.ip_address) : '—';
     const detailsRaw = log.details || '{}';

@@ -369,8 +369,27 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $otp = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$otp) {
+            // Determina il motivo specifico del fallimento OTP
+            $stmtOtpCheck = $pdo->prepare("
+                SELECT used, expires_at FROM otp_codes
+                WHERE admin_id = ? AND code = ?
+                ORDER BY created_at DESC LIMIT 1
+            ");
+            $stmtOtpCheck->execute([$admin['id'], hash('sha256', $code)]);
+            $otpCheck = $stmtOtpCheck->fetch(PDO::FETCH_ASSOC);
+
+            if ($otpCheck && $otpCheck['used']) {
+                $otpFailReason = 'already_used';
+            } elseif ($otpCheck && strtotime($otpCheck['expires_at']) < time()) {
+                $otpFailReason = 'expired';
+            } elseif ($otpCheck) {
+                $otpFailReason = 'wrong_code'; // non dovrebbe accadere ma per sicurezza
+            } else {
+                $otpFailReason = 'wrong_code'; // hash non trovato = codice sbagliato
+            }
+
             logLogin($pdo, $admin['id'], $email, false, 'OTP non valido o scaduto');
-            logSecurityEvent($pdo, 'otp_failed', 'WARNING', $admin['id'], ['email' => $email]);
+            logSecurityEvent($pdo, 'otp_failed', 'WARNING', $admin['id'], ['email' => $email, 'reason' => $otpFailReason]);
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Codice non valido o scaduto']);
             exit;
