@@ -119,6 +119,11 @@ function runMigrations(PDO $pdo) {
     // Rimuove codici a 6 cifre salvati prima dell'introduzione dell'hash SHA-256
     try { $pdo->exec("DELETE FROM otp_codes WHERE LENGTH(code) <= 6"); } catch (Exception $e) {}
 
+    // ── MIGRATION 010: allarga colonna code in otp_codes per SHA-256 (64 char) ──
+    try {
+        $pdo->exec("ALTER TABLE otp_codes MODIFY COLUMN code VARCHAR(64) NOT NULL");
+    } catch (Exception $e) { /* silenzioso se già corretto */ }
+
     // ── CREA ADMIN DI DEFAULT SE NON ESISTE ──
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM admins")->fetchColumn();
