@@ -268,23 +268,24 @@ function renderSLStats(data) {
 }
 
 // ── DATETIME FORMATTER (UTC → Europe/Rome) ──
-// MySQL ritorna "2024-01-09 16:48:20" senza timezone.
-// Aggiungiamo 'T' e 'Z' per forzare la lettura come UTC,
-// poi convertiamo al fuso italiano.
-function formatSLDateTime(utcString) {
+// MySQL ritorna "YYYY-MM-DD HH:MM:SS" senza timezone info.
+// Aggiungendo T e Z otteniamo ISO 8601 UTC, poi convertiamo a Rome.
+function formatSLDateTime(dbTimestamp) {
   try {
-    const date = new Date(utcString.replace(' ', 'T') + 'Z');
+    const isoString = dbTimestamp.replace(' ', 'T') + 'Z';
+    const date = new Date(isoString);
     return date.toLocaleString('it-IT', {
-      day:      '2-digit',
-      month:    '2-digit',
       year:     'numeric',
+      month:    '2-digit',
+      day:      '2-digit',
       hour:     '2-digit',
       minute:   '2-digit',
       second:   '2-digit',
-      timeZone: 'Europe/Rome'
+      timeZone: 'Europe/Rome',
+      hour12:   false
     });
   } catch (e) {
-    return utcString;
+    return dbTimestamp;
   }
 }
 
