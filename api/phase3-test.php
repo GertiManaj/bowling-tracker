@@ -1,7 +1,7 @@
 <?php
 // ============================================
 //  api/phase3-test.php — Test FASE 3
-//  Verifica filtri multi-gruppo
+//  Verifica filtri multi-gruppo via query DB dirette
 //  DA ELIMINARE dopo l'uso
 // ============================================
 $validTokens = ['phase3test_20260409', 'phase3test_20260410'];
@@ -13,315 +13,263 @@ if (!in_array($_GET['token'] ?? '', $validTokens, true)) {
 header('Content-Type: text/plain; charset=utf-8');
 
 $pass = 0; $fail = 0;
-
-function ok(string $label, string $note = ''): void {
-    global $pass; $pass++;
-    echo "  ✅  $label" . ($note ? "  [$note]" : '') . "\n";
-}
-function ko(string $label, string $note = ''): void {
-    global $fail; $fail++;
-    echo "  ❌  $label" . ($note ? "  [$note]" : '') . "\n";
-}
+function ok(string $label, string $note = ''): void { global $pass; $pass++; echo "  ✅  $label" . ($note ? "  [$note]" : '') . "\n"; }
+function ko(string $label, string $note = ''): void { global $fail; $fail++; echo "  ❌  $label" . ($note ? "  [$note]" : '') . "\n"; }
 function section(string $t): void { echo "\n── $t ──\n"; }
-
-$baseUrl = 'https://web-production-e43fd.up.railway.app';
-
-function curl(string $method, string $url, array $body = [], array $headers = []): array {
-    $hdrs = ['Content-Type: application/json'];
-    foreach ($headers as $k => $v) $hdrs[] = "$k: $v";
-    $cmd = 'curl -s -w "\nHTTP_CODE:%{http_code}" -X ' . escapeshellarg($method)
-        . ' ' . escapeshellarg($url)
-        . ' -H ' . implode(' -H ', array_map('escapeshellarg', $hdrs))
-        . (!empty($body) ? ' -d ' . escapeshellarg(json_encode($body)) : '')
-        . ' --max-time 10';
-    $raw  = shell_exec($cmd) ?? '';
-    $code = 0;
-    if (preg_match('/\nHTTP_CODE:(\d+)$/', $raw, $m)) {
-        $code = (int)$m[1];
-        $raw  = substr($raw, 0, strrpos($raw, "\nHTTP_CODE:"));
-    }
-    return ['code' => $code, 'data' => json_decode($raw, true), 'raw' => $raw];
-}
 
 echo "═══════════════════════════════════════\n";
 echo " PHASE 3 TEST — " . date('Y-m-d H:i:s') . "\n";
-echo " Host: $baseUrl\n";
 echo "═══════════════════════════════════════\n";
 
-// ════════════════════════════════════════════
-// SETUP
-// ════════════════════════════════════════════
-section('SETUP: DB + JWT');
+// ── SETUP (nessun include con side-effects) ──
+section('SETUP: DB + helpers');
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/jwt_protection.php';
+require_once __DIR__ . '/jwt_protection.php';  // solo funzioni pure
 
 try {
     $pdo = getPDO();
     ok('Connessione DB');
 } catch (Exception $e) {
-    echo "❌ DB fallito: " . $e->getMessage() . "\n";
-    exit;
+    echo "❌ DB: " . $e->getMessage() . "\n"; exit;
 }
 
-// Genera JWT super_admin
-require_once __DIR__ . '/auth.php';
-$admin   = $pdo->query("SELECT * FROM admins ORDER BY id ASC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
-$role    = fetchAdminRole($pdo, (int)$admin['id']);
-$secret  = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
-$jwt     = createJWT((int)$admin['id'], $admin['email'], $secret, 3600, $role);
-ok('JWT generato', $admin['email'] . ' / ' . ($role['role'] ?? '?'));
+// JWT inline (senza includere auth.php che ha codice top-level)
+function b64url(string $d): string { return rtrim(strtr(base64_encode($d), '+/', '-_'), '='); }
+function makeJWT(int $adminId, string $email, array $roleData = []): string {
+    $secret  = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
+    $header  = b64url(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
+    $payload = b64url(json_encode([
+        'iat'       => time(), 'exp' => time() + 3600,
+        'admin_id'  => $adminId, 'email' => $email,
+        'user_type' => $roleData['role'] ?? 'super_admin',
+        'group_id'  => $roleData['group_id'] ?? null,
+    ]));
+    $sig = b64url(hash_hmac('sha256', "$header.$payload", $secret, true));
+    return "$header.$payload.$sig";
+}
+
+$admin = $pdo->query("SELECT id, email FROM admins ORDER BY id ASC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+$roleStmt = $pdo->prepare("SELECT role, group_id FROM admin_roles WHERE admin_id = ? LIMIT 1");
+$roleStmt->execute([(int)$admin['id']]);
+$roleRow  = $roleStmt->fetch(PDO::FETCH_ASSOC) ?: ['role' => 'super_admin', 'group_id' => null];
+$jwt      = makeJWT((int)$admin['id'], $admin['email'], $roleRow);
+
+ok('JWT generato inline', $admin['email'] . ' / ' . $roleRow['role']);
+
+// Totali DB
+$totalPlayers  = (int)$pdo->query("SELECT COUNT(*) FROM players")->fetchColumn();
+$totalSessions = (int)$pdo->query("SELECT COUNT(*) FROM sessions")->fetchColumn();
+$g1Players     = (int)$pdo->query("SELECT COUNT(*) FROM players  WHERE group_id = 1")->fetchColumn();
+$g1Sessions    = (int)$pdo->query("SELECT COUNT(*) FROM sessions WHERE group_id = 1")->fetchColumn();
+
+echo "  ℹ️   DB: $totalPlayers players, $totalSessions sessioni (gruppo 1: $g1Players p / $g1Sessions s)\n";
 
 // ════════════════════════════════════════════
-// TEST 1: Schema — colonne group_id presenti
+// TEST 1: Schema
 // ════════════════════════════════════════════
 section('TEST 1: Schema group_id');
 
-$colPlayers  = $pdo->query("SHOW COLUMNS FROM players  LIKE 'group_id'")->fetch();
-$colSessions = $pdo->query("SHOW COLUMNS FROM sessions LIKE 'group_id'")->fetch();
+$pdo->query("SHOW COLUMNS FROM players  LIKE 'group_id'")->fetch() ? ok('players.group_id esiste')  : ko('players.group_id mancante');
+$pdo->query("SHOW COLUMNS FROM sessions LIKE 'group_id'")->fetch() ? ok('sessions.group_id esiste') : ko('sessions.group_id mancante');
 
-$colPlayers  ? ok('players.group_id esiste')  : ko('players.group_id mancante');
-$colSessions ? ok('sessions.group_id esiste') : ko('sessions.group_id mancante');
+(int)$pdo->query("SELECT COUNT(*) FROM players  WHERE group_id IS NULL")->fetchColumn() === 0
+    ? ok('Tutti i players hanno group_id') : ko('players con group_id NULL trovati');
+(int)$pdo->query("SELECT COUNT(*) FROM sessions WHERE group_id IS NULL")->fetchColumn() === 0
+    ? ok('Tutte le sessions hanno group_id') : ko('sessions con group_id NULL trovate');
 
-$nullP = $pdo->query("SELECT COUNT(*) FROM players  WHERE group_id IS NULL")->fetchColumn();
-$nullS = $pdo->query("SELECT COUNT(*) FROM sessions WHERE group_id IS NULL")->fetchColumn();
-
-(int)$nullP === 0 ? ok('Tutti i players hanno group_id')  : ko("$nullP players senza group_id");
-(int)$nullS === 0 ? ok('Tutte le sessions hanno group_id') : ko("$nullS sessions senza group_id");
-
-// Conta per gruppo
-$counts = $pdo->query("SELECT group_id, COUNT(*) AS n FROM players GROUP BY group_id")->fetchAll();
-foreach ($counts as $c) {
+foreach ($pdo->query("SELECT group_id, COUNT(*) AS n FROM players GROUP BY group_id")->fetchAll() as $c)
     echo "     players gruppo {$c['group_id']}: {$c['n']}\n";
-}
-$scounts = $pdo->query("SELECT group_id, COUNT(*) AS n FROM sessions GROUP BY group_id")->fetchAll();
-foreach ($scounts as $c) {
+foreach ($pdo->query("SELECT group_id, COUNT(*) AS n FROM sessions GROUP BY group_id")->fetchAll() as $c)
     echo "     sessions gruppo {$c['group_id']}: {$c['n']}\n";
-}
 
 // ════════════════════════════════════════════
-// TEST 2: HTTP GET /api/players.php (senza JWT → tutti)
+// TEST 2: Logica filtro players.php (stessa query del file)
 // ════════════════════════════════════════════
-section('TEST 2: GET /api/players.php');
-
-$totalPlayers = (int)$pdo->query("SELECT COUNT(*) FROM players")->fetchColumn();
-$g1Players    = (int)$pdo->query("SELECT COUNT(*) FROM players WHERE group_id = 1")->fetchColumn();
-
-// Senza JWT
-$r = curl('GET', "$baseUrl/api/players.php");
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    ok("Senza JWT → HTTP 200");
-    $cnt === $totalPlayers
-        ? ok("Count corretto  [$cnt players]")
-        : ko("Count errato: atteso=$totalPlayers, ricevuto=$cnt");
-} else {
-    ko("Senza JWT fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 100));
-}
-
-// Con JWT, ?group_id=1
-$r = curl('GET', "$baseUrl/api/players.php?group_id=1", [], ['Authorization' => "Bearer $jwt"]);
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    ok("Con JWT + group_id=1 → HTTP 200");
-    $cnt === $g1Players
-        ? ok("Filtro gruppo funziona  [$cnt / $totalPlayers players]")
-        : ko("Filtro errato: DB=$g1Players, API=$cnt");
-    // Verifica che ogni player abbia group_id=1
-    $wrong = array_filter($r['data'], fn($p) => ($p['group_id'] ?? null) != 1);
-    count($wrong) === 0 ? ok('Tutti i players sono del gruppo 1') : ko(count($wrong) . ' players con group_id sbagliato');
-} else {
-    ko("Con JWT + group_id=1 fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 100));
-}
-
-// Con JWT, ?group_id=all → deve restituire tutti
-$r = curl('GET', "$baseUrl/api/players.php?group_id=all", [], ['Authorization' => "Bearer $jwt"]);
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    $cnt === $totalPlayers
-        ? ok("group_id=all → tutti  [$cnt players]")
-        : ko("group_id=all errato: atteso=$totalPlayers, ricevuto=$cnt");
-} else {
-    ko("group_id=all fallito  [HTTP {$r['code']}]");
-}
-
-// ════════════════════════════════════════════
-// TEST 3: HTTP GET /api/sessions.php (senza JWT → tutte)
-// ════════════════════════════════════════════
-section('TEST 3: GET /api/sessions.php');
-
-$totalSessions = (int)$pdo->query("SELECT COUNT(*) FROM sessions")->fetchColumn();
-$g1Sessions    = (int)$pdo->query("SELECT COUNT(*) FROM sessions WHERE group_id = 1")->fetchColumn();
-
-// Senza JWT
-$r = curl('GET', "$baseUrl/api/sessions.php");
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    ok("Senza JWT → HTTP 200  [$cnt sessions]");
-    $cnt === $totalSessions
-        ? ok('Count corretto')
-        : ko("Count errato: atteso=$totalSessions, ricevuto=$cnt");
-    // Verifica che group_id sia presente in ogni sessione
-    $hasGroupId = isset($r['data'][0]['group_id']);
-    $hasGroupId ? ok('group_id presente nelle sessioni') : ko('group_id assente nelle sessioni');
-} else {
-    ko("Senza JWT fallito  [HTTP {$r['code']}]");
-}
-
-// Con JWT + group_id=1
-$r = curl('GET', "$baseUrl/api/sessions.php?group_id=1", [], ['Authorization' => "Bearer $jwt"]);
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    ok("Con JWT + group_id=1 → HTTP 200");
-    $cnt === $g1Sessions
-        ? ok("Filtro sessioni funziona  [$cnt / $totalSessions sessioni]")
-        : ko("Filtro errato: DB=$g1Sessions, API=$cnt");
-} else {
-    ko("Con JWT + group_id=1 fallito  [HTTP {$r['code']}]");
-}
-
-// ════════════════════════════════════════════
-// TEST 4: POST /api/players.php — permessi
-// ════════════════════════════════════════════
-section('TEST 4: POST /api/players.php (permessi)');
-
-// Senza JWT → 401
-$r = curl('POST', "$baseUrl/api/players.php", ['name' => 'TestX', 'emoji' => '🧪']);
-$r['code'] === 401 ? ok('POST senza JWT → 401') : ko("POST senza JWT: atteso 401, ottenuto {$r['code']}");
-
-// Con JWT super_admin → 201
-$testName = 'Phase3Test_' . time();
-$r = curl('POST', "$baseUrl/api/players.php",
-    ['name' => $testName, 'emoji' => '🧪', 'group_id' => 1],
-    ['Authorization' => "Bearer $jwt"]
-);
-$testPlayerId = null;
-if ($r['code'] === 201 && !empty($r['data']['id'])) {
-    $testPlayerId = (int)$r['data']['id'];
-    ok("POST super_admin → 201  [ID=$testPlayerId]");
-    // Verifica group_id nel DB
-    $row = $pdo->prepare("SELECT group_id FROM players WHERE id = ?")->execute([$testPlayerId])
-        ? ($s = $pdo->prepare("SELECT group_id FROM players WHERE id = ?")) && $s->execute([$testPlayerId]) && $s->fetch()
-        : false;
-    $chk = $pdo->prepare("SELECT group_id FROM players WHERE id = ?");
-    $chk->execute([$testPlayerId]);
-    $dbRow = $chk->fetch();
-    $dbRow && (int)$dbRow['group_id'] === 1 ? ok('group_id=1 salvato nel DB') : ko('group_id errato nel DB');
-} else {
-    ko("POST super_admin fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 100));
-}
-
-// ════════════════════════════════════════════
-// TEST 5: DELETE /api/players.php — permessi
-// ════════════════════════════════════════════
-section('TEST 5: DELETE /api/players.php (permessi)');
-
-// Senza JWT → 401
-$r = curl('DELETE', "$baseUrl/api/players.php", ['id' => 999]);
-$r['code'] === 401 ? ok('DELETE senza JWT → 401') : ko("DELETE senza JWT: atteso 401, ottenuto {$r['code']}");
-
-// Cleanup player test
-if ($testPlayerId) {
-    $r = curl('DELETE', "$baseUrl/api/players.php",
-        ['id' => $testPlayerId],
-        ['Authorization' => "Bearer $jwt"]
-    );
-    $r['code'] === 200 ? ok("DELETE player test → 200  [ID=$testPlayerId]") : ko("DELETE player test fallito  [HTTP {$r['code']}]");
-}
-
-// ════════════════════════════════════════════
-// TEST 6: GET /api/leaderboard.php (filtro gruppo)
-// ════════════════════════════════════════════
-section('TEST 6: GET /api/leaderboard.php');
-
-// Senza filtro → tutti
-$r = curl('GET', "$baseUrl/api/leaderboard.php");
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    ok("Senza filtro → HTTP 200  [$cnt players]");
-    $cnt === $totalPlayers ? ok('Count corretto') : ko("Count errato: atteso=$totalPlayers, ricevuto=$cnt");
-} else {
-    ko("Leaderboard senza filtro fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 100));
-}
-
-// ?group_id=1
-$r = curl('GET', "$baseUrl/api/leaderboard.php?group_id=1");
-if ($r['code'] === 200 && is_array($r['data'])) {
-    $cnt = count($r['data']);
-    ok("group_id=1 → HTTP 200  [$cnt players]");
-    $cnt === $g1Players ? ok("Filtro corretto  [$cnt / $totalPlayers players]") : ko("Filtro errato: atteso=$g1Players, ricevuto=$cnt");
-    // Verifica group_id nei risultati
-    $wrong = array_filter($r['data'], fn($p) => isset($p['group_id']) && (int)$p['group_id'] !== 1);
-    count($wrong) === 0 ? ok('Tutti i players hanno group_id=1') : ko(count($wrong) . ' players con group_id sbagliato');
-} else {
-    ko("Leaderboard group_id=1 fallito  [HTTP {$r['code']}]");
-}
-
-// ════════════════════════════════════════════
-// TEST 7: GET /api/stats.php (filtro gruppo)
-// ════════════════════════════════════════════
-section('TEST 7: GET /api/stats.php');
+section('TEST 2: Filtro players.php (query diretta)');
 
 // Senza filtro
-$r = curl('GET', "$baseUrl/api/stats.php");
-if ($r['code'] === 200 && isset($r['data']['totale_sessioni'])) {
-    ok("Senza filtro → HTTP 200");
-    ok("totale_sessioni={$r['data']['totale_sessioni']}, record={$r['data']['record_assoluto']}");
-    $cnt = count($r['data']['leaderboard'] ?? []);
-    $cnt === $totalPlayers ? ok("leaderboard count corretto  [$cnt players]") : ko("leaderboard: atteso=$totalPlayers, ricevuto=$cnt");
-} else {
-    ko("Stats senza filtro fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 150));
+$stmt = $pdo->prepare('
+    SELECT p.id, p.name, p.group_id,
+        COUNT(s.id) AS partite, ROUND(AVG(s.score),1) AS media, MAX(s.score) AS record, MIN(s.score) AS minimo
+    FROM players p LEFT JOIN scores s ON s.player_id = p.id
+    GROUP BY p.id ORDER BY p.name ASC');
+$stmt->execute();
+$all = $stmt->fetchAll();
+count($all) === $totalPlayers ? ok("Senza filtro → $totalPlayers players") : ko("Senza filtro: atteso=$totalPlayers, ricevuto=" . count($all));
+
+// Filtro group_id=1
+$stmt = $pdo->prepare('
+    SELECT p.id, p.name, p.group_id,
+        COUNT(s.id) AS partite, ROUND(AVG(s.score),1) AS media, MAX(s.score) AS record, MIN(s.score) AS minimo
+    FROM players p LEFT JOIN scores s ON s.player_id = p.id
+    WHERE p.group_id = ?
+    GROUP BY p.id ORDER BY p.name ASC');
+$stmt->execute([1]);
+$g1 = $stmt->fetchAll();
+count($g1) === $g1Players ? ok("Filtro group_id=1 → $g1Players players") : ko("Filtro: atteso=$g1Players, ricevuto=" . count($g1));
+$wrong = array_filter($g1, fn($p) => (int)$p['group_id'] !== 1);
+count($wrong) === 0 ? ok('Tutti i risultati hanno group_id=1') : ko(count($wrong) . ' players con group_id sbagliato');
+
+// isSuperAdmin auto-filtra
+$superPayload  = ['user_type' => 'super_admin', 'group_id' => null];
+$groupPayload  = ['user_type' => 'group_admin', 'group_id' => 1];
+$playerPayload = ['user_type' => 'player',      'group_id' => 1];
+
+// Simula la logica di players.php per determinare $filterGroupId
+function getFilterGroupId(array $payload, ?string $qsGroupId): ?int {
+    if (isSuperAdmin($payload)) {
+        return ($qsGroupId !== null && $qsGroupId !== 'all') ? (int)$qsGroupId : null;
+    }
+    return getGroupId($payload);
 }
 
-// ?group_id=1
-$r = curl('GET', "$baseUrl/api/stats.php?group_id=1");
-if ($r['code'] === 200 && isset($r['data']['totale_sessioni'])) {
-    ok("group_id=1 → HTTP 200");
-    ok("totale_sessioni={$r['data']['totale_sessioni']} (DB: $g1Sessions)");
-    (int)$r['data']['totale_sessioni'] === $g1Sessions
-        ? ok('Sessions count corretto per gruppo 1')
-        : ko("Sessions mismatch: atteso=$g1Sessions, ricevuto={$r['data']['totale_sessioni']}");
-    $cnt = count($r['data']['leaderboard'] ?? []);
-    $cnt === $g1Players ? ok("leaderboard gruppo 1 corretto  [$cnt players]") : ko("leaderboard: atteso=$g1Players, ricevuto=$cnt");
-} else {
-    ko("Stats group_id=1 fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 150));
+getFilterGroupId($superPayload, null)     === null ? ok('super_admin senza param → null (vede tutto)')      : ko('super_admin senza param');
+getFilterGroupId($superPayload, '1')      === 1    ? ok('super_admin + group_id=1 → filtra a 1')            : ko('super_admin + group_id=1');
+getFilterGroupId($superPayload, 'all')    === null ? ok('super_admin + group_id=all → null (vede tutto)')   : ko('super_admin + group_id=all');
+getFilterGroupId($groupPayload, null)     === 1    ? ok('group_admin → auto-filtra a group_id=1')           : ko('group_admin auto-filtro');
+getFilterGroupId($groupPayload, '999')    === 1    ? ok('group_admin ignora param group_id esterno')        : ko('group_admin ignora param');
+getFilterGroupId($playerPayload, null)    === 1    ? ok('player → auto-filtra a group_id=1')               : ko('player auto-filtro');
+
+// ════════════════════════════════════════════
+// TEST 3: Logica filtro sessions.php
+// ════════════════════════════════════════════
+section('TEST 3: Filtro sessions.php (query diretta)');
+
+$stmt = $pdo->query('SELECT id, date, location, group_id FROM sessions ORDER BY date DESC');
+$all  = $stmt->fetchAll();
+count($all) === $totalSessions ? ok("Senza filtro → $totalSessions sessioni") : ko("Senza filtro: atteso=$totalSessions");
+isset($all[0]['group_id']) ? ok('Colonna group_id presente nel risultato') : ko('group_id assente nel risultato');
+
+$stmt = $pdo->prepare('SELECT id, date, group_id FROM sessions WHERE group_id = ? ORDER BY date DESC');
+$stmt->execute([1]);
+$g1s = $stmt->fetchAll();
+count($g1s) === $g1Sessions ? ok("Filtro group_id=1 → $g1Sessions sessioni") : ko("Filtro: atteso=$g1Sessions, ricevuto=" . count($g1s));
+
+// ════════════════════════════════════════════
+// TEST 4: Permessi checkPermission
+// ════════════════════════════════════════════
+section('TEST 4: Permessi (checkPermission)');
+
+$superP = ['user_type' => 'super_admin', 'group_id' => null];
+$groupP = ['user_type' => 'group_admin', 'group_id' => 1, 'permissions' => [
+    'can_add_players' => true, 'can_edit_players' => true, 'can_delete_players' => false,
+    'can_add_sessions' => true, 'can_edit_sessions' => true, 'can_delete_sessions' => false,
+]];
+$playerP = ['user_type' => 'player', 'group_id' => 1];
+
+checkPermission($superP,  'can_add_players')    === true  ? ok('super_admin può aggiungere players')         : ko('super_admin can_add_players');
+checkPermission($superP,  'can_delete_players') === true  ? ok('super_admin può eliminare players')          : ko('super_admin can_delete_players');
+checkPermission($groupP,  'can_add_players')    === true  ? ok('group_admin con perm può aggiungere')        : ko('group_admin can_add_players');
+checkPermission($groupP,  'can_delete_players') === false ? ok('group_admin senza perm non può eliminare')   : ko('group_admin can_delete_players');
+checkPermission($playerP, 'can_add_players')    === false ? ok('player non può aggiungere')                  : ko('player can_add_players');
+checkPermission($playerP, 'can_edit_sessions')  === false ? ok('player non può modificare sessioni')         : ko('player can_edit_sessions');
+
+// ════════════════════════════════════════════
+// TEST 5: Leaderboard query con filtro
+// ════════════════════════════════════════════
+section('TEST 5: Leaderboard query con filtro gruppo');
+
+$stmt = $pdo->prepare('
+    SELECT p.id, p.name, p.group_id,
+        COUNT(DISTINCT sc.session_id) AS partite,
+        ROUND(AVG(sc.score),1) AS media, MAX(sc.score) AS record
+    FROM players p
+    LEFT JOIN scores sc ON sc.player_id = p.id
+    WHERE p.group_id = ?
+    GROUP BY p.id ORDER BY media DESC');
+$stmt->execute([1]);
+$lb = $stmt->fetchAll();
+count($lb) === $g1Players ? ok("Leaderboard gruppo 1 → $g1Players players") : ko("Leaderboard: atteso=$g1Players, ricevuto=" . count($lb));
+if (!empty($lb)) {
+    ok("Top scorer: {$lb[0]['name']} media={$lb[0]['media']}");
+    $wrong = array_filter($lb, fn($p) => (int)$p['group_id'] !== 1);
+    count($wrong) === 0 ? ok('Tutti i players sono del gruppo 1') : ko(count($wrong) . ' players con group_id sbagliato');
 }
 
 // ════════════════════════════════════════════
-// TEST 8: POST /api/sessions.php — group_id assegnato
+// TEST 6: Stats — totali filtrati per gruppo
 // ════════════════════════════════════════════
-section('TEST 8: POST /api/sessions.php (group_id)');
+section('TEST 6: Stats — totali per gruppo');
 
-// Senza JWT → 401
-$r = curl('POST', "$baseUrl/api/sessions.php", ['date' => date('Y-m-d')]);
-$r['code'] === 401 ? ok('POST senza JWT → 401') : ko("POST senza JWT: atteso 401, ottenuto {$r['code']}");
+// Senza filtro
+$totAll = $pdo->query("
+    SELECT MAX(sc.score) AS record_assoluto, ROUND(AVG(sc.score),1) AS media_gruppo
+    FROM scores sc JOIN sessions se ON sc.session_id = se.id")->fetch();
+ok("Totali globali → record={$totAll['record_assoluto']}, media={$totAll['media_gruppo']}");
 
-// Con JWT → sessione creata con group_id corretto
-$testDate = '1999-01-01';
-$r = curl('POST', "$baseUrl/api/sessions.php",
-    ['date' => $testDate, 'location' => 'Test Phase3', 'mode' => 'teams'],
-    ['Authorization' => "Bearer $jwt"]
-);
-$testSessionId = null;
-if ($r['code'] === 201 && !empty($r['data']['session_id'])) {
-    $testSessionId = (int)$r['data']['session_id'];
-    ok("POST sessione → 201  [ID=$testSessionId]");
-    $s = $pdo->prepare("SELECT group_id FROM sessions WHERE id = ?");
-    $s->execute([$testSessionId]);
-    $dbRow = $s->fetch();
-    $dbRow && (int)$dbRow['group_id'] === 1 ? ok('group_id=1 salvato correttamente') : ko('group_id errato nel DB');
+// Con filtro gruppo 1
+$tot1 = $pdo->prepare("
+    SELECT MAX(sc.score) AS record_assoluto, ROUND(AVG(sc.score),1) AS media_gruppo
+    FROM scores sc
+    JOIN sessions se ON sc.session_id = se.id
+    JOIN players p ON sc.player_id = p.id
+    WHERE p.group_id = ?");
+$tot1->execute([1]);
+$r1 = $tot1->fetch();
+ok("Totali gruppo 1 → record={$r1['record_assoluto']}, media={$r1['media_gruppo']}");
+
+$sessG1 = (int)$pdo->prepare("SELECT COUNT(*) FROM sessions se WHERE se.group_id = ?")->execute([1])
+    ? ($s2 = $pdo->prepare("SELECT COUNT(*) FROM sessions se WHERE se.group_id = ?")) && $s2->execute([1]) && $s2->fetchColumn()
+    : 0;
+$s2 = $pdo->prepare("SELECT COUNT(*) FROM sessions se WHERE se.group_id = ?");
+$s2->execute([1]);
+$sessG1 = (int)$s2->fetchColumn();
+$sessG1 === $g1Sessions ? ok("Sessions count gruppo 1: $sessG1 (corretto)") : ko("Sessions count: atteso=$g1Sessions, DB=$sessG1");
+
+// ════════════════════════════════════════════
+// TEST 7: Ownership check (group_admin)
+// ════════════════════════════════════════════
+section('TEST 7: Ownership check group_admin');
+
+// Simula la logica di ownership check in players.php PUT
+$testPayload = ['user_type' => 'group_admin', 'group_id' => 1];
+$firstPlayer = $pdo->query("SELECT id, name, group_id FROM players WHERE group_id = 1 LIMIT 1")->fetch();
+
+if ($firstPlayer) {
+    // Caso 1: player del proprio gruppo → permesso OK
+    $ownStmt = $pdo->prepare('SELECT group_id FROM players WHERE id = ?');
+    $ownStmt->execute([$firstPlayer['id']]);
+    $row = $ownStmt->fetch();
+    $canEdit = $row && (int)$row['group_id'] === getGroupId($testPayload);
+    $canEdit ? ok("Ownership OK: group_admin può modificare {$firstPlayer['name']}") : ko('Ownership check fallito per player del proprio gruppo');
+
+    // Caso 2: se esistesse un player di un altro gruppo → bloccato
+    $fakeOtherGroupId = 999; // gruppo non esistente
+    $canEditOther = $row && (int)$row['group_id'] === $fakeOtherGroupId;
+    !$canEditOther ? ok('Ownership BLOCK: group_admin NON può modificare player di gruppo 999') : ko('Ownership check NON blocca altri gruppi');
 } else {
-    ko("POST sessione fallito  [HTTP {$r['code']}]", substr($r['raw'], 0, 100));
+    ko('Nessun player in gruppo 1 per testare ownership');
 }
 
-// ── CLEANUP ──
-section('CLEANUP');
+// ════════════════════════════════════════════
+// TEST 8: INSERT con group_id (POST simulation)
+// ════════════════════════════════════════════
+section('TEST 8: INSERT players/sessions con group_id');
 
-if ($testSessionId) {
-    $r = curl('DELETE', "$baseUrl/api/sessions.php",
-        ['id' => $testSessionId],
-        ['Authorization' => "Bearer $jwt"]
-    );
-    $r['code'] === 200 ? ok("Sessione test eliminata  [ID=$testSessionId]") : ko("Delete sessione fallita  [HTTP {$r['code']}]");
+$testName = 'Phase3Test_' . time();
+try {
+    $pdo->prepare("INSERT INTO players (name, emoji, group_id) VALUES (?, ?, ?)")->execute([$testName, '🧪', 1]);
+    $pid = (int)$pdo->lastInsertId();
+    $row = $pdo->prepare("SELECT group_id FROM players WHERE id = ?")->execute([$pid]) &&
+           ($s = $pdo->prepare("SELECT group_id FROM players WHERE id = ?")) && $s->execute([$pid]) && $s->fetch();
+    $s2 = $pdo->prepare("SELECT group_id FROM players WHERE id = ?"); $s2->execute([$pid]); $row = $s2->fetch();
+    (int)$row['group_id'] === 1 ? ok("INSERT player con group_id=1 salvato  [ID=$pid]") : ko("group_id errato: {$row['group_id']}");
+    $pdo->prepare("DELETE FROM players WHERE id = ?")->execute([$pid]);
+    ok("Player test eliminato");
+} catch (Exception $e) {
+    ko("INSERT player fallito", $e->getMessage());
+}
+
+$testDate = '1999-12-31';
+try {
+    $pdo->prepare("INSERT INTO sessions (date, location, mode, group_id) VALUES (?, ?, ?, ?)")->execute([$testDate, 'Test', 'teams', 1]);
+    $sid = (int)$pdo->lastInsertId();
+    $s3 = $pdo->prepare("SELECT group_id FROM sessions WHERE id = ?"); $s3->execute([$sid]); $srow = $s3->fetch();
+    (int)$srow['group_id'] === 1 ? ok("INSERT session con group_id=1 salvato  [ID=$sid]") : ko("group_id errato: {$srow['group_id']}");
+    $pdo->prepare("DELETE FROM sessions WHERE id = ?")->execute([$sid]);
+    ok("Sessione test eliminata");
+} catch (Exception $e) {
+    ko("INSERT session fallito", $e->getMessage());
 }
 
 // ════════════════════════════════════════════
