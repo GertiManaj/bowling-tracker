@@ -44,17 +44,47 @@ function base64url_decode($data) {
     return base64_decode(strtr($data, '-_', '+/') . str_repeat('=', 3 - (3 + strlen($data)) % 4));
 }
 
-function createJWT($adminId, $email, $secret, $expiresIn) {
+function createJWT($adminId, $email, $secret, $expiresIn, array $roleData = []) {
+    $userType = $roleData['role'] ?? 'super_admin'; // default safe per admin esistenti
+    $groupId  = isset($roleData['group_id']) ? (int)$roleData['group_id'] : null;
+
+    $payloadData = [
+        'iat'       => time(),
+        'exp'       => time() + $expiresIn,
+        'admin_id'  => $adminId,
+        'email'     => $email,
+        'user_type' => $userType,
+        'group_id'  => $groupId,
+    ];
+
+    if ($userType === 'group_admin' && !empty($roleData)) {
+        $payloadData['permissions'] = [
+            'can_add_players'        => (bool)($roleData['can_add_players']        ?? true),
+            'can_edit_players'       => (bool)($roleData['can_edit_players']       ?? true),
+            'can_delete_players'     => (bool)($roleData['can_delete_players']     ?? false),
+            'can_add_sessions'       => (bool)($roleData['can_add_sessions']       ?? true),
+            'can_edit_sessions'      => (bool)($roleData['can_edit_sessions']      ?? true),
+            'can_delete_sessions'    => (bool)($roleData['can_delete_sessions']    ?? false),
+            'can_export_data'        => (bool)($roleData['can_export_data']        ?? false),
+            'can_view_security_logs' => (bool)($roleData['can_view_security_logs'] ?? false),
+        ];
+    }
+
     $header  = base64url_encode(json_encode(['alg'=>'HS256','typ'=>'JWT']));
-    $payload = base64url_encode(json_encode([
-        'iat'   => time(),
-        'exp'   => time() + $expiresIn,
-        'admin_id' => $adminId,
-        'email' => $email,
-        'role'  => 'admin'
-    ]));
+    $payload = base64url_encode(json_encode($payloadData));
     $sig = base64url_encode(hash_hmac('sha256', "$header.$payload", $secret, true));
     return "$header.$payload.$sig";
+}
+
+/** Recupera il record admin_roles per un admin. Ritorna [] se non trovato/tabella assente. */
+function fetchAdminRole(PDO $pdo, int $adminId): array {
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM admin_roles WHERE admin_id = ? ORDER BY id ASC LIMIT 1");
+        $stmt->execute([$adminId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    } catch (Exception $e) {
+        return []; // tabella non ancora esistente (pre-migration 012)
+    }
 }
 
 function verifyJWT($token, $secret) {
@@ -279,7 +309,8 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 logLogin($pdo, $admin['id'], $email, true);
                 logSecurityEvent($pdo, 'trusted_device_used', 'INFO', $admin['id'], ['email' => $email]);
                 logSecurityEvent($pdo, 'login_success', 'INFO', $admin['id'], ['email' => $email, 'via' => 'trusted_device']);
-                $jwtTrusted = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn);
+                $roleData   = fetchAdminRole($pdo, $admin['id']);
+                $jwtTrusted = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn, $roleData);
                 echo json_encode([
                     'success'        => true,
                     'trusted_device' => true,
@@ -408,8 +439,9 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         logSecurityEvent($pdo, 'otp_verified', 'INFO', $admin['id'], ['email' => $email]);
         logSecurityEvent($pdo, 'login_success', 'INFO', $admin['id'], ['email' => $email, 'via' => 'otp']);
 
-        // Genera JWT
-        $token = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn);
+        // Genera JWT con ruolo
+        $roleData = fetchAdminRole($pdo, $admin['id']);
+        $token    = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn, $roleData);
 
         // ── TRUSTED DEVICE: imposta cookie se richiesto ──
         if (!empty($body['remember_device'])) {
