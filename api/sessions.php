@@ -9,20 +9,50 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/jwt_protection.php';
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// PROTEZIONE JWT per POST/PUT/DELETE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-requireAuth(['POST', 'PUT', 'DELETE']);
+$method  = $_SERVER['REQUEST_METHOD'];
+$payload = null;
 
-$pdo    = getPDO();
-$method = $_SERVER['REQUEST_METHOD'];
+if ($method !== 'GET') {
+    // POST/PUT/DELETE: JWT obbligatorio
+    $payload = requireAuth(['POST', 'PUT', 'DELETE']);
+} else {
+    // GET pubblico: leggi JWT opzionale per group filter
+    $ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
+        $parts = explode('.', $m[1]);
+        if (count($parts) === 3) {
+            $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
+        }
+    }
+}
+
+// Determina filtro gruppo
+$filterGroupId = null;
+if ($payload) {
+    if (isSuperAdmin($payload)) {
+        $filterGroupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
+            ? (int)$_GET['group_id'] : null;
+    } else {
+        $filterGroupId = getGroupId($payload);
+    }
+}
+
+$pdo = getPDO();
 
 // ── GET ──────────────────────────────────────
 if ($method === 'GET') {
-    $sessions = $pdo->query('
-        SELECT id, date, location, notes, cost_per_game, mode FROM sessions
-        ORDER BY date DESC
-    ')->fetchAll();
+    $sql    = 'SELECT id, date, location, notes, cost_per_game, mode, group_id FROM sessions';
+    $params = [];
+    if ($filterGroupId !== null) {
+        $sql .= ' WHERE group_id = ?';
+        $params[] = $filterGroupId;
+    }
+    $sql .= ' ORDER BY date DESC';
+
+    $stmt     = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $sessions = $stmt->fetchAll();
 
     foreach ($sessions as &$session) {
         // Carica punteggi per session_id (non per date, altrimenti sessioni stesso giorno si sovrappongono)
@@ -53,6 +83,12 @@ if ($method === 'GET') {
 
 // ── POST — nuova sessione ────────────────────
 if ($method === 'POST') {
+    if (!checkPermission($payload, 'can_add_sessions')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Permesso negato: can_add_sessions richiesto']);
+        exit;
+    }
+
     $data = json_decode(file_get_contents('php://input'), true);
 
     if (empty($data['date'])) {
@@ -61,15 +97,21 @@ if ($method === 'POST') {
         exit;
     }
 
+    // Determina group_id per la sessione
+    $sessionGroupId = isSuperAdmin($payload)
+        ? (int)($data['group_id'] ?? 1)
+        : (int)getGroupId($payload);
+
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes, cost_per_game, mode) VALUES (?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes, cost_per_game, mode, group_id) VALUES (?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $data['date'],
             $data['location'] ?? 'Bowling',
             $data['notes'] ?? null,
             isset($data['cost_per_game']) && $data['cost_per_game'] !== '' ? floatval($data['cost_per_game']) : null,
-            $data['mode'] ?? 'teams'
+            $data['mode'] ?? 'teams',
+            $sessionGroupId,
         ]);
         $sessionId = $pdo->lastInsertId();
 
@@ -122,6 +164,12 @@ if ($method === 'POST') {
 
 // ── PUT — modifica sessione ──────────────────
 if ($method === 'PUT') {
+    if (!checkPermission($payload, 'can_edit_sessions')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Permesso negato: can_edit_sessions richiesto']);
+        exit;
+    }
+
     $data = json_decode(file_get_contents('php://input'), true);
     $id   = intval($data['id'] ?? 0);
 
@@ -129,6 +177,18 @@ if ($method === 'PUT') {
         http_response_code(400);
         echo json_encode(['error' => 'ID e data sono obbligatori']);
         exit;
+    }
+
+    // Verifica ownership per group_admin
+    if (!isSuperAdmin($payload)) {
+        $own = $pdo->prepare('SELECT group_id FROM sessions WHERE id = ?');
+        $own->execute([$id]);
+        $row = $own->fetch();
+        if (!$row || (int)$row['group_id'] !== getGroupId($payload)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non puoi modificare sessioni di altri gruppi']);
+            exit;
+        }
     }
 
     $pdo->beginTransaction();
@@ -196,6 +256,12 @@ if ($method === 'PUT') {
 
 // ── DELETE — elimina sessione ────────────────
 if ($method === 'DELETE') {
+    if (!checkPermission($payload, 'can_delete_sessions')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Permesso negato: can_delete_sessions richiesto']);
+        exit;
+    }
+
     $data = json_decode(file_get_contents('php://input'), true);
     $id   = intval($data['id'] ?? 0);
 
@@ -203,6 +269,18 @@ if ($method === 'DELETE') {
         http_response_code(400);
         echo json_encode(['error' => 'ID non valido']);
         exit;
+    }
+
+    // Verifica ownership per group_admin
+    if (!isSuperAdmin($payload)) {
+        $own = $pdo->prepare('SELECT group_id FROM sessions WHERE id = ?');
+        $own->execute([$id]);
+        $row = $own->fetch();
+        if (!$row || (int)$row['group_id'] !== getGroupId($payload)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non puoi eliminare sessioni di altri gruppi']);
+            exit;
+        }
     }
 
     $pdo->beginTransaction();

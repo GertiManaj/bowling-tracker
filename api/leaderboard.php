@@ -2,19 +2,28 @@
 // ============================================
 //  api/leaderboard.php
 //  GET → classifica generale con tutte le stat
+//  ?group_id=X  → filtra per gruppo
 //  LOGICA VITTORIE IDENTICA A stats.php
 // ============================================
 require_once __DIR__ . '/config.php';
 
 $pdo = getPDO();
 
-// Classifica completa
-$stmt = $pdo->query('
+// ── Group filter ───────────────────────────
+$groupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
+    ? (int)$_GET['group_id'] : null;
+
+// Classifica completa (filtrata per gruppo se specificato)
+$lbWhere  = $groupId !== null ? 'WHERE p.group_id = ?' : '';
+$lbParams = $groupId !== null ? [$groupId] : [];
+
+$stmt = $pdo->prepare('
     SELECT
         p.id,
         p.name,
         p.nickname,
         p.emoji,
+        p.group_id,
         COUNT(DISTINCT sc.session_id)                                    AS partite,
         COUNT(DISTINCT CASE WHEN sc.team_id IS NOT NULL THEN sc.session_id END) AS sfide,
         COUNT(sc.id)                                                     AS game_totali,
@@ -23,9 +32,11 @@ $stmt = $pdo->query('
         MIN(sc.score)                                                    AS minimo
     FROM players p
     LEFT JOIN scores sc ON sc.player_id = p.id
+    ' . $lbWhere . '
     GROUP BY p.id
     ORDER BY media DESC
 ');
+$stmt->execute($lbParams);
 $players = $stmt->fetchAll();
 
 // ── CACHE PRE-CALCOLATA (evita query ripetute nel loop) ───────────
@@ -219,10 +230,11 @@ foreach ($players as &$player) {
 }
 
 // ── CALCOLO PAGAMENTI ──
-$qSessWithCost = $pdo->query('
-    SELECT id, cost_per_game, COALESCE(mode, \'teams\') AS mode FROM sessions
-    WHERE cost_per_game IS NOT NULL AND cost_per_game > 0
-');
+$payGroupFilter = $groupId !== null ? "AND group_id = $groupId" : '';
+$qSessWithCost = $pdo->query("
+    SELECT id, cost_per_game, COALESCE(mode, 'teams') AS mode FROM sessions
+    WHERE cost_per_game IS NOT NULL AND cost_per_game > 0 $payGroupFilter
+");
 $sessWithCost = $qSessWithCost->fetchAll();
 
 $paymentMap = [];

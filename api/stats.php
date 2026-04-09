@@ -2,6 +2,7 @@
 // ============================================
 //  api/stats.php — statistiche complete
 //  ?from=YYYY-MM-DD&to=YYYY-MM-DD
+//  ?group_id=X  → filtra per gruppo
 // ============================================
 require_once __DIR__ . '/config.php';
 $pdo = getPDO();
@@ -16,6 +17,24 @@ if ($from && $to)  { $dateWhere = 'WHERE se.date BETWEEN ? AND ?'; $dateParams =
 elseif ($from)     { $dateWhere = 'WHERE se.date >= ?';            $dateParams = [$from]; }
 elseif ($to)       { $dateWhere = 'WHERE se.date <= ?';            $dateParams = [$to]; }
 
+// ── Group filter (valore intero sicuro per interpolazione) ──
+$groupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
+    ? (int)$_GET['group_id'] : null;
+
+// Condizioni per query che usano alias "p" (players) + "$dateWhere" (sessions)
+$gAfterDate  = $groupId !== null
+    ? ($dateWhere ? "AND p.group_id = $groupId" : "WHERE p.group_id = $groupId")
+    : '';
+// Solo group (senza date) — per query che non usano $dateWhere
+$gPlayerOnly = $groupId !== null ? "WHERE p.group_id = $groupId" : '';
+// Versione AND per query con WHERE già presenti
+$gAnd        = $groupId !== null ? "AND p.group_id = $groupId" : '';
+// Per query senza join a players: aggiunge JOIN + filtro (safe integer)
+$gJoinPlayer = $groupId !== null ? "JOIN players p ON sc.player_id = p.id" : '';
+$gJoinAnd    = $groupId !== null
+    ? ($dateWhere ? "AND p.group_id = $groupId" : "WHERE p.group_id = $groupId")
+    : '';
+
 // ── TOTALI ───────────────────────────────────
 $q = $pdo->prepare("
     SELECT
@@ -23,12 +42,17 @@ $q = $pdo->prepare("
         ROUND(AVG(sc.score),1)   AS media_gruppo
     FROM scores sc
     JOIN sessions se ON sc.session_id = se.id
+    $gJoinPlayer
     $dateWhere
+    $gJoinAnd
 ");
 $q->execute($dateParams);
 $totals = $q->fetch();
 
-$qSess = $pdo->prepare("SELECT COUNT(*) FROM sessions se " . ($dateWhere ?: ''));
+$sessGroupFilter = $groupId !== null
+    ? ($dateWhere ? "AND se.group_id = $groupId" : "WHERE se.group_id = $groupId")
+    : '';
+$qSess = $pdo->prepare("SELECT COUNT(*) FROM sessions se " . ($dateWhere ?: '') . " $sessGroupFilter");
 $qSess->execute($dateParams);
 $totals['totale_sessioni'] = $qSess->fetchColumn();
 
@@ -39,6 +63,7 @@ $qRec = $pdo->prepare("
     JOIN players  p  ON sc.player_id  = p.id
     JOIN sessions se ON sc.session_id = se.id
     $dateWhere
+    $gAfterDate
     ORDER BY sc.score DESC LIMIT 1
 ");
 $qRec->execute($dateParams);
@@ -47,7 +72,7 @@ $recordHolder = $qRec->fetch();
 // ── CLASSIFICA COMPLETA ──────────────────────
 // Tutte le metriche in una query + vittorie squadra
 $qLb = $pdo->prepare("
-    SELECT p.id, p.name, p.emoji, p.nickname,
+    SELECT p.id, p.name, p.emoji, p.nickname, p.group_id,
            COUNT(DISTINCT sc.session_id)  AS partite,
            COUNT(sc.id)                   AS game_totali,
            ROUND(AVG(sc.score),1)         AS media,
@@ -57,6 +82,7 @@ $qLb = $pdo->prepare("
     LEFT JOIN scores sc   ON sc.player_id  = p.id
     LEFT JOIN sessions se ON sc.session_id = se.id
     $dateWhere
+    $gAfterDate
     GROUP BY p.id
 ");
 $qLb->execute($dateParams);
@@ -70,7 +96,7 @@ $qRecent = $pdo->prepare("
     FROM players p
     JOIN scores sc   ON sc.player_id  = p.id
     JOIN sessions se ON sc.session_id = se.id
-    WHERE se.date >= ?
+    WHERE se.date >= ? $gAnd
     GROUP BY p.id
 ");
 $qRecent->execute([$threeMonthsAgo]);
@@ -81,12 +107,15 @@ foreach ($qRecent->fetchAll() as $r) {
 
 // ── ULTIMI RISULTATI V/P/N ──────────────────
 // Per ogni giocatore: ultime 5 sessioni (teams + FFA), calcola V/P/N
+$gUltimiFilter = $groupId !== null
+    ? "AND sc.player_id IN (SELECT id FROM players WHERE group_id = $groupId)"
+    : '';
 $qUltimi = $pdo->prepare("
     SELECT sc.player_id, sc.session_id, sc.team_id, se.date, COALESCE(se.mode,'teams') AS mode, t.name AS team_name
     FROM scores sc
     JOIN sessions se ON sc.session_id = se.id
     LEFT JOIN teams t ON sc.team_id = t.id
-    WHERE sc.team_id IS NOT NULL
+    WHERE sc.team_id IS NOT NULL $gUltimiFilter
     ORDER BY sc.player_id, sc.session_id DESC
 ");
 $qUltimi->execute();
@@ -243,10 +272,12 @@ foreach ($leaderboard as &$p) {
 unset($p);
 
 // ── CALCOLO PAGAMENTI (filtrato per periodo) ──────────────────────────────
+$payGroupAnd = $groupId !== null ? "AND se.group_id = $groupId" : '';
 $qSessWithCost = $pdo->prepare("
     SELECT se.id, se.cost_per_game, COALESCE(se.mode,'teams') AS mode
     FROM sessions se
     WHERE se.cost_per_game IS NOT NULL AND se.cost_per_game > 0
+    $payGroupAnd
     " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
 ");
 $qSessWithCost->execute($dateParams);
@@ -359,7 +390,7 @@ unset($p);
 $qTr = $pdo->prepare("
     SELECT p.id AS player_id, p.name, p.emoji, se.date, sc.score
     FROM scores sc JOIN players p ON sc.player_id=p.id JOIN sessions se ON sc.session_id=se.id
-    $dateWhere ORDER BY p.id, se.date ASC
+    $dateWhere $gAfterDate ORDER BY p.id, se.date ASC
 ");
 $qTr->execute($dateParams);
 $trend = [];
@@ -380,13 +411,17 @@ $qDist = $pdo->prepare("
     FROM players p
     LEFT JOIN scores sc ON sc.player_id=p.id
     LEFT JOIN sessions se ON sc.session_id=se.id
-    $dateWhere
+    $dateWhere $gAfterDate
     GROUP BY p.id HAVING COUNT(sc.id) > 0 ORDER BY p.name
 ");
 $qDist->execute($dateParams);
 $distribution = $qDist->fetchAll();
 
 // ── TESTA A TESTA ────────────────────────────
+$gH2h = $groupId !== null
+    ? ($dateWhere ? "AND pa.group_id = $groupId AND pb.group_id = $groupId"
+                  : "WHERE pa.group_id = $groupId AND pb.group_id = $groupId")
+    : '';
 $qH2h = $pdo->prepare("
     SELECT a.player_id AS p1_id, pa.name AS p1_name, pa.emoji AS p1_emoji, a.score AS p1_score,
            b.player_id AS p2_id, pb.name AS p2_name, pb.emoji AS p2_emoji, b.score AS p2_score
@@ -395,7 +430,7 @@ $qH2h = $pdo->prepare("
     JOIN players pa  ON a.player_id=pa.id
     JOIN players pb  ON b.player_id=pb.id
     JOIN sessions se ON a.session_id=se.id
-    $dateWhere
+    $dateWhere $gH2h
 ");
 $qH2h->execute($dateParams);
 $h2h = [];
@@ -422,7 +457,7 @@ $qChem = $pdo->prepare("
     JOIN players pa  ON a.player_id=pa.id
     JOIN players pb  ON b.player_id=pb.id
     JOIN sessions se ON a.session_id=se.id
-    $dateWhere
+    $dateWhere $gH2h
 ");
 $qChem->execute($dateParams);
 $chemistry = [];
@@ -462,7 +497,7 @@ $qWins = $pdo->prepare("
     FROM players p
     JOIN scores sc ON sc.player_id=p.id
     JOIN sessions se ON sc.session_id=se.id
-    $dateWhere
+    $dateWhere $gAfterDate
     GROUP BY p.id ORDER BY vittorie_squadra DESC
 ");
 $qWins->execute($dateParams);
@@ -477,7 +512,7 @@ $qMostWins = $pdo->prepare("
     FROM scores sc
     JOIN players p ON sc.player_id = p.id
     JOIN sessions se ON sc.session_id = se.id
-    WHERE sc.team_id IS NOT NULL
+    WHERE sc.team_id IS NOT NULL $gAnd
     AND (SELECT SUM(s2.score) FROM scores s2 WHERE s2.team_id = sc.team_id AND s2.session_id = sc.session_id) = (
         SELECT MAX(team_tot) FROM (
             SELECT SUM(s3.score) AS team_tot FROM scores s3
@@ -516,7 +551,7 @@ $qMostImproved = $pdo->prepare("
     FROM scores sc
     JOIN players p ON sc.player_id = p.id
     JOIN sessions se ON sc.session_id = se.id
-    $dateWhere
+    $dateWhere $gAfterDate
     GROUP BY p.id
     HAVING serate >= 2
     ORDER BY media_totale DESC
@@ -568,6 +603,7 @@ $qPayTrend = $pdo->prepare("
     SELECT se.id, se.date, COALESCE(se.mode,'teams') AS mode, se.cost_per_game
     FROM sessions se
     WHERE se.cost_per_game IS NOT NULL AND se.cost_per_game > 0
+    $payGroupAnd
     " . ($dateWhere ? str_replace('WHERE', 'AND', $dateWhere) : '') . "
     ORDER BY se.date ASC, se.id ASC
 ");
