@@ -107,7 +107,9 @@ async function exportData() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
 
   try {
-    const res = await fetch(`/api/export.php?token=${encodeURIComponent(token)}`);
+    const res = await fetch('/api/export.php', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
     if (res.status === 401) {
       showToast('Non autorizzato', 'error');

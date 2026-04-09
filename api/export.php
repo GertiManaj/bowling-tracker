@@ -6,43 +6,9 @@
 // ============================================
 require_once __DIR__ . '/config.php';
 
-// ── VERIFICA TOKEN ────────────────────────────
-$headers = getallheaders();
-$auth    = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-$token   = str_replace('Bearer ', '', $auth);
-
-// Fallback: token nel query string (?token=...)
-if (!$token) {
-    $token = $_GET['token'] ?? '';
-}
-
-if (!$token) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Token mancante']);
-    exit;
-}
-
-// Verifica firma JWT lato server
-function verifyToken($token) {
-    $parts = explode('.', $token);
-    if (count($parts) !== 3) return false;
-    try {
-        $payload = json_decode(base64_decode(
-            str_replace(['-','_'], ['+','/'], $parts[1])
-        ), true);
-        if (!$payload || !isset($payload['exp'])) return false;
-        if ($payload['exp'] < time()) return false;
-        return true;
-    } catch (Exception $e) {
-        return false;
-    }
-}
-
-if (!verifyToken($token)) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Token non valido o scaduto']);
-    exit;
-}
+// ── VERIFICA TOKEN (JWT con firma HMAC-SHA256) ─
+require_once __DIR__ . '/jwt_protection.php';
+requireAuth(['GET']);
 
 // ── EXPORT ───────────────────────────────────
 $pdo = getPDO();
