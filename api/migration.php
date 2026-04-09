@@ -145,6 +145,112 @@ function runMigrations(PDO $pdo) {
     // Cleanup log vecchi (>90 giorni) — silenzioso
     try { $pdo->exec("DELETE FROM security_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"); } catch (Exception $e) {}
 
+    // ── MIGRATION 012: multi-group system ──
+    // NOTA: `groups` è reserved word in MySQL — backtick obbligatori.
+    // Il DEFAULT su group_id è mantenuto intenzionalmente per backward
+    // compatibility: tutti gli endpoint esistenti continuano a funzionare
+    // senza modifiche fino alla Phase 2.
+    try {
+
+        // STEP 1: Tabella `groups`
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `groups` (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                name        VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                logo_url    VARCHAR(255),
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by  INT NULL,
+                FOREIGN KEY (created_by) REFERENCES admins(id) ON DELETE SET NULL,
+                INDEX idx_name (name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        // STEP 2: Gruppo default "Strike Zone Original" (idempotente)
+        $stmtGrp = $pdo->prepare("SELECT id FROM `groups` WHERE name = 'Strike Zone Original' LIMIT 1");
+        $stmtGrp->execute();
+        $existingGrp = $stmtGrp->fetch(PDO::FETCH_ASSOC);
+
+        if ($existingGrp) {
+            $defaultGroupId = (int)$existingGrp['id'];
+        } else {
+            $firstAdmin = $pdo->query("SELECT id FROM admins ORDER BY id ASC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            $createdBy  = $firstAdmin ? (int)$firstAdmin['id'] : null;
+            $pdo->prepare("INSERT INTO `groups` (name, description, created_by) VALUES (?, ?, ?)")
+                ->execute(['Strike Zone Original', 'Gruppo originale - Migrato da sistema single-group', $createdBy]);
+            $defaultGroupId = (int)$pdo->lastInsertId();
+        }
+
+        // STEP 3: group_id su players (idempotente)
+        if (empty($pdo->query("SHOW COLUMNS FROM players LIKE 'group_id'")->fetchAll())) {
+            $pdo->exec("ALTER TABLE players ADD COLUMN group_id INT NOT NULL DEFAULT $defaultGroupId AFTER id");
+            // DEFAULT mantenuto — backward compat. Phase 2 lo rimuoverà dopo aver aggiornato le API.
+            try { $pdo->exec("ALTER TABLE players ADD CONSTRAINT fk_players_group FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE RESTRICT"); } catch (Exception $e) {}
+            try { $pdo->exec("CREATE INDEX idx_players_group ON players(group_id)"); } catch (Exception $e) {}
+        }
+
+        // STEP 4: group_id su sessions (idempotente)
+        if (empty($pdo->query("SHOW COLUMNS FROM sessions LIKE 'group_id'")->fetchAll())) {
+            $pdo->exec("ALTER TABLE sessions ADD COLUMN group_id INT NOT NULL DEFAULT $defaultGroupId AFTER id");
+            try { $pdo->exec("ALTER TABLE sessions ADD CONSTRAINT fk_sessions_group FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE RESTRICT"); } catch (Exception $e) {}
+            try { $pdo->exec("CREATE INDEX idx_sessions_group ON sessions(group_id)"); } catch (Exception $e) {}
+        }
+
+        // STEP 5: full_name e phone su admins (idempotente)
+        if (empty($pdo->query("SHOW COLUMNS FROM admins LIKE 'full_name'")->fetchAll())) {
+            $pdo->exec("ALTER TABLE admins ADD COLUMN full_name VARCHAR(100) NULL AFTER email");
+        }
+        if (empty($pdo->query("SHOW COLUMNS FROM admins LIKE 'phone'")->fetchAll())) {
+            $pdo->exec("ALTER TABLE admins ADD COLUMN phone VARCHAR(20) NULL AFTER full_name");
+        }
+
+        // STEP 6: Tabella admin_roles
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS admin_roles (
+                id                     INT AUTO_INCREMENT PRIMARY KEY,
+                admin_id               INT NOT NULL,
+                group_id               INT NULL,
+                role                   ENUM('super_admin','group_admin') NOT NULL DEFAULT 'group_admin',
+                can_add_players        TINYINT(1) NOT NULL DEFAULT 1,
+                can_edit_players       TINYINT(1) NOT NULL DEFAULT 1,
+                can_delete_players     TINYINT(1) NOT NULL DEFAULT 0,
+                can_add_sessions       TINYINT(1) NOT NULL DEFAULT 1,
+                can_edit_sessions      TINYINT(1) NOT NULL DEFAULT 1,
+                can_delete_sessions    TINYINT(1) NOT NULL DEFAULT 0,
+                can_export_data        TINYINT(1) NOT NULL DEFAULT 0,
+                can_view_security_logs TINYINT(1) NOT NULL DEFAULT 0,
+                created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE,
+                FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
+                INDEX idx_admin (admin_id),
+                INDEX idx_group (group_id),
+                INDEX idx_role  (role)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        // STEP 7: super_admin assignment — spostato DOPO creazione admin di default
+        // (vedi sezione in fondo a runMigrations)
+
+        // STEP 8: Tabella player_auth
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS player_auth (
+                id            INT AUTO_INCREMENT PRIMARY KEY,
+                player_id     INT NOT NULL UNIQUE,
+                email         VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                active        TINYINT(1) NOT NULL DEFAULT 1,
+                created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login    TIMESTAMP NULL,
+                FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+                INDEX idx_email  (email),
+                INDEX idx_player (player_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+    } catch (Exception $e) {
+        error_log("Migration 012 error: " . $e->getMessage());
+    }
+
     // ── CREA ADMIN DI DEFAULT SE NON ESISTE ──
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM admins")->fetchColumn();
@@ -163,5 +269,23 @@ function runMigrations(PDO $pdo) {
         }
     } catch (Exception $e) {
         error_log("Errore creazione admin: " . $e->getMessage());
+    }
+
+    // ── ASSEGNA super_admin AL PRIMO ADMIN ──
+    // Gira dopo la creazione dell'admin di default così trova sempre un admin.
+    // Idempotente: salta se il ruolo esiste già.
+    try {
+        $firstAdmin = $pdo->query("SELECT id FROM admins ORDER BY id ASC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        if ($firstAdmin) {
+            $stmtRole = $pdo->prepare("SELECT id FROM admin_roles WHERE admin_id = ? AND role = 'super_admin' LIMIT 1");
+            $stmtRole->execute([$firstAdmin['id']]);
+            if (!$stmtRole->fetch()) {
+                $pdo->prepare("INSERT INTO admin_roles (admin_id, group_id, role) VALUES (?, NULL, 'super_admin')")
+                    ->execute([$firstAdmin['id']]);
+            }
+        }
+    } catch (Exception $e) {
+        // admin_roles potrebbe non esistere su DB pre-migration 012
+        error_log("Errore assegnazione super_admin: " . $e->getMessage());
     }
 }
