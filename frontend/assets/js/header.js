@@ -86,6 +86,7 @@ function loadTicketBadge() {
           '<div class="hamburger-divider"></div>' +
           '<button class="hamburger-item" onclick="openChangePasswordModal();closeHamburgerMenu()">🔐 Cambia Password</button>' +
           '<button class="hamburger-item" onclick="openTrustedDevicesModal();closeHamburgerMenu()">🛡 Dispositivi Fidati</button>' +
+          '<button class="hamburger-item" onclick="openSecurityLogsModal();closeHamburgerMenu()">🔒 Security Logs</button>' +
           '<button class="hamburger-item hamburger-logout" onclick="logout();closeHamburgerMenu()">🚪 Esci</button>' +
         '</div>' +
       '</div>';

@@ -9,9 +9,11 @@ require_once __DIR__ . '/config.php';
 // ── VERIFICA TOKEN (JWT con firma HMAC-SHA256) ─
 require_once __DIR__ . '/jwt_protection.php';
 requireAuth(['GET']);
+require_once __DIR__ . '/logger.php';
 
 // ── EXPORT ───────────────────────────────────
 $pdo = getPDO();
+logSecurityEvent($pdo, 'database_export', 'WARNING', $GLOBALS['authenticated_admin_id'] ?? null, ['exported_at' => date('Y-m-d H:i:s')]);
 
 // Sessioni
 $sessions = $pdo->query('

@@ -30,6 +30,7 @@ $expiresIn = 24 * 60 * 60; // 24 ore
 
 // Database connection
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
 
 // ══════════════════════════════════════════
 // JWT HELPERS
@@ -227,6 +228,7 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
         ");
         $stmtRL->execute([$clientIp]);
         if ((int)$stmtRL->fetchColumn() >= 10) {
+            logSecurityEvent($pdo, 'login_blocked_rate_limit', 'CRITICAL', null, ['ip' => $clientIp, 'email' => $email]);
             http_response_code(429);
             echo json_encode(['success' => false, 'error' => 'Troppi tentativi. Riprova tra 15 minuti.']);
             exit;
@@ -239,6 +241,7 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
 
         if (!$admin) {
             logLogin($pdo, null, $email, false, 'Email non trovata');
+            logSecurityEvent($pdo, 'login_failed', 'WARNING', null, ['email' => $email, 'reason' => 'email_not_found']);
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Credenziali non valide']);
             exit;
@@ -247,6 +250,13 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
         // Verifica password hashata
         if (!password_verify($password, $admin['password_hash'])) {
             logLogin($pdo, $admin['id'], $email, false, 'Password errata');
+            logSecurityEvent($pdo, 'login_failed', 'WARNING', $admin['id'], ['email' => $email, 'reason' => 'wrong_password']);
+            // Rileva tentativi multipli (>3 fallimenti per IP negli ultimi 5 minuti)
+            $stmtMFL = $pdo->prepare("SELECT COUNT(*) FROM login_logs WHERE ip_address = ? AND success = 0 AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
+            $stmtMFL->execute([$clientIp]);
+            if ((int)$stmtMFL->fetchColumn() > 3) {
+                logSecurityEvent($pdo, 'multiple_failed_logins', 'CRITICAL', null, ['ip' => $clientIp, 'email' => $email]);
+            }
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Credenziali non valide']);
             exit;
@@ -267,6 +277,8 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
                 $pdo->prepare("UPDATE trusted_devices SET last_used_at = NOW() WHERE id = ?")->execute([$td['id']]);
                 $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")->execute([$admin['id']]);
                 logLogin($pdo, $admin['id'], $email, true);
+                logSecurityEvent($pdo, 'trusted_device_used', 'INFO', $admin['id'], ['email' => $email]);
+                logSecurityEvent($pdo, 'login_success', 'INFO', $admin['id'], ['email' => $email, 'via' => 'trusted_device']);
                 $jwtTrusted = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn);
                 echo json_encode([
                     'success'        => true,
@@ -295,6 +307,7 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
             exit;
         }
         
+        logSecurityEvent($pdo, 'otp_requested', 'INFO', $admin['id'], ['email' => $email]);
         echo json_encode([
             'success' => true,
             'message' => 'Codice OTP inviato via email',
@@ -357,6 +370,7 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (!$otp) {
             logLogin($pdo, $admin['id'], $email, false, 'OTP non valido o scaduto');
+            logSecurityEvent($pdo, 'otp_failed', 'WARNING', $admin['id'], ['email' => $email]);
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Codice non valido o scaduto']);
             exit;
@@ -372,7 +386,9 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Log successo
         logLogin($pdo, $admin['id'], $email, true);
-        
+        logSecurityEvent($pdo, 'otp_verified', 'INFO', $admin['id'], ['email' => $email]);
+        logSecurityEvent($pdo, 'login_success', 'INFO', $admin['id'], ['email' => $email, 'via' => 'otp']);
+
         // Genera JWT
         $token = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn);
 
@@ -399,6 +415,7 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO trusted_devices (admin_id, token_hash, device_identifier, user_agent, ip_address, expires_at)
                 VALUES (?, ?, ?, ?, ?, ?)
             ")->execute([$admin['id'], $tdHash, $ua, $ua, $ip, $tdExpires]);
+            logSecurityEvent($pdo, 'trusted_device_created', 'INFO', $admin['id'], ['email' => $email, 'expires_at' => $tdExpires]);
 
             $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                     || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
@@ -530,6 +547,7 @@ if ($_GET['action'] === 'change-password' && $_SERVER['REQUEST_METHOD'] === 'POS
         // Revoca tutti i dispositivi fidati
         $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$admin['id']]);
         setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+        logSecurityEvent($pdo, 'password_changed', 'WARNING', $admin['id'], ['email' => $admin['email']]);
 
         echo json_encode(['success' => true, 'message' => 'Password aggiornata con successo']);
         
@@ -591,13 +609,14 @@ if ($_GET['action'] === 'request-reset' && $_SERVER['REQUEST_METHOD'] === 'POST'
                      '/frontend/pages/reset-password.html?token=' . $token;
         
         $sent = sendPasswordResetEmail($admin['email'], $resetLink, $admin['name']);
-        
+
         if (!$sent) {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Errore invio email']);
             exit;
         }
-        
+
+        logSecurityEvent($pdo, 'password_reset_requested', 'WARNING', $admin['id'], ['email' => $email]);
         echo json_encode(['success' => true, 'message' => 'Se l\'email esiste, riceverai le istruzioni']);
         
     } catch (Exception $e) {
@@ -663,6 +682,7 @@ if ($_GET['action'] === 'reset-password' && $_SERVER['REQUEST_METHOD'] === 'POST
         // Revoca tutti i dispositivi fidati
         $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$reset['admin_id']]);
         setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+        logSecurityEvent($pdo, 'password_reset_completed', 'WARNING', $reset['admin_id'], []);
 
         echo json_encode(['success' => true, 'message' => 'Password reimpostata con successo']);
         

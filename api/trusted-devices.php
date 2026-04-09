@@ -6,6 +6,7 @@
 //  POST ?action=revoke-all → revoca tutti
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -121,6 +122,7 @@ if ($action === 'revoke' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $pdo->prepare("DELETE FROM trusted_devices WHERE id = ? AND admin_id = ?")->execute([$id, $adminId]);
+    logSecurityEvent($pdo, 'trusted_device_revoked', 'WARNING', $adminId, ['device_id' => $id]);
 
     // Se è il dispositivo corrente: cancella cookie
     $tdCookie = $_COOKIE['trusted_device'] ?? null;
@@ -138,6 +140,7 @@ if ($action === 'revoke' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($action === 'revoke-all' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$adminId]);
     setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+    logSecurityEvent($pdo, 'trusted_device_revoked', 'WARNING', $adminId, ['all_devices' => true]);
     echo json_encode(['success' => true, 'message' => 'Tutti i dispositivi revocati']);
     exit;
 }

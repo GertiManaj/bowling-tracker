@@ -124,6 +124,27 @@ function runMigrations(PDO $pdo) {
         $pdo->exec("ALTER TABLE otp_codes MODIFY COLUMN code VARCHAR(64) NOT NULL");
     } catch (Exception $e) { /* silenzioso se già corretto */ }
 
+    // ── MIGRATION 011: tabella security_logs ──
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS security_logs (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            event_type  VARCHAR(50) NOT NULL,
+            severity    ENUM('INFO','WARNING','CRITICAL') NOT NULL,
+            admin_id    INT NULL,
+            ip_address  VARCHAR(45),
+            user_agent  TEXT,
+            details     JSON,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_event_type (event_type),
+            INDEX idx_severity (severity),
+            INDEX idx_admin (admin_id),
+            INDEX idx_created (created_at),
+            FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    // Cleanup log vecchi (>90 giorni) — silenzioso
+    try { $pdo->exec("DELETE FROM security_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"); } catch (Exception $e) {}
+
     // ── CREA ADMIN DI DEFAULT SE NON ESISTE ──
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM admins")->fetchColumn();
