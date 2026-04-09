@@ -90,7 +90,7 @@ function saveOTP($pdo, $adminId, $code) {
     
     $stmt->execute([
         ':admin_id' => $adminId,
-        ':code' => $code,
+        ':code' => hash('sha256', $code),
         ':expires_at' => $expiresAt,
         ':ip' => $_SERVER['REMOTE_ADDR'] ?? null,
         ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? null
@@ -351,7 +351,7 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
         $stmt->execute([
             ':admin_id' => $admin['id'],
-            ':code' => $code
+            ':code' => hash('sha256', $code)
         ]);
         $otp = $stmt->fetch(PDO::FETCH_ASSOC);
         

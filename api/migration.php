@@ -115,6 +115,10 @@ function runMigrations(PDO $pdo) {
     // Cleanup scaduti silenzioso
     try { $pdo->exec("DELETE FROM trusted_devices WHERE expires_at < NOW()"); } catch (Exception $e) {}
 
+    // ── MIGRATION 009: cleanup OTP in chiaro (pre-hashing) ──
+    // Rimuove codici a 6 cifre salvati prima dell'introduzione dell'hash SHA-256
+    try { $pdo->exec("DELETE FROM otp_codes WHERE LENGTH(code) <= 6"); } catch (Exception $e) {}
+
     // ── CREA ADMIN DI DEFAULT SE NON ESISTE ──
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM admins")->fetchColumn();
