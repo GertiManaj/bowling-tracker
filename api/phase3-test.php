@@ -4,7 +4,8 @@
 //  Verifica filtri multi-gruppo
 //  DA ELIMINARE dopo l'uso
 // ============================================
-if (($_GET['token'] ?? '') !== 'phase3test_' . date('Ymd')) {
+$validTokens = ['phase3test_20260409', 'phase3test_20260410'];
+if (!in_array($_GET['token'] ?? '', $validTokens, true)) {
     http_response_code(403);
     die(json_encode(['error' => 'Forbidden']));
 }
