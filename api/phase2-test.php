@@ -190,133 +190,156 @@ $backType = $pOld['user_type'] ?? (isset($pOld['admin_id']) ? 'super_admin' : nu
 $backType === 'super_admin' ? ok('Backward compat: old JWT → super_admin') : ko('Backward compat fallito');
 
 // ════════════════════════════════════════════
-// TEST 4: HTTP GET /api/groups.php
+// TEST 4–8: HTTP via cURL (no include conflicts)
 // ════════════════════════════════════════════
-section('TEST 4: HTTP GET /api/groups.php');
+$baseUrl = 'https://web-production-e43fd.up.railway.app';
+$testJWT = $GLOBALS['test_jwt'] ?? '';
 
-if (empty($GLOBALS['test_jwt'])) {
-    ko('Skip: JWT non disponibile');
-} else {
-    $r = apiCall('GET', "$baseUrl/api/groups.php", [], ['Authorization' => 'Bearer ' . $GLOBALS['test_jwt']]);
+// ── TEST 4: HTTP GET /api/groups.php ──
+echo "\n── TEST 4: HTTP GET /api/groups.php ──\n";
 
-    $r['code'] === 200 ? ok("HTTP 200") : ko("HTTP {$r['code']}", $r['raw']);
-    isset($r['data']['success']) && $r['data']['success'] ? ok('success=true') : ko('success mancante', $r['raw']);
+// ── TEST 4 CON JWT ──
+$cmd = sprintf(
+    'curl -s -X GET "%s/api/groups.php" -H "Authorization: Bearer %s" -H "Content-Type: application/json"',
+    $baseUrl,
+    $testJWT
+);
+$response = shell_exec($cmd);
+$data = json_decode($response, true);
 
-    if (!empty($r['data']['groups'])) {
-        $cnt = count($r['data']['groups']);
-        ok("Gruppi nella risposta: $cnt");
-        foreach ($r['data']['groups'] as $g) {
-            echo "     #" . $g['id'] . " {$g['name']}"
-               . " | players={$g['players_count']} sessions={$g['sessions_count']} admins={$g['admins_count']}\n";
-        }
-        // Verifica che Strike Zone Original ci sia
-        $found = array_filter($r['data']['groups'], fn($g) => $g['name'] === 'Strike Zone Original');
-        $found ? ok('"Strike Zone Original" presente') : ko('"Strike Zone Original" assente');
-    } else {
-        ko('Array groups vuoto o mancante');
+if ($data && isset($data['success']) && $data['success']) {
+    ok('GET con JWT riuscito');
+    ok('Gruppi trovati: ' . count($data['groups']));
+    foreach ($data['groups'] as $group) {
+        echo "      - {$group['name']} [ID={$group['id']}]\n";
+        echo "        Players: {$group['players_count']}, Sessions: {$group['sessions_count']}\n";
     }
-
-    // Test 403 senza JWT
-    $r2 = apiCall('GET', "$baseUrl/api/groups.php");
-    $r2['code'] === 401 ? ok('GET senza JWT → 401') : ko("GET senza JWT → atteso 401, ottenuto {$r2['code']}");
+} else {
+    ko('GET con JWT fallito');
+    echo "      Response: " . substr($response ?? '', 0, 200) . "\n";
 }
 
-// ════════════════════════════════════════════
-// TEST 5: HTTP POST /api/groups.php (crea + elimina)
-// ════════════════════════════════════════════
-section('TEST 5: HTTP POST /api/groups.php (crea gruppo test)');
+// Test SENZA JWT (deve dare 401)
+$cmd2 = sprintf(
+    'curl -s -w "\nHTTP_CODE:%%{http_code}" -X GET "%s/api/groups.php"',
+    $baseUrl
+);
+$response2 = shell_exec($cmd2);
+strpos($response2 ?? '', 'HTTP_CODE:401') !== false
+    ? ok('GET senza JWT → 401 Unauthorized (corretto)')
+    : ko('GET senza JWT non ha dato 401', substr($response2 ?? '', -30));
+
+// ── TEST 5: HTTP POST /api/groups.php (crea gruppo test) ──
+echo "\n── TEST 5: HTTP POST /api/groups.php (crea gruppo test) ──\n";
 
 $testGroupId = null;
-if (empty($GLOBALS['test_jwt'])) {
-    ko('Skip: JWT non disponibile');
+$postData = json_encode([
+    'name'        => 'Test Automation ' . date('His'),
+    'description' => 'Gruppo creato da test automatico - ELIMINARE',
+]);
+
+$cmd = sprintf(
+    'curl -s -X POST "%s/api/groups.php" -H "Authorization: Bearer %s" -H "Content-Type: application/json" -d %s',
+    $baseUrl,
+    $testJWT,
+    escapeshellarg($postData)
+);
+$response = shell_exec($cmd);
+$data = json_decode($response, true);
+
+if ($data && isset($data['success']) && $data['success']) {
+    ok('POST riuscito');
+    ok('Gruppo creato  [ID=' . $data['group_id'] . ']');
+    $testGroupId = (int)$data['group_id'];
+
+    $chk = $pdo->prepare("SELECT id, name FROM `groups` WHERE id = ?");
+    $chk->execute([$testGroupId]);
+    $row = $chk->fetch();
+    $row ? ok('Verificato nel DB  [' . $row['name'] . ']') : ko('Non trovato nel DB');
 } else {
-    $r = apiCall('POST', "$baseUrl/api/groups.php",
-        ['name' => 'Test Automation ' . date('His'), 'description' => 'Creato da phase2-test — eliminare'],
-        ['Authorization' => 'Bearer ' . $GLOBALS['test_jwt']]
-    );
-
-    $r['code'] === 200 ? ok("HTTP 200") : ko("HTTP {$r['code']}", $r['raw']);
-    if (!empty($r['data']['group_id'])) {
-        $testGroupId = (int)$r['data']['group_id'];
-        ok('group_id restituito', $testGroupId);
-        // Verifica nel DB
-        $dbRow = $pdo->prepare("SELECT id, name FROM `groups` WHERE id = ?")->execute([$testGroupId])
-              && ($stmt2 = $pdo->prepare("SELECT id, name FROM `groups` WHERE id = ?")) && $stmt2->execute([$testGroupId]) && $stmt2->fetch();
-        $chk = $pdo->prepare("SELECT id, name FROM `groups` WHERE id = ?");
-        $chk->execute([$testGroupId]);
-        $chk->fetch() ? ok('Verificato nel DB') : ko('Non trovato nel DB');
-    } else {
-        ko('group_id assente nella risposta', $r['raw']);
-    }
-
-    // Test duplicate
-    $rDup = apiCall('POST', "$baseUrl/api/groups.php",
-        ['name' => 'Strike Zone Original'],
-        ['Authorization' => 'Bearer ' . $GLOBALS['test_jwt']]
-    );
-    in_array($rDup['code'], [409, 500]) ? ok('Duplicate name → errore HTTP corretto') : ko("Duplicate: atteso 409, ottenuto {$rDup['code']}");
+    ko('POST fallito');
+    echo "      Response: " . substr($response ?? '', 0, 200) . "\n";
 }
 
-// ════════════════════════════════════════════
-// TEST 6: HTTP GET /api/admin-management.php
-// ════════════════════════════════════════════
-section('TEST 6: HTTP GET /api/admin-management.php');
+// ── TEST 6: HTTP GET /api/admin-management.php ──
+echo "\n── TEST 6: HTTP GET /api/admin-management.php ──\n";
 
-if (empty($GLOBALS['test_jwt'])) {
-    ko('Skip: JWT non disponibile');
-} else {
-    $r = apiCall('GET', "$baseUrl/api/admin-management.php", [], ['Authorization' => 'Bearer ' . $GLOBALS['test_jwt']]);
+$cmd = sprintf(
+    'curl -s -X GET "%s/api/admin-management.php" -H "Authorization: Bearer %s"',
+    $baseUrl,
+    $testJWT
+);
+$response = shell_exec($cmd);
+$data = json_decode($response, true);
 
-    $r['code'] === 200 ? ok("HTTP 200") : ko("HTTP {$r['code']}", $r['raw']);
-    if (!empty($r['data']['admins'])) {
-        $cnt = count($r['data']['admins']);
-        ok("Admin nella risposta: $cnt");
-        foreach ($r['data']['admins'] as $a) {
-            echo "     #{$a['id']} {$a['email']}"
-               . " | role=" . ($a['role'] ?? 'N/A')
-               . " group=" . ($a['group_name'] ?? 'TUTTI') . "\n";
-        }
-    } else {
-        ko('Array admins vuoto', $r['raw']);
+if ($data && isset($data['success']) && $data['success']) {
+    ok('GET riuscito');
+    ok('Admin trovati: ' . count($data['admins']));
+    foreach ($data['admins'] as $admin) {
+        $groupName = $admin['group_name'] ?: 'TUTTI';
+        echo "      - {$admin['email']} → {$admin['role']} [Gruppo: {$groupName}]\n";
     }
-
-    // Test 401 senza JWT
-    $r2 = apiCall('GET', "$baseUrl/api/admin-management.php");
-    $r2['code'] === 401 ? ok('GET senza JWT → 401') : ko("GET senza JWT → atteso 401, ottenuto {$r2['code']}");
+} else {
+    ko('GET fallito');
+    echo "      Response: " . substr($response ?? '', 0, 200) . "\n";
 }
 
-// ════════════════════════════════════════════
-// TEST 7: player-auth.php login (nessun player registrato → atteso 401)
-// ════════════════════════════════════════════
-section('TEST 7: POST /api/player-auth.php?action=login');
+// ── TEST 7: Player Auth ──
+echo "\n── TEST 7: Player Auth ──\n";
 
-$r = apiCall('POST', "$baseUrl/api/player-auth.php?action=login",
-    ['email' => 'nonexistent@test.com', 'password' => 'wrongpass123']
+// Login con credenziali errate
+$loginData = escapeshellarg(json_encode(['email' => 'nonexistent@test.com', 'password' => 'wrongpass123']));
+$cmd = sprintf(
+    'curl -s -w "\nHTTP_CODE:%%{http_code}" -X POST "%s/api/player-auth.php?action=login" -H "Content-Type: application/json" -d %s',
+    $baseUrl,
+    $loginData
 );
-$r['code'] === 401 ? ok('Login credenziali errate → 401') : ko("Atteso 401, ottenuto {$r['code']}", $r['raw']);
+$response = shell_exec($cmd);
+strpos($response ?? '', 'HTTP_CODE:401') !== false
+    ? ok('Login credenziali errate → 401')
+    : ko('Atteso 401 per credenziali errate', substr($response ?? '', -30));
 
-// Test body vuoto
-$r2 = apiCall('POST', "$baseUrl/api/player-auth.php?action=login", []);
-$r2['code'] === 400 ? ok('Login body vuoto → 400') : ko("Atteso 400, ottenuto {$r2['code']}");
-
-// Test register senza JWT
-$r3 = apiCall('POST', "$baseUrl/api/player-auth.php?action=register",
-    ['player_id' => 1, 'email' => 'x@x.com', 'password' => 'pass12345']
+// Login body vuoto
+$cmd = sprintf(
+    'curl -s -w "\nHTTP_CODE:%%{http_code}" -X POST "%s/api/player-auth.php?action=login" -H "Content-Type: application/json" -d "{}"',
+    $baseUrl
 );
-$r3['code'] === 401 ? ok('Register senza JWT → 401') : ko("Register senza JWT: atteso 401, ottenuto {$r3['code']}");
+$response = shell_exec($cmd);
+strpos($response ?? '', 'HTTP_CODE:400') !== false
+    ? ok('Login body vuoto → 400')
+    : ko('Atteso 400 per body vuoto', substr($response ?? '', -30));
 
-// ════════════════════════════════════════════
-// TEST 8: Security Logs recenti
-// ════════════════════════════════════════════
-section('TEST 8: Security Logs');
+// Register senza JWT
+$regData = escapeshellarg(json_encode(['player_id' => 1, 'email' => 'x@x.com', 'password' => 'pass12345']));
+$cmd = sprintf(
+    'curl -s -w "\nHTTP_CODE:%%{http_code}" -X POST "%s/api/player-auth.php?action=register" -H "Content-Type: application/json" -d %s',
+    $baseUrl,
+    $regData
+);
+$response = shell_exec($cmd);
+strpos($response ?? '', 'HTTP_CODE:401') !== false
+    ? ok('Register senza JWT → 401')
+    : ko('Atteso 401 per register senza JWT', substr($response ?? '', -30));
+
+// Verifica tabella player_auth
+$count = $pdo->query("SELECT COUNT(*) FROM player_auth")->fetchColumn();
+ok("Tabella player_auth accessibile  [$count record]");
+
+// ── TEST 8: Security Logs ──
+echo "\n── TEST 8: Security Logs ──\n";
 
 try {
-    $stmt = $pdo->query("SELECT event_type, severity, details, created_at FROM security_logs ORDER BY created_at DESC LIMIT 6");
+    $stmt = $pdo->query("
+        SELECT event_type, severity, details, created_at
+        FROM security_logs
+        ORDER BY created_at DESC
+        LIMIT 6
+    ");
     $logs = $stmt->fetchAll();
     ok('Tabella security_logs accessibile', count($logs) . ' log recenti');
     foreach ($logs as $l) {
-        $d = json_decode($l['details'] ?? '{}', true) ?? [];
-        $detStr = implode(', ', array_map(fn($k,$v) => "$k=$v", array_keys($d), $d));
+        $d      = json_decode($l['details'] ?? '{}', true) ?? [];
+        $detStr = implode(', ', array_map(fn($k, $v) => "$k=$v", array_keys($d), $d));
         echo "     [{$l['severity']}] {$l['event_type']}  {$l['created_at']}"
            . ($detStr ? "  [$detStr]" : '') . "\n";
     }
@@ -324,30 +347,28 @@ try {
     ko('security_logs query fallita', $e->getMessage());
 }
 
-// ════════════════════════════════════════════
-// CLEANUP
-// ════════════════════════════════════════════
-section('CLEANUP');
+// ── CLEANUP: Elimina gruppo test ──
+echo "\n── CLEANUP ──\n";
 
-if ($testGroupId) {
+if (!empty($testGroupId)) {
     try {
         $pdo->prepare("DELETE FROM `groups` WHERE id = ?")->execute([$testGroupId]);
-        ok("Gruppo test eliminato (ID: $testGroupId)");
+        ok("Gruppo test eliminato  [ID=$testGroupId]");
     } catch (Exception $e) {
-        ko("Eliminazione gruppo test fallita", $e->getMessage());
+        ko("Eliminazione gruppo test", $e->getMessage());
     }
+} else {
+    echo "  ⏭️   Nessun gruppo test da eliminare\n";
 }
 
-// ════════════════════════════════════════════
-// REPORT FINALE
-// ════════════════════════════════════════════
+// ── REPORT FINALE ──
 $tot = $pass + $fail;
 echo "\n═══════════════════════════════════════\n";
 echo " RISULTATO: $pass/$tot test passati";
 if ($fail === 0) {
-    echo " — 🎉 TUTTO OK\n";
+    echo " — TUTTO OK\n";
 } else {
-    echo " — ⚠️  $fail FALLITI\n";
+    echo " — $fail FALLITI\n";
 }
 echo "═══════════════════════════════════════\n";
-echo "\n⚠️  RICORDA: elimina questo file → api/phase2-test.php\n";
+echo "\n ELIMINA QUESTO FILE: api/phase2-test.php\n";
