@@ -215,6 +215,7 @@ if ($method === 'DELETE') {
     }
 
     try {
+        $pdo->prepare("DELETE FROM admin_roles WHERE admin_id = ?")->execute([$adminId]);
         $affected = $pdo->prepare("DELETE FROM admins WHERE id = ?");
         $affected->execute([$adminId]);
 

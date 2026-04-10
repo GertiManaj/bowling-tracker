@@ -113,25 +113,34 @@ try {
 
     $pdo->commit();
 
-    // Invia email di benvenuto all'admin (non bloccante)
-    sendWelcomeAdmin($adminEmail, $displayName, $groupName, $inviteCode);
-
     logSecurityEvent($pdo, 'group_self_registered', 'INFO', $adminId, [
         'group_id'   => $groupId,
         'group_name' => $groupName,
         'email'      => $adminEmail,
     ]);
 
-    echo json_encode([
+    // Invia risposta al client PRIMA di inviare le email (evita timeout)
+    $responseJson = json_encode([
         'success'     => true,
         'group_id'    => $groupId,
         'admin_id'    => $adminId,
         'invite_code' => $inviteCode,
         'message'     => 'Gruppo creato con successo',
     ]);
+    header('Content-Length: ' . strlen($responseJson));
+    echo $responseJson;
 
-} catch (Exception $e) {
+    // Flush risposta al client
+    if (ob_get_level()) { ob_end_flush(); }
+    flush();
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+
+    // Email di benvenuto (dopo aver risposto al client)
+    try { sendWelcomeAdmin($adminEmail, $displayName, $groupName, $inviteCode); } catch (\Throwable $ignored) {}
+
+} catch (\Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    error_log('[group-register] ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Errore durante la registrazione']);
+    echo json_encode(['error' => 'Errore durante la registrazione: ' . $e->getMessage()]);
 }

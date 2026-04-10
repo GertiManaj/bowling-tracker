@@ -185,7 +185,8 @@ if ($method === 'DELETE') {
         }
     }
 
-    // CASCADE elimina anche scores collegati
+    // CASCADE elimina anche scores e credenziali collegati
+    $pdo->prepare('DELETE FROM player_auth WHERE player_id = ?')->execute([$id]);
     $stmt = $pdo->prepare('DELETE FROM players WHERE id = ?');
     $stmt->execute([$id]);
 

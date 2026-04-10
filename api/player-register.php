@@ -101,7 +101,7 @@ try {
 
     $pdo->commit();
 
-    // Recupera nome gruppo e dati admin per le email (non bloccante)
+    // Recupera dati gruppo/admin per le email
     $gInfo = $pdo->prepare("
         SELECT g.name AS group_name, a.email AS admin_email, a.name AS admin_name
         FROM `groups` g
@@ -111,12 +111,7 @@ try {
         LIMIT 1
     ");
     $gInfo->execute([$groupId]);
-    $gRow = $gInfo->fetch();
-
-    sendWelcomePlayer($email, $name, $gRow['group_name'] ?? '');
-    if (!empty($gRow['admin_email'])) {
-        sendNewPlayerNotify($gRow['admin_email'], $gRow['admin_name'] ?? 'Admin', $name, $gRow['group_name'] ?? '');
-    }
+    $gRow = $gInfo->fetch() ?: [];
 
     logSecurityEvent($pdo, 'player_self_registered', 'INFO', null, [
         'player_id' => $playerId,
@@ -124,14 +119,30 @@ try {
         'email'     => $email,
     ]);
 
-    echo json_encode([
+    // Invia risposta al client PRIMA delle email (evita timeout)
+    $responseJson = json_encode([
         'success'   => true,
         'player_id' => $playerId,
         'message'   => 'Registrazione completata',
     ]);
+    header('Content-Length: ' . strlen($responseJson));
+    echo $responseJson;
 
-} catch (Exception $e) {
+    if (ob_get_level()) { ob_end_flush(); }
+    flush();
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+
+    // Email dopo la risposta
+    try {
+        sendWelcomePlayer($email, $name, $gRow['group_name'] ?? '');
+        if (!empty($gRow['admin_email'])) {
+            sendNewPlayerNotify($gRow['admin_email'], $gRow['admin_name'] ?? 'Admin', $name, $gRow['group_name'] ?? '');
+        }
+    } catch (\Throwable $ignored) {}
+
+} catch (\Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    error_log('[player-register] ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Errore durante la registrazione']);
+    echo json_encode(['error' => 'Errore durante la registrazione: ' . $e->getMessage()]);
 }

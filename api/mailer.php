@@ -21,6 +21,10 @@ function sendEmail(string $to, string $subject, string $html): bool {
     $fromName  = getenv('EMAIL_FROM_NAME') ?: 'Strike Zone';
 
     $ch = curl_init('https://api.resend.com/emails');
+    if (!$ch) {
+        error_log('[MAIL] curl_init fallito');
+        return false;
+    }
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
@@ -34,8 +38,8 @@ function sendEmail(string $to, string $subject, string $html): bool {
             'Authorization: Bearer ' . $apiKey,
             'Content-Type: application/json',
         ],
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT        => 8,
+        CURLOPT_CONNECTTIMEOUT => 5,
     ]);
 
     $response  = curl_exec($ch);
