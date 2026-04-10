@@ -109,6 +109,38 @@
     </div>
   </div>
 
+  <!-- ══ MODAL: CREA LOGIN GIOCATORE ══ -->
+  <div class="modal-overlay" id="playerLoginOverlay" onclick="handlePlayerLoginOverlayClick(event)">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <div class="modal-title" id="playerLoginModalTitle">🔑 Crea Login Giocatore</div>
+        <button class="modal-close" onclick="closePlayerLoginModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;font-family:'Share Tech Mono',monospace;letter-spacing:0.05em">
+          Crea credenziali di accesso per <strong id="playerLoginName" style="color:var(--neon)"></strong>
+        </p>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="playerLoginEmail" placeholder="email@esempio.it" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="playerLoginPassword" placeholder="Minimo 8 caratteri" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Conferma Password</label>
+          <input type="password" class="form-input" id="playerLoginPasswordConfirm" placeholder="Ripeti la password" autocomplete="new-password" />
+        </div>
+        <div id="playerLoginError" style="display:none;background:rgba(255,60,172,0.1);border:1px solid var(--neon2);border-radius:6px;padding:0.6rem 0.8rem;font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--neon2);margin-top:0.5rem"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closePlayerLoginModal()">Annulla</button>
+        <button class="btn-primary" id="btnSavePlayerLogin" onclick="savePlayerLogin()">🔑 Crea Accesso</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ MODAL: CONFERMA ELIMINAZIONE ══ -->
   <div class="modal-overlay" id="deleteOverlay" onclick="handleDeleteOverlayClick(event)">
     <div class="modal" style="max-width:420px">

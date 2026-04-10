@@ -124,6 +124,7 @@ function renderPlayers() {
         ${statsHtml}
         <div class="player-card-actions action-btn-wrap" style="display:${window.isLoggedIn ? '' : 'none'}">
           <button class="player-action-btn edit" onclick="openEditModal(${p.id})">✏ Modifica</button>
+          <button class="player-action-btn" style="color:var(--neon);border-color:rgba(232,255,0,0.3)" onclick="openPlayerLoginModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🔑 Login</button>
           <button class="player-action-btn delete" onclick="openDeleteModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">✕ Elimina</button>
         </div>
       </div>`;
@@ -199,6 +200,75 @@ async function confirmDelete() {
 
   btn.disabled = false;
   btn.textContent = 'Elimina';
+}
+
+// ── MODAL LOGIN GIOCATORE ────────────────────
+
+let playerLoginId = null;
+
+function openPlayerLoginModal(id, name) {
+  if (!window.isLoggedIn) { openLoginModal(); return; }
+  playerLoginId = id;
+  document.getElementById('playerLoginName').textContent = name;
+  document.getElementById('playerLoginModalTitle').textContent = '🔑 Crea Login — ' + name;
+  document.getElementById('playerLoginEmail').value = '';
+  document.getElementById('playerLoginPassword').value = '';
+  document.getElementById('playerLoginPasswordConfirm').value = '';
+  document.getElementById('playerLoginError').style.display = 'none';
+  document.getElementById('playerLoginOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('playerLoginEmail').focus(), 100);
+}
+
+function closePlayerLoginModal() {
+  document.getElementById('playerLoginOverlay').classList.remove('open');
+  playerLoginId = null;
+}
+
+function handlePlayerLoginOverlayClick(e) {
+  if (e.target === document.getElementById('playerLoginOverlay')) closePlayerLoginModal();
+}
+
+function showPlayerLoginError(msg) {
+  const el = document.getElementById('playerLoginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function savePlayerLogin() {
+  const btn   = document.getElementById('btnSavePlayerLogin');
+  const email = document.getElementById('playerLoginEmail').value.trim();
+  const pass  = document.getElementById('playerLoginPassword').value;
+  const conf  = document.getElementById('playerLoginPasswordConfirm').value;
+
+  document.getElementById('playerLoginError').style.display = 'none';
+
+  if (!email) { showPlayerLoginError('Email obbligatoria'); return; }
+  if (pass.length < 8) { showPlayerLoginError('Password minimo 8 caratteri'); return; }
+  if (pass !== conf) { showPlayerLoginError('Le password non corrispondono'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Creazione...';
+
+  try {
+    const res  = await authFetch('/api/player-auth.php?action=register', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerLoginId, email: email, password: pass })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      closePlayerLoginModal();
+      showToast('Accesso creato!');
+    } else {
+      showPlayerLoginError(data.error || 'Errore creazione accesso');
+    }
+  } catch (e) {
+    showPlayerLoginError('Errore di connessione');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔑 Crea Accesso';
 }
 
 // ── TASTO ENTER nel form ─────────────────────

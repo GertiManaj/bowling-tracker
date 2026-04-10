@@ -120,9 +120,10 @@
 
     /* ── BOTTONI ── */
     .wc-btns {
-      display: flex; flex-direction: column; gap: 0.8rem;
-      max-width: 360px; margin: 0 auto;
+      display: flex; flex-direction: row; gap: 0.8rem;
+      max-width: 560px; margin: 0 auto 2rem; flex-wrap: wrap;
     }
+    .wc-btns > button { flex: 1; min-width: 160px; }
     .wc-btn-admin {
       background: var(--neon); color: #0a0a0f;
       border: none; border-radius: 8px; padding: 1rem 1.5rem;
@@ -163,6 +164,12 @@
   <div class="wc-sub">Bowling Tracker</div>
 </div>
 
+<!-- LOGIN BUTTONS (top, before wrap) -->
+<div class="wc-btns" id="wcBtns" style="padding: 0 1rem;">
+  <button class="wc-btn-admin" onclick="goAdmin()">🔐 Accesso Amministratore</button>
+  <button class="wc-btn-guest" onclick="goGuest()">👤 Entra come ospite</button>
+</div>
+
 <div class="wc-wrap">
 
   <!-- PODIUM TOP 3 -->
@@ -179,12 +186,6 @@
         Caricamento classifica...
       </div>
     </div>
-  </div>
-
-  <!-- LOGIN BUTTONS -->
-  <div class="wc-btns" id="wcBtns">
-    <button class="wc-btn-admin" onclick="goAdmin()">🔐 Accesso Amministratore</button>
-    <button class="wc-btn-guest" onclick="goGuest()">👤 Entra come ospite</button>
   </div>
 
 </div>
