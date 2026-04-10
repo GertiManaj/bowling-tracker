@@ -203,16 +203,23 @@ function sendOTPEmail($email, $code, $name = 'Admin') {
         'Authorization: Bearer ' . $apiKey,
         'Content-Type: application/json'
     ]);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
-    
-    if ($httpCode !== 200) {
-        error_log("Resend API error: $response");
+
+    if ($response === false || $curlError) {
+        error_log("[OTP] Resend curl error: $curlError");
         return false;
     }
-    
+    if ($httpCode < 200 || $httpCode >= 300) {
+        error_log("[OTP] Resend HTTP $httpCode: $response");
+        return false;
+    }
+
     return true;
 }
 
@@ -331,10 +338,15 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
         
         // Invia email
         $sent = sendOTPEmail($email, $code, $admin['name']);
-        
+
         if (!$sent) {
+            $apiKey = getenv('RESEND_API_KEY');
+            $hint = !$apiKey
+                ? 'RESEND_API_KEY non configurata nelle variabili Railway'
+                : 'Verifica dominio EMAIL_FROM su resend.com e variabili Railway';
+            error_log("[OTP] Invio email fallito per $email. $hint");
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Errore invio email']);
+            echo json_encode(['success' => false, 'error' => 'Errore invio email OTP', 'hint' => $hint]);
             exit;
         }
         
@@ -821,16 +833,23 @@ function sendPasswordResetEmail($email, $resetLink, $name = 'Admin') {
         'Authorization: Bearer ' . $apiKey,
         'Content-Type: application/json'
     ]);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
-    
-    if ($httpCode !== 200) {
-        error_log("Resend API error: $response");
+
+    if ($response === false || $curlError) {
+        error_log("[RESET] Resend curl error: $curlError");
         return false;
     }
-    
+    if ($httpCode < 200 || $httpCode >= 300) {
+        error_log("[RESET] Resend HTTP $httpCode: $response");
+        return false;
+    }
+
     return true;
 }
 http_response_code(400);

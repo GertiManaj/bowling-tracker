@@ -14,609 +14,298 @@
   <link rel="stylesheet" href="../assets/css/style.css"/>
   <script src="../assets/js/shared.js"></script>
   <style>
+    /* ── LAYOUT ── */
     body { background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wc-wrap { max-width: 780px; margin: 0 auto; padding: 0 1rem 3rem; }
 
     /* ── HERO ── */
     .wc-hero {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 2.5rem 1rem 1.5rem;
-      text-align: center;
+      text-align: center; padding: 2.5rem 1rem 1.8rem;
     }
-    .wc-pin   { font-size: 3rem; margin-bottom: 0.6rem; animation: wobble 2s ease-in-out infinite; }
-    .wc-title { font-family: 'Black Han Sans', sans-serif; font-size: 2.2rem;
+    .wc-pin   { font-size: 3.5rem; display: block; margin-bottom: 0.7rem;
+                animation: wobble 2s ease-in-out infinite; }
+    .wc-title { font-family: 'Black Han Sans', sans-serif; font-size: 2.4rem;
                 color: var(--neon); text-shadow: 0 0 30px rgba(232,255,0,0.5);
                 letter-spacing: 0.08em; margin-bottom: 0.2rem; }
     .wc-sub   { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
                 letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); }
+    @keyframes wobble { 0%,100%{transform:rotate(-6deg) scale(1)} 50%{transform:rotate(6deg) scale(1.08)} }
 
-    @keyframes wobble {
-      0%,100% { transform: rotate(-6deg) scale(1); }
-      50%      { transform: rotate(6deg)  scale(1.08); }
+    /* ── PODIUM ── */
+    .wc-podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 0.8rem; margin: 1.5rem 0 2rem;
     }
-
-    /* ── FILTER BAR ── */
-    .wc-filter-bar {
-      display: flex; align-items: center; justify-content: center;
-      gap: 0.8rem; padding: 0.8rem 1rem;
-      background: var(--surface); border-bottom: 1px solid var(--border);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.72rem;
-      color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase;
+    .wc-pod {
+      flex: 1; max-width: 180px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.2rem 0.8rem 1rem;
+      transition: transform 0.2s;
     }
-    .wc-filter-bar select {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 6px; color: var(--text);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.78rem;
-      padding: 0.3rem 0.6rem; min-width: 160px;
+    .wc-pod:hover { transform: translateY(-4px); }
+    .wc-pod.p1 {
+      border-color: rgba(232,255,0,0.5); max-width: 200px;
+      box-shadow: 0 0 30px rgba(232,255,0,0.15);
+      padding-top: 1.6rem; padding-bottom: 1.2rem;
     }
-    .wc-filter-bar select:focus { outline: none; border-color: var(--neon); }
+    .wc-pod.p2 { border-color: rgba(180,180,180,0.4); }
+    .wc-pod.p3 { border-color: rgba(205,127,50,0.4); }
+    .wc-pod-medal { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
+    .wc-pod-emoji { font-size: 2.4rem; display: block; margin-bottom: 0.5rem; }
+    .wc-pod.p1 .wc-pod-emoji { font-size: 2.8rem; }
+    .wc-pod-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+                   font-size: 1rem; letter-spacing: 0.05em; margin-bottom: 0.3rem;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wc-pod-media { font-family: 'Black Han Sans', sans-serif; color: var(--neon);
+                    font-size: 1.3rem; }
+    .wc-pod.p1 .wc-pod-media { font-size: 1.5rem; }
+    .wc-pod-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+                  letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); }
 
-    /* ── LEADERBOARD ── */
-    .wc-lb-wrap { max-width: 760px; margin: 1.5rem auto; padding: 0 1rem; }
-
-    .wc-lb-table { width: 100%; border-collapse: collapse; }
-    .wc-lb-table th {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
-      letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
-      padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); text-align: right;
+    /* ── TABELLA TOP 10 ── */
+    .wc-table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 2rem;
     }
-    .wc-lb-table th:first-child,
-    .wc-lb-table th:nth-child(2) { text-align: left; }
-    .wc-lb-table td {
-      padding: 0.65rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 0.88rem; text-align: right; vertical-align: middle;
+    .wc-table-title {
+      padding: 0.7rem 1rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.5rem;
     }
-    .wc-lb-table td:first-child { text-align: center; }
-    .wc-lb-table td:nth-child(2) { text-align: left; }
-    .wc-lb-table tr:first-child td { padding-top: 0.9rem; }
+    table.wc-tbl { width: 100%; border-collapse: collapse; }
+    table.wc-tbl th {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);
+      padding: 0.6rem 0.8rem; text-align: right; border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    table.wc-tbl th:nth-child(1) { text-align: center; width: 44px; }
+    table.wc-tbl th:nth-child(2) { text-align: left; }
+    table.wc-tbl td {
+      padding: 0.7rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.04);
+      text-align: right; vertical-align: middle;
+    }
+    table.wc-tbl td:nth-child(1) { text-align: center; }
+    table.wc-tbl td:nth-child(2) { text-align: left; }
+    table.wc-tbl tbody tr:last-child td { border-bottom: none; }
+    table.wc-tbl tbody tr:hover td { background: rgba(255,255,255,0.025); }
 
-    .wc-rank { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text-muted); min-width: 32px; }
-    .wc-rank.gold   { color: var(--gold); font-weight: 700; }
-    .wc-rank.silver { color: #aaa; font-weight: 700; }
-    .wc-rank.bronze { color: #cd7f32; font-weight: 700; }
-
-    .wc-player-name { font-weight: 600; font-size: 0.92rem; }
-    .wc-player-emoji { margin-right: 0.35rem; }
-    .wc-media { font-family: 'Black Han Sans', sans-serif; color: var(--neon); font-size: 1rem; }
+    .wc-num { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem;
+              color: var(--text-muted); min-width: 32px; }
+    .wc-num.g { color: #f5c542; font-weight: 700; }
+    .wc-num.s { color: #b0b8c1; font-weight: 700; }
+    .wc-num.b { color: #cd7f32; font-weight: 700; }
+    .wc-pname { font-weight: 600; font-size: 0.92rem; }
+    .wc-pemoji { margin-right: 0.4rem; }
+    .wc-media  { font-family: 'Black Han Sans', sans-serif; color: var(--neon); font-size: 0.95rem; }
     .wc-record { color: var(--neon2); font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; }
+    .wc-serate { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-muted); }
 
-    .wc-trend { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
-    .wc-trend-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--text-muted); flex-shrink: 0;
-    }
-    .wc-trend-dot.high { background: var(--neon); box-shadow: 0 0 4px var(--neon); }
-    .wc-trend-dot.med  { background: var(--cyan); }
-
-    .wc-empty {
+    /* ── LOADING ── */
+    .wc-loading {
       text-align: center; padding: 3rem 1rem;
       font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
       color: var(--text-muted); letter-spacing: 0.1em;
     }
-
-    /* ── LOGIN BUTTONS ── */
-    .wc-login-row {
-      display: flex; flex-direction: column; gap: 0.8rem;
-      max-width: 360px; margin: 2rem auto; padding: 0 1rem 3rem;
+    .wc-spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--neon);
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
     }
-    .wc-login-row .btn-admin {
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BOTTONI ── */
+    .wc-btns {
+      display: flex; flex-direction: column; gap: 0.8rem;
+      max-width: 360px; margin: 0 auto;
+    }
+    .wc-btn-admin {
       background: var(--neon); color: #0a0a0f;
       border: none; border-radius: 8px; padding: 1rem 1.5rem;
       font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
       font-size: 1rem; letter-spacing: 0.15em; text-transform: uppercase;
       cursor: pointer; transition: all 0.2s;
       box-shadow: 0 0 20px rgba(232,255,0,0.3);
-      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-    .wc-login-row .btn-admin:hover { box-shadow: 0 0 40px rgba(232,255,0,0.5); transform: translateY(-2px); }
-    .wc-login-row .btn-guest {
+    .wc-btn-admin:hover { box-shadow: 0 0 40px rgba(232,255,0,0.5); transform: translateY(-2px); }
+    .wc-btn-guest {
       background: none; color: var(--text-muted);
       border: 1px solid var(--border); border-radius: 8px;
       padding: 1rem 1.5rem;
       font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
       font-size: 1rem; letter-spacing: 0.15em; text-transform: uppercase;
       cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-    .wc-login-row .btn-guest:hover { border-color: var(--text-muted); color: var(--text); transform: translateY(-2px); }
-
-    /* ── MODAL ── */
-    .wc-modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7); z-index: 99998;
-      align-items: center; justify-content: center;
-      backdrop-filter: blur(4px);
-    }
-    .wc-modal-overlay.open { display: flex; }
-    .wc-modal {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 2rem;
-      width: 400px; max-width: 95vw;
-      position: relative; z-index: 99999;
-      animation: fadeInUp 0.25s ease both;
-    }
-    .wc-modal-title {
-      font-family: 'Black Han Sans', sans-serif; font-size: 1.4rem;
-      color: var(--neon); letter-spacing: 0.06em; margin-bottom: 0.25rem;
-    }
-    .wc-modal-sub {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
-      color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase;
-      margin-bottom: 1.5rem;
-    }
-    .wc-modal-close {
-      position: absolute; top: 1rem; right: 1rem;
-      background: none; border: none; color: var(--text-muted);
-      font-size: 1.3rem; cursor: pointer; line-height: 1;
-    }
-    .wc-modal-close:hover { color: var(--text); }
-
-    .wc-step { animation: fadeInUp 0.2s ease both; }
-    .wc-step.hidden { display: none; }
-
-    .wc-error {
-      display: none; color: var(--neon2);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.72rem;
-      letter-spacing: 0.05em; margin-bottom: 0.8rem;
-      padding: 0.5rem 0.7rem; background: rgba(255,60,172,0.1);
-      border: 1px solid rgba(255,60,172,0.25); border-radius: 6px;
-    }
-
-    /* OTP inputs */
-    .wc-otp-row { display: flex; gap: 0.5rem; justify-content: center; margin: 1.2rem 0 0.8rem; }
-    .wc-otp-input {
-      width: 44px; height: 52px; text-align: center;
-      font-size: 1.4rem; font-weight: 700;
-      font-family: 'Barlow Condensed', sans-serif;
-      background: var(--surface2); border: 2px solid var(--border);
-      border-radius: 8px; color: var(--neon); transition: border-color 0.2s;
-    }
-    .wc-otp-input:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 10px rgba(232,255,0,0.25); }
-
-    .wc-otp-info {
-      background: rgba(232,255,0,0.05); border: 1px solid rgba(232,255,0,0.15);
-      border-radius: 6px; padding: 0.7rem 0.9rem; margin-bottom: 0.5rem; text-align: center;
-    }
-    .wc-otp-info-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; }
-    .wc-otp-info-email { font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; color: var(--neon); font-weight: 600; margin-top: 0.2rem; }
-
-    .wc-timer { font-family: 'Black Han Sans', sans-serif; font-size: 1rem; color: var(--neon); }
-    .wc-timer-row { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0.5rem 0 1rem;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
-
-    .wc-back { background: none; border: none; color: var(--text-muted);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
-      letter-spacing: 0.1em; cursor: pointer; text-decoration: underline; margin-top: 0.6rem; }
-    .wc-back:hover { color: var(--text); }
-
-    .wc-resend { display: none; background: none; border: none; color: var(--text-muted);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
-      letter-spacing: 0.1em; cursor: pointer; text-decoration: underline; }
-    .wc-resend:hover { color: var(--neon); }
-
-    /* Continued admin button */
-    .btn-continue {
-      background: none; border: 1px solid rgba(232,255,0,0.35);
-      color: var(--neon); border-radius: 8px; padding: 1rem 1.5rem;
+    .wc-btn-guest:hover { border-color: var(--text-muted); color: var(--text); transform: translateY(-2px); }
+    .wc-btn-continue {
+      background: none; color: var(--neon);
+      border: 1px solid rgba(232,255,0,0.35); border-radius: 8px;
+      padding: 1rem 1.5rem;
       font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
       font-size: 1rem; letter-spacing: 0.12em; text-transform: uppercase;
       cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-    .btn-continue:hover { background: rgba(232,255,0,0.08); transform: translateY(-2px); }
+    .wc-btn-continue:hover { background: rgba(232,255,0,0.08); transform: translateY(-2px); }
   </style>
 </head>
 <body>
 
-<!-- ── HERO ── -->
 <div class="wc-hero">
   <span class="wc-pin">🎳</span>
   <div class="wc-title">STRIKE ZONE</div>
   <div class="wc-sub">Bowling Tracker</div>
 </div>
 
-<!-- ── FILTER BAR ── -->
-<div class="wc-filter-bar" id="wcFilterBar" style="display:none">
-  <span>Gruppo:</span>
-  <select id="wcGroupSelect" onchange="filterByGroup(this.value)">
-    <option value="all">Tutti</option>
-  </select>
-</div>
+<div class="wc-wrap">
 
-<!-- ── LEADERBOARD ── -->
-<div class="wc-lb-wrap">
-  <div id="wcLeaderboard">
-    <div class="wc-empty">Caricamento classifica...</div>
-  </div>
-</div>
+  <!-- PODIUM TOP 3 -->
+  <div id="wcPodium"></div>
 
-<!-- ── LOGIN BUTTONS ── -->
-<div class="wc-login-row" id="wcLoginRow">
-  <!-- Popolato da JS (continua, admin, ospite) -->
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- ══ MODAL: LOGIN ADMIN ══ -->
-<div class="wc-modal-overlay" id="modalAdmin" onclick="handleModalClick(event,'modalAdmin')">
-  <div class="wc-modal">
-    <button class="wc-modal-close" onclick="closeModal('modalAdmin')">✕</button>
-
-    <!-- STEP 1 -->
-    <div class="wc-step" id="wcStep1">
-      <div class="wc-modal-title">🔐 ACCEDI</div>
-      <div class="wc-modal-sub">Bowling Tracker — Admin</div>
-      <div class="wc-error" id="wcErr1"></div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" class="form-input" id="wcEmail" placeholder="admin@esempio.com" autocomplete="email"/>
-      </div>
-      <div class="form-group" style="margin-top:0.8rem">
-        <label class="form-label">Password</label>
-        <input type="password" class="form-input" id="wcPass" placeholder="••••••••" autocomplete="current-password"/>
-      </div>
-      <div style="text-align:right;margin:0.4rem 0 0.8rem">
-        <a href="reset-password-request.html" style="color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-decoration:underline">Password dimenticata?</a>
-      </div>
-      <button class="btn-admin" id="wcBtnStep1" style="width:100%;justify-content:center" onclick="doStep1()">Continua</button>
-      <div style="text-align:center;margin-top:0.8rem">
-        <button class="wc-back" onclick="closeModal('modalAdmin')">← Annulla</button>
-      </div>
+  <!-- TOP 10 TABLE -->
+  <div class="wc-table-wrap">
+    <div class="wc-table-title">
+      <span style="color:var(--neon)">▌</span> Top 10 Classifica
     </div>
-
-    <!-- STEP 2 OTP -->
-    <div class="wc-step hidden" id="wcStep2">
-      <div class="wc-modal-title">📧 CODICE OTP</div>
-      <div class="wc-modal-sub">Verifica sicurezza</div>
-      <div class="wc-otp-info">
-        <div class="wc-otp-info-lbl">Codice inviato a:</div>
-        <div class="wc-otp-info-email" id="wcOtpEmail"></div>
-      </div>
-      <div class="wc-error" id="wcErr2"></div>
-      <div class="wc-otp-row">
-        <input type="text" class="wc-otp-input" id="otp1" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-        <input type="text" class="wc-otp-input" id="otp2" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-        <input type="text" class="wc-otp-input" id="otp3" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-        <input type="text" class="wc-otp-input" id="otp4" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-        <input type="text" class="wc-otp-input" id="otp5" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-        <input type="text" class="wc-otp-input" id="otp6" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-      </div>
-      <div class="wc-timer-row">
-        Scade tra <span class="wc-timer" id="wcTimer">--:--</span>
-      </div>
-      <div class="wc-error" id="wcOtpErr"></div>
-      <button class="btn-admin" id="wcBtnStep2" style="width:100%;justify-content:center" onclick="doStep2()">Verifica</button>
-      <div style="text-align:center;margin-top:0.8rem;display:flex;flex-direction:column;gap:0.4rem">
-        <button class="wc-resend" id="wcResend" onclick="doResend()">Rinvia codice</button>
-        <button class="wc-back" onclick="goToStep1()">← Torna indietro</button>
+    <div id="wcTable">
+      <div class="wc-loading">
+        <div class="wc-spinner"></div>
+        Caricamento classifica...
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══ MODAL: LOGIN GIOCATORE (FASE 5) ══ -->
-<div class="wc-modal-overlay" id="modalPlayer" onclick="handleModalClick(event,'modalPlayer')">
-  <div class="wc-modal">
-    <button class="wc-modal-close" onclick="closeModal('modalPlayer')">✕</button>
-    <div class="wc-modal-title">🎳 LOGIN GIOCATORE</div>
-    <div class="wc-modal-sub">Coming Soon — Fase 5</div>
-    <div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.75rem;letter-spacing:0.1em">
-      Il login giocatori sarà disponibile<br>nella prossima versione.
-    </div>
-    <button class="btn-guest" style="width:100%;justify-content:center" onclick="closeModal('modalPlayer')">Chiudi</button>
+  <!-- LOGIN BUTTONS -->
+  <div class="wc-btns" id="wcBtns">
+    <button class="wc-btn-admin" onclick="goAdmin()">🔐 Accesso Amministratore</button>
+    <button class="wc-btn-guest" onclick="goGuest()">👤 Entra come ospite</button>
   </div>
+
 </div>
 
 <script>
-const AUTH_API  = '/api/auth.php';
 const TOKEN_KEY = 'sz_auth_token';
-let wcEmail     = '';
-let timerInterval = null;
 
 // ══════════════════════════════════════════
-// LEADERBOARD PUBBLICA
+// LEADERBOARD
 // ══════════════════════════════════════════
-
-let wcGroupFilter = 'all';
 
 async function loadLeaderboard() {
   try {
-    const url = wcGroupFilter !== 'all'
-      ? `/api/leaderboard.php?group_id=${wcGroupFilter}`
-      : '/api/leaderboard.php';
-    const data = await fetch(url).then(r => r.json());
-    if (!Array.isArray(data)) throw new Error('risposta non valida');
-    renderLeaderboard(data);
+    const players = await fetch('/api/leaderboard.php').then(r => r.json());
+    if (!Array.isArray(players)) throw new Error();
+
+    // Ordinati per media desc (già ordinati dall'API, ma per sicurezza)
+    const sorted = [...players].sort((a, b) =>
+      (parseFloat(b.media) || 0) - (parseFloat(a.media) || 0)
+    );
+
+    renderPodium(sorted.slice(0, 3));
+    renderTable(sorted.slice(0, 10));
   } catch(e) {
-    document.getElementById('wcLeaderboard').innerHTML =
-      '<div class="wc-empty">Errore caricamento classifica</div>';
+    document.getElementById('wcTable').innerHTML =
+      '<div class="wc-loading" style="color:var(--neon2)">Errore caricamento classifica</div>';
   }
 }
 
-function renderLeaderboard(players) {
-  if (!players.length) {
-    document.getElementById('wcLeaderboard').innerHTML =
-      '<div class="wc-empty">Nessun giocatore trovato</div>';
+// ── PODIUM TOP 3 ─────────────────────────
+function renderPodium(top) {
+  if (top.length < 3) { document.getElementById('wcPodium').innerHTML = ''; return; }
+
+  // Ordine visivo: 2° | 1° | 3°
+  const order = [top[1], top[0], top[2]];
+  const cls   = ['p2', 'p1', 'p3'];
+  const medal = ['🥈', '🥇', '🥉'];
+
+  const html = '<div class="wc-podium">' +
+    order.map((p, i) => `
+      <div class="wc-pod ${cls[i]}">
+        <span class="wc-pod-medal">${medal[i]}</span>
+        <span class="wc-pod-emoji">${p.emoji || '🎳'}</span>
+        <div class="wc-pod-name">${esc(p.name)}</div>
+        <div class="wc-pod-media">${p.media || '—'}</div>
+        <div class="wc-pod-lbl">Media</div>
+      </div>
+    `).join('') +
+  '</div>';
+
+  document.getElementById('wcPodium').innerHTML = html;
+}
+
+// ── TABELLA TOP 10 ───────────────────────
+function renderTable(top10) {
+  if (!top10.length) {
+    document.getElementById('wcTable').innerHTML =
+      '<div class="wc-loading">Nessun giocatore trovato</div>';
     return;
   }
 
-  const rankClass = (i) => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-  const rankIcon  = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+  const numCls = i => i === 0 ? 'g' : i === 1 ? 's' : i === 2 ? 'b' : '';
+  const numTxt = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
 
-  const trendDots = (trend) => {
-    if (!trend || !trend.length) return '—';
-    const mx = Math.max(...trend);
-    return trend.map(v => {
-      const pct = mx > 0 ? v / mx : 0;
-      const cls = pct > 0.8 ? 'high' : pct > 0.5 ? 'med' : '';
-      return `<div class="wc-trend-dot ${cls}" title="${v}"></div>`;
-    }).join('');
-  };
-
-  const sorted = [...players].sort((a, b) => (parseFloat(b.media) || 0) - (parseFloat(a.media) || 0));
-
-  let html = '<table class="wc-lb-table"><thead><tr>' +
-    '<th style="width:40px">#</th>' +
-    '<th>Giocatore</th>' +
-    '<th>Media</th>' +
-    '<th>Record</th>' +
-    '<th>Serate</th>' +
-    '<th>Trend</th>' +
-    '</tr></thead><tbody>';
-
-  sorted.forEach((p, i) => {
-    const serate = parseInt(p.partite) || 0;
-    html += `<tr>
-      <td class="wc-rank ${rankClass(i)}">${rankIcon(i)}</td>
-      <td><span class="wc-player-emoji">${p.emoji || '🎳'}</span><span class="wc-player-name">${esc(p.name)}</span></td>
+  let rows = top10.map((p, i) => `
+    <tr>
+      <td><span class="wc-num ${numCls(i)}">${numTxt(i)}</span></td>
+      <td><span class="wc-pemoji">${p.emoji || '🎳'}</span><span class="wc-pname">${esc(p.name)}</span></td>
       <td class="wc-media">${p.media || '—'}</td>
       <td class="wc-record">${p.record || '—'}</td>
-      <td style="font-family:'Share Tech Mono',monospace;font-size:0.8rem">${serate}</td>
-      <td><div class="wc-trend">${trendDots(p.trend)}</div></td>
-    </tr>`;
-  });
+      <td class="wc-serate">${parseInt(p.partite) || 0}</td>
+    </tr>
+  `).join('');
 
-  html += '</tbody></table>';
-  document.getElementById('wcLeaderboard').innerHTML = html;
-}
-
-function filterByGroup(val) {
-  wcGroupFilter = val;
-  loadLeaderboard();
-}
-
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('wcTable').innerHTML = `
+    <table class="wc-tbl">
+      <thead><tr>
+        <th>#</th>
+        <th>Giocatore</th>
+        <th>Media</th>
+        <th>Record</th>
+        <th>Serate</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 // ══════════════════════════════════════════
-// BOTTONI LOGIN / CONTINUA
+// BOTTONI
 // ══════════════════════════════════════════
 
-function buildLoginButtons() {
-  const container = document.getElementById('wcLoginRow');
+function buildButtons() {
+  const container = document.getElementById('wcBtns');
   const token = localStorage.getItem(TOKEN_KEY);
-  let html = '';
+  let extra = '';
 
-  // Se già autenticato → mostra "Continua"
   if (token) {
     try {
       const pl = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
       if (pl.exp > Math.floor(Date.now() / 1000)) {
-        html += `<button class="btn-continue" onclick="window.location.href='index.html'">⚡ Continua come amministratore</button>`;
+        extra = '<button class="wc-btn-continue" onclick="window.location.href=\'index.html\'">⚡ Continua come amministratore</button>';
       }
     } catch(e) {}
   }
 
-  html += `<button class="btn-admin" onclick="openModal('modalAdmin')">🔐 Accesso Amministratore</button>`;
-  html += `<button class="btn-guest" onclick="enterAsGuest()">👤 Entra come ospite</button>`;
-  container.innerHTML = html;
+  container.innerHTML =
+    extra +
+    '<button class="wc-btn-admin" onclick="goAdmin()">🔐 Accesso Amministratore</button>' +
+    '<button class="wc-btn-guest" onclick="goGuest()">👤 Entra come ospite</button>';
 }
 
-function enterAsGuest() {
-  localStorage.removeItem(TOKEN_KEY);
-  window.location.href = 'index.html';
-}
-
-// ══════════════════════════════════════════
-// MODALS
-// ══════════════════════════════════════════
-
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-}
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-function handleModalClick(e, id) {
-  if (e.target === document.getElementById(id)) closeModal(id);
-}
-
-// ══════════════════════════════════════════
-// LOGIN STEP 1: Email + Password → richiedi OTP
-// ══════════════════════════════════════════
-
-async function doStep1() {
-  const email = document.getElementById('wcEmail').value.trim();
-  const pass  = document.getElementById('wcPass').value;
-  const err   = document.getElementById('wcErr1');
-  const btn   = document.getElementById('wcBtnStep1');
-
-  err.style.display = 'none';
-  if (!email || !pass) { showError(err, 'Inserisci email e password'); return; }
-
-  btn.disabled = true; btn.textContent = 'Verifica...';
-
-  try {
-    const res  = await fetch(`${AUTH_API}?action=request-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass })
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      wcEmail = email;
-      document.getElementById('wcOtpEmail').textContent = email;
-      document.getElementById('wcStep1').classList.add('hidden');
-      document.getElementById('wcStep2').classList.remove('hidden');
-      startTimer();
-      setTimeout(() => document.getElementById('otp1').focus(), 80);
-    } else {
-      showError(err, data.error || 'Credenziali non valide');
-    }
-  } catch(e) {
-    showError(err, 'Errore di connessione');
-  }
-
-  btn.disabled = false; btn.textContent = 'Continua';
-}
-
-// ══════════════════════════════════════════
-// LOGIN STEP 2: Verifica OTP
-// ══════════════════════════════════════════
-
-async function doStep2() {
-  const code = [1,2,3,4,5,6].map(i => document.getElementById('otp'+i).value).join('');
-  const err  = document.getElementById('wcErr2');
-  const btn  = document.getElementById('wcBtnStep2');
-
-  err.style.display = 'none';
-  if (code.length !== 6) { showError(err, 'Inserisci il codice completo'); return; }
-
-  btn.disabled = true; btn.textContent = 'Verifica...';
-
-  try {
-    const res  = await fetch(`${AUTH_API}?action=verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: wcEmail, code })
-    });
-    const data = await res.json();
-
-    if (data.success && data.token) {
-      clearInterval(timerInterval);
-      localStorage.setItem(TOKEN_KEY, data.token);
-      window.location.href = 'index.html';
-    } else {
-      showError(err, data.error || 'Codice non valido');
-      [1,2,3,4,5,6].forEach(i => { document.getElementById('otp'+i).value = ''; });
-      document.getElementById('otp1').focus();
-    }
-  } catch(e) {
-    showError(err, 'Errore di connessione');
-  }
-
-  btn.disabled = false; btn.textContent = 'Verifica';
-}
-
-async function doResend() {
-  const pass = document.getElementById('wcPass').value;
-  const btn  = document.getElementById('wcResend');
-  btn.disabled = true; btn.textContent = 'Invio...';
-  try {
-    const res  = await fetch(`${AUTH_API}?action=request-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: wcEmail, password: pass })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast('Nuovo codice inviato!');
-      btn.style.display = 'none';
-      startTimer();
-      [1,2,3,4,5,6].forEach(i => { document.getElementById('otp'+i).value = ''; });
-      document.getElementById('otp1').focus();
-    }
-  } catch(e) {}
-  btn.disabled = false; btn.textContent = 'Rinvia codice';
-}
-
-function goToStep1() {
-  clearInterval(timerInterval);
-  document.getElementById('wcStep2').classList.add('hidden');
-  document.getElementById('wcStep1').classList.remove('hidden');
-  [1,2,3,4,5,6].forEach(i => { document.getElementById('otp'+i).value = ''; });
-  document.getElementById('wcErr2').style.display = 'none';
-}
-
-// ══════════════════════════════════════════
-// OTP TIMER
-// ══════════════════════════════════════════
-
-function startTimer() {
-  clearInterval(timerInterval);
-  const timerEl  = document.getElementById('wcTimer');
-  const resendBtn = document.getElementById('wcResend');
-  const expiry   = Date.now() + 5 * 60 * 1000;
-  timerEl.style.color = 'var(--neon)';
-  resendBtn.style.display = 'none';
-
-  timerInterval = setInterval(() => {
-    const left = Math.max(0, expiry - Date.now());
-    if (left === 0) {
-      clearInterval(timerInterval);
-      timerEl.textContent = 'Scaduto';
-      timerEl.style.color = '#ff3cac';
-      resendBtn.style.display = 'inline-block';
-      return;
-    }
-    const m = Math.floor(left / 60000);
-    const s = Math.floor((left % 60000) / 1000);
-    timerEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-  }, 1000);
-}
-
-// ══════════════════════════════════════════
-// OTP INPUT BEHAVIOUR
-// ══════════════════════════════════════════
-
-function setupOTPInputs() {
-  for (let i = 1; i <= 6; i++) {
-    const el = document.getElementById('otp' + i);
-    if (!el) continue;
-    el.addEventListener('input', e => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-      if (e.target.value && i < 6) document.getElementById('otp' + (i + 1)).focus();
-    });
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Backspace' && !e.target.value && i > 1)
-        document.getElementById('otp' + (i - 1)).focus();
-      if (e.key === 'Enter') doStep2();
-    });
-    el.addEventListener('paste', e => {
-      e.preventDefault();
-      const digits = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
-      for (let j = 0; j < digits.length; j++) {
-        const t = document.getElementById('otp' + (j + 1));
-        if (t) t.value = digits[j];
-      }
-      if (digits.length === 6) document.getElementById('otp6').focus();
-    });
-  }
-}
-
-// ══════════════════════════════════════════
-// KEYBOARD SHORTCUTS
-// ══════════════════════════════════════════
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    if (!document.getElementById('wcStep1').classList.contains('hidden') &&
-        document.getElementById('modalAdmin').classList.contains('open')) doStep1();
-  }
-  if (e.key === 'Escape') {
-    closeModal('modalAdmin');
-    closeModal('modalPlayer');
-  }
-});
+function goAdmin() { window.location.href = 'index.html'; }
+function goGuest()  { localStorage.removeItem(TOKEN_KEY); window.location.href = 'index.html'; }
 
 // ══════════════════════════════════════════
 // UTILITY
 // ══════════════════════════════════════════
 
-function showError(el, msg) {
-  el.textContent = msg;
-  el.style.display = 'block';
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ══════════════════════════════════════════
@@ -624,8 +313,7 @@ function showError(el, msg) {
 // ══════════════════════════════════════════
 
 loadLeaderboard();
-buildLoginButtons();
-setupOTPInputs();
+buildButtons();
 </script>
 </body>
 </html>
