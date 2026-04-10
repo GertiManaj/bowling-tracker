@@ -131,7 +131,7 @@ function loadTicketBadge() {
       '<header>' +
         '<div class="header-glow"></div>' +
         '<div class="header-inner">' +
-          '<a href="index.html" class="logo" style="text-decoration:none">' +
+          '<a href="index.html' + guestSuffix + '" class="logo" style="text-decoration:none">' +
             '<div class="logo-pin">🎳</div>' +
             '<div class="logo-text">' +
               '<span class="logo-title">STRIKE ZONE</span>' +
