@@ -145,6 +145,17 @@ if ($method === 'PUT') {
         }
     }
 
+    // group_type: validazione esplicita
+    if (isset($data['group_type'])) {
+        if (!in_array($data['group_type'], ['challenge', 'casual'], true)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'group_type deve essere challenge o casual']);
+            exit;
+        }
+        $updates[] = "group_type = ?";
+        $params[]  = $data['group_type'];
+    }
+
     if (empty($updates)) {
         http_response_code(400);
         echo json_encode(['error' => 'Nessun campo da aggiornare']);

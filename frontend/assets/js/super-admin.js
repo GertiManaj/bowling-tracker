@@ -97,6 +97,7 @@ function openAddGroup() {
   document.getElementById('groupFormTitle').textContent = 'Nuovo Gruppo';
   document.getElementById('groupName').value = '';
   document.getElementById('groupDesc').value = '';
+  document.getElementById('groupType').value = 'challenge';
   document.getElementById('groupFormSection').style.display = 'block';
   document.getElementById('groupName').focus();
 }
@@ -105,9 +106,10 @@ function openEditGroup(id) {
   var g = saGroups.find(function(x) { return x.id == id; });
   if (!g) return;
   editingGroupId = id;
-  document.getElementById('groupFormTitle').textContent = 'Modifica Gruppo';
+  document.getElementById('groupFormTitle').textContent = 'Modifica Gruppo — ' + escHtml(g.name);
   document.getElementById('groupName').value = g.name;
   document.getElementById('groupDesc').value = g.description || '';
+  document.getElementById('groupType').value = g.group_type || 'challenge';
   document.getElementById('groupFormSection').style.display = 'block';
   document.getElementById('groupName').focus();
 }
@@ -118,15 +120,16 @@ function cancelGroupForm() {
 }
 
 async function saveGroup() {
-  var name = document.getElementById('groupName').value.trim();
-  var desc = document.getElementById('groupDesc').value.trim();
+  var name      = document.getElementById('groupName').value.trim();
+  var desc      = document.getElementById('groupDesc').value.trim();
+  var groupType = document.getElementById('groupType').value;
   if (!name) { showToast('Il nome è obbligatorio', 'error'); return; }
 
   try {
     var method = editingGroupId ? 'PUT' : 'POST';
     var body   = editingGroupId
-      ? JSON.stringify({ id: editingGroupId, name: name, description: desc })
-      : JSON.stringify({ name: name, description: desc });
+      ? JSON.stringify({ id: editingGroupId, name: name, description: desc, group_type: groupType })
+      : JSON.stringify({ name: name, description: desc, group_type: groupType });
 
     const res  = await authFetch(SA_API + '/groups.php', { method: method, body: body });
     const data = await res.json();

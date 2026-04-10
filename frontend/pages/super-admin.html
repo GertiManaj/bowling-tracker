@@ -80,6 +80,13 @@
           <label class="form-label">Descrizione</label>
           <input type="text" class="form-input" id="groupDesc" placeholder="Descrizione opzionale" maxlength="255"/>
         </div>
+        <div class="sa-form-group">
+          <label class="form-label">Tipo Gruppo</label>
+          <select class="form-input" id="groupType">
+            <option value="challenge">🏆 Sfide (con classifiche e pagamenti)</option>
+            <option value="casual">🎳 Casual (senza dati pagamento)</option>
+          </select>
+        </div>
         <div style="display:flex;gap:0.8rem;margin-top:1rem">
           <button class="btn-primary" onclick="saveGroup()">Salva</button>
           <button class="btn-secondary" onclick="cancelGroupForm()">Annulla</button>

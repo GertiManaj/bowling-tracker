@@ -30,6 +30,7 @@ function generatePlayerJWT(array $pa): string {
         'name'       => $pa['player_name'] ?? '',
         'emoji'      => $pa['emoji']       ?? '🎳',
         'group_name' => $pa['group_name']  ?? '',
+        'group_type' => $pa['group_type']  ?? 'challenge',
     ]));
     $sig = pauth_base64url_encode(hash_hmac('sha256', "$header.$payload", $secret, true));
     return "$header.$payload.$sig";
@@ -66,7 +67,7 @@ if ($method === 'POST' && $action === 'login') {
     try {
         $stmt = $pdo->prepare("
             SELECT pa.*, p.name AS player_name, p.emoji, p.group_id,
-                   g.name AS group_name
+                   g.name AS group_name, g.group_type
             FROM player_auth pa
             JOIN players p ON pa.player_id = p.id
             JOIN `groups` g ON p.group_id  = g.id
