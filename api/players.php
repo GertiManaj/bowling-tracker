@@ -120,28 +120,29 @@ if ($method === 'PUT') {
         exit;
     }
 
+    // Fetch player row (serve per ownership check e per il duplicate check con scope gruppo)
+    $own = $pdo->prepare('SELECT group_id FROM players WHERE id = ?');
+    $own->execute([$id]);
+    $playerRow = $own->fetch();
+
+    if (!$playerRow) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Giocatore non trovato']);
+        exit;
+    }
+
     // Verifica ownership per group_admin
-    $playerRow = null;
     if (!isSuperAdmin($payload)) {
-        $own = $pdo->prepare('SELECT group_id FROM players WHERE id = ?');
-        $own->execute([$id]);
-        $playerRow = $own->fetch();
-        if (!$playerRow || (int)$playerRow['group_id'] !== getGroupId($payload)) {
+        if ((int)$playerRow['group_id'] !== getGroupId($payload)) {
             http_response_code(403);
             echo json_encode(['error' => 'Non puoi modificare giocatori di altri gruppi']);
             exit;
         }
     }
 
-    // Duplicate check con scope gruppo
-    $groupForCheck = $playerRow ? (int)$playerRow['group_id'] : null;
-    if ($groupForCheck !== null) {
-        $check = $pdo->prepare('SELECT id FROM players WHERE name = ? AND group_id = ? AND id != ?');
-        $check->execute([trim($data['name']), $groupForCheck, $id]);
-    } else {
-        $check = $pdo->prepare('SELECT id FROM players WHERE name = ? AND id != ?');
-        $check->execute([trim($data['name']), $id]);
-    }
+    // Duplicate check: esclude il player corrente (AND id != ?) e limita al suo gruppo
+    $check = $pdo->prepare('SELECT id FROM players WHERE name = ? AND group_id = ? AND id != ?');
+    $check->execute([trim($data['name']), (int)$playerRow['group_id'], $id]);
     if ($check->fetch()) {
         http_response_code(409);
         echo json_encode(['error' => 'Esiste già un giocatore con questo nome']);
