@@ -5,6 +5,7 @@
 // ============================================
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/mailer.php';
 
 header('Content-Type: application/json');
 
@@ -111,6 +112,9 @@ try {
     ")->execute([$adminId, $groupId]);
 
     $pdo->commit();
+
+    // Invia email di benvenuto all'admin (non bloccante)
+    sendWelcomeAdmin($adminEmail, $displayName, $groupName, $inviteCode);
 
     logSecurityEvent($pdo, 'group_self_registered', 'INFO', $adminId, [
         'group_id'   => $groupId,

@@ -5,6 +5,7 @@
 // ============================================
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/mailer.php';
 
 header('Content-Type: application/json');
 
@@ -99,6 +100,23 @@ try {
     ")->execute([$playerId, $email, password_hash($pass, PASSWORD_DEFAULT)]);
 
     $pdo->commit();
+
+    // Recupera nome gruppo e dati admin per le email (non bloccante)
+    $gInfo = $pdo->prepare("
+        SELECT g.name AS group_name, a.email AS admin_email, a.name AS admin_name
+        FROM `groups` g
+        LEFT JOIN admin_roles ar ON ar.group_id = g.id AND ar.role = 'group_admin'
+        LEFT JOIN admins a ON a.id = ar.admin_id
+        WHERE g.id = ?
+        LIMIT 1
+    ");
+    $gInfo->execute([$groupId]);
+    $gRow = $gInfo->fetch();
+
+    sendWelcomePlayer($email, $name, $gRow['group_name'] ?? '');
+    if (!empty($gRow['admin_email'])) {
+        sendNewPlayerNotify($gRow['admin_email'], $gRow['admin_name'] ?? 'Admin', $name, $gRow['group_name'] ?? '');
+    }
 
     logSecurityEvent($pdo, 'player_self_registered', 'INFO', null, [
         'player_id' => $playerId,
