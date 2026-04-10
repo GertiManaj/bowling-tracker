@@ -28,7 +28,32 @@ function closeHamburgerMenu() {
   if (menu) menu.classList.remove('open');
 }
 
-function updateHamburgerSections() {}
+function updateHamburgerSections() {
+  var menu = document.getElementById('hamburgerMenu');
+  if (!menu) return;
+  var existing = document.getElementById('superAdminMenuBtn');
+  if (typeof isSuperAdmin === 'function' && isSuperAdmin()) {
+    if (!existing) {
+      // Inserisci prima dell'ultimo divider (quello prima di Cambia Password)
+      var dividers = menu.querySelectorAll('.hamburger-divider');
+      var targetDivider = dividers.length >= 2 ? dividers[dividers.length - 1] : null;
+      var btn = document.createElement('button');
+      btn.id        = 'superAdminMenuBtn';
+      btn.className = 'hamburger-item';
+      btn.textContent = '🌐 Super Admin';
+      btn.onclick = function() { window.location.href = 'super-admin.html'; closeHamburgerMenu(); };
+      if (targetDivider) {
+        menu.insertBefore(btn, targetDivider);
+      } else {
+        var logoutBtn = menu.querySelector('.hamburger-logout');
+        if (logoutBtn) menu.insertBefore(btn, logoutBtn);
+        else menu.appendChild(btn);
+      }
+    }
+  } else {
+    if (existing) existing.remove();
+  }
+}
 
 // ── BADGE NOTIFICA TICKET ────────────────────
 function loadTicketBadge() {
@@ -85,7 +110,7 @@ function loadTicketBadge() {
           '<button class="hamburger-item" onclick="window.location.href=\'tickets.html\';closeHamburgerMenu()">🎫 Ticket<span id="ticketBtnBadge" style="color:var(--neon2);font-weight:700"></span></button>' +
           '<div class="hamburger-divider"></div>' +
           (typeof isSuperAdmin === 'function' && isSuperAdmin()
-            ? '<button class="hamburger-item" onclick="window.location.href=\'super-admin.html\';closeHamburgerMenu()">🌐 Super Admin</button>'
+            ? '<button id="superAdminMenuBtn" class="hamburger-item" onclick="window.location.href=\'super-admin.html\';closeHamburgerMenu()">🌐 Super Admin</button>'
             : '') +
           '<button class="hamburger-item" onclick="openChangePasswordModal();closeHamburgerMenu()">🔐 Cambia Password</button>' +
           '<button class="hamburger-item" onclick="openTrustedDevicesModal();closeHamburgerMenu()">🛡 Dispositivi Fidati</button>' +
