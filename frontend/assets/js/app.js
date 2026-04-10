@@ -1282,8 +1282,58 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSessions();
   loadHof();
 
+  const params = new URLSearchParams(window.location.search);
+
   // Apri modal nuova partita se richiesto da altra pagina
-  if (new URLSearchParams(window.location.search).get('nuova') === '1') {
+  if (params.get('nuova') === '1') {
     setTimeout(openModal, 1800);
   }
+
+  // Apri modal login se arrivato da welcome.html
+  if (params.get('login') === '1') {
+    setTimeout(() => {
+      if (typeof openLoginModal === 'function' && !window.isLoggedIn) {
+        openLoginModal();
+      }
+    }, 400);
+  }
 });
+
+// ── CODICE INVITO GRUPPO ─────────────────────
+// Chiamato da auth.js dopo login (via applyAuthUI / updateHamburgerSections)
+async function loadInviteCode() {
+  const bar = document.getElementById('inviteCodeBar');
+  if (!bar) return;
+
+  const payload = typeof getJWTPayload === 'function' ? getJWTPayload() : null;
+  if (!payload) { bar.style.display = 'none'; return; }
+
+  // Mostra solo a group_admin (non super_admin che ha il suo pannello)
+  if (payload.user_type !== 'group_admin') { bar.style.display = 'none'; return; }
+
+  try {
+    const res  = await authFetch(`${API}/groups.php`);
+    const data = await res.json();
+    const groups = data.groups || [];
+    const group  = groups.find(g => String(g.id) === String(payload.group_id)) || groups[0];
+
+    if (!group || !group.invite_code) { bar.style.display = 'none'; return; }
+
+    document.getElementById('inviteCodeValue').textContent = group.invite_code;
+    const link = window.location.origin + '/frontend/pages/player-register.html?code=' + group.invite_code;
+    document.getElementById('inviteCodeLink').href        = link;
+    document.getElementById('inviteCodeLink').textContent = link;
+    bar.style.display = 'flex';
+  } catch(e) {
+    bar.style.display = 'none';
+  }
+}
+
+function copyInviteCode() {
+  const code = document.getElementById('inviteCodeValue').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    if (typeof showToast === 'function') showToast('Codice copiato: ' + code);
+  }).catch(() => {
+    prompt('Copia il codice invito:', code);
+  });
+}

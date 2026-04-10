@@ -84,6 +84,10 @@ function applyAuthUI() {
   document.querySelectorAll('.action-btn-wrap').forEach(el => {
     el.style.display = window.isLoggedIn ? '' : 'none';
   });
+
+  // Hooks opzionali per pagine specifiche
+  if (typeof updateHamburgerSections === 'function') updateHamburgerSections();
+  if (typeof loadInviteCode === 'function' && window.isLoggedIn) loadInviteCode();
 }
 
 // ══════════════════════════════════════════

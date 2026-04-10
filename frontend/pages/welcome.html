@@ -316,7 +316,7 @@ function buildButtons() {
     try {
       const pl = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
       if (pl.exp > Math.floor(Date.now() / 1000)) {
-        extra = '<button class="wc-btn-continue" onclick="window.location.href=\'index.html\'">⚡ Continua come amministratore</button>';
+        extra = '<button class="wc-btn-continue" onclick="window.location.href=\'index.html\'">⚡ Continua sessione</button>';
       }
     } catch(e) {}
   }
@@ -327,8 +327,8 @@ function buildButtons() {
     '<button class="wc-btn-guest" onclick="goGuest()">👤 Entra come ospite</button>';
 }
 
-function goAdmin() { window.location.href = 'index.html'; }
-function goGuest()  { localStorage.removeItem(TOKEN_KEY); window.location.href = 'index.html'; }
+function goAdmin() { window.location.href = 'index.html?login=1'; }
+function goGuest()  { localStorage.removeItem(TOKEN_KEY); window.location.href = 'guest-dashboard.html'; }
 
 // ══════════════════════════════════════════
 // UTILITY

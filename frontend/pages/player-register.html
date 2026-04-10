@@ -96,15 +96,15 @@
   <div id="regError" class="reg-error"></div>
   <div id="regSuccess" class="reg-success"></div>
 
-  <!-- GRUPPO -->
+  <!-- CODICE INVITO -->
   <div class="reg-card">
-    <div class="reg-section-title">Scegli il tuo Gruppo</div>
+    <div class="reg-section-title">Codice Invito</div>
     <div class="reg-group">
       <div class="reg-field">
-        <label for="groupSelect">Gruppo Bowling *</label>
-        <select id="groupSelect">
-          <option value="">— Caricamento... —</option>
-        </select>
+        <label for="inviteCode">Codice Invito *</label>
+        <input type="text" id="inviteCode" placeholder="es. ABC12345" maxlength="8"
+               style="text-transform:uppercase;letter-spacing:0.15em;font-family:'Share Tech Mono',monospace;font-size:1.2rem;text-align:center" />
+        <small>Chiedi il codice all'amministratore del tuo gruppo bowling</small>
       </div>
     </div>
   </div>
@@ -172,23 +172,6 @@ function selectEmoji(e, btn) {
   document.getElementById('selectedEmoji').value = e;
 }
 
-async function loadGroups() {
-  try {
-    const res  = await fetch('/api/public-groups.php');
-    const data = await res.json();
-    const sel  = document.getElementById('groupSelect');
-
-    if (data.success && data.groups && data.groups.length) {
-      sel.innerHTML = '<option value="">— Seleziona gruppo —</option>' +
-        data.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
-    } else {
-      sel.innerHTML = '<option value="">Nessun gruppo disponibile</option>';
-    }
-  } catch (e) {
-    document.getElementById('groupSelect').innerHTML = '<option value="">Errore caricamento gruppi</option>';
-  }
-}
-
 async function registerPlayer() {
   const btn = document.getElementById('btnRegister');
   const errEl = document.getElementById('regError');
@@ -197,13 +180,13 @@ async function registerPlayer() {
   errEl.style.display = 'none';
   okEl.style.display  = 'none';
 
-  const groupId  = parseInt(document.getElementById('groupSelect').value);
-  const name     = document.getElementById('playerName').value.trim();
-  const email    = document.getElementById('playerEmail').value.trim();
-  const pass     = document.getElementById('playerPassword').value;
-  const passConf = document.getElementById('playerPasswordConfirm').value;
+  const inviteCode = document.getElementById('inviteCode').value.trim().toUpperCase();
+  const name       = document.getElementById('playerName').value.trim();
+  const email      = document.getElementById('playerEmail').value.trim();
+  const pass       = document.getElementById('playerPassword').value;
+  const passConf   = document.getElementById('playerPasswordConfirm').value;
 
-  if (!groupId)         { showError('Seleziona un gruppo'); return; }
+  if (!inviteCode)      { showError('Codice invito obbligatorio'); return; }
   if (!name)            { showError('Nome giocatore obbligatorio'); return; }
   if (!email)           { showError('Email obbligatoria'); return; }
   if (pass.length < 8)  { showError('Password minimo 8 caratteri'); return; }
@@ -217,8 +200,8 @@ async function registerPlayer() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        group_id: groupId,
-        name:     name,
+        invite_code: inviteCode,
+        name:        name,
         nickname: document.getElementById('playerNickname').value.trim(),
         emoji:    document.getElementById('selectedEmoji').value,
         email:    email,
@@ -260,7 +243,15 @@ document.addEventListener('keydown', e => {
 });
 
 buildEmojiRow();
-loadGroups();
+
+// Auto-compila codice invito da URL param ?code=XXXXX
+(function() {
+  const code = new URLSearchParams(window.location.search).get('code');
+  if (code) {
+    const el = document.getElementById('inviteCode');
+    el.value = code.toUpperCase().slice(0, 8);
+  }
+})();
 </script>
 
 </body>

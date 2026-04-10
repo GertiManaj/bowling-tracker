@@ -63,10 +63,21 @@ function renderGroups() {
   }
 
   container.innerHTML = saGroups.map(function(g) {
+    var inviteHtml = g.invite_code
+      ? '<div class="group-card-invite">' +
+          '<span style="color:var(--text-muted);font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase">Codice invito: </span>' +
+          '<span style="font-family:\'Share Tech Mono\',monospace;color:var(--neon);letter-spacing:0.15em">' + escHtml(g.invite_code) + '</span>' +
+          ' <button class="btn-small" style="padding:0.1rem 0.4rem;font-size:0.65rem" onclick="copyCode(\'' + escHtml(g.invite_code) + '\')">📋</button>' +
+        '</div>'
+      : '';
+    var typeLabel = g.group_type === 'casual' ? '🎳 Casual' : '🏆 Sfide';
     return (
       '<div class="group-card">' +
-        '<div class="group-card-name">' + escHtml(g.name) + '</div>' +
+        '<div class="group-card-name">' + escHtml(g.name) +
+          ' <span style="font-size:0.65rem;color:var(--text-muted);font-family:\'Share Tech Mono\',monospace">' + typeLabel + '</span>' +
+        '</div>' +
         (g.description ? '<div class="group-card-desc">' + escHtml(g.description) + '</div>' : '') +
+        inviteHtml +
         '<div class="group-card-stats">' +
           '<span>' + (g.players_count || 0) + ' giocatori</span>' +
           '<span>' + (g.sessions_count || 0) + ' sessioni</span>' +
@@ -372,4 +383,12 @@ async function loadAnalytics() {
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(function() {
+    showToast('Codice copiato: ' + code);
+  }).catch(function() {
+    prompt('Codice invito:', code);
+  });
 }

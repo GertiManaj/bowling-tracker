@@ -98,6 +98,13 @@
         <label for="groupDesc">Descrizione</label>
         <textarea id="groupDesc" placeholder="Una breve descrizione del tuo gruppo..."></textarea>
       </div>
+      <div class="reg-field">
+        <label for="groupType">Tipo Gruppo</label>
+        <select id="groupType" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.7rem 0.9rem;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:1rem;width:100%;box-sizing:border-box;outline:none">
+          <option value="challenge">🏆 Sfide — classifiche, pagamenti, vittorie/sconfitte</option>
+          <option value="casual">🎳 Casual — solo punteggi e statistiche base</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -167,6 +174,7 @@ async function registerGroup() {
       body: JSON.stringify({
         group_name:        groupName,
         group_description: document.getElementById('groupDesc').value.trim(),
+        group_type:        document.getElementById('groupType').value,
         admin_email:       email,
         admin_password:    pass,
         admin_full_name:   document.getElementById('adminFullName').value.trim(),
@@ -176,10 +184,11 @@ async function registerGroup() {
     const data = await res.json();
 
     if (data.success) {
-      okEl.textContent = '✓ Gruppo "' + groupName + '" creato! Ora puoi accedere come amministratore.';
+      const code = data.invite_code ? ' · Codice invito: ' + data.invite_code : '';
+      okEl.textContent = '✓ Gruppo "' + groupName + '" creato!' + code + ' Ora puoi accedere come amministratore.';
       okEl.style.display = 'block';
       btn.textContent = '✓ Gruppo Creato!';
-      setTimeout(() => { window.location.href = 'welcome.html'; }, 2000);
+      setTimeout(() => { window.location.href = 'welcome.html'; }, 3000);
     } else {
       showError(data.error || 'Errore durante la registrazione');
       btn.disabled = false;

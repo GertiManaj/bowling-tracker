@@ -11,13 +11,21 @@ require_once __DIR__ . '/jwt_protection.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
 
-$method  = $_SERVER['REQUEST_METHOD'];
-$payload = requireAuth(['GET', 'POST', 'PUT', 'DELETE']);
+$method   = $_SERVER['REQUEST_METHOD'];
+$payload  = requireAuth(['GET', 'POST', 'PUT', 'DELETE']);
+$userType = $payload['user_type'] ?? '';
 
-// Solo super_admin
-if (!isSuperAdmin($payload)) {
+// group_admin: solo GET del proprio gruppo
+if ($userType === 'group_admin' && $method !== 'GET') {
     http_response_code(403);
-    echo json_encode(['error' => 'Solo super_admin può gestire i gruppi']);
+    echo json_encode(['error' => 'Solo super_admin può modificare i gruppi']);
+    exit;
+}
+
+// Tutti gli altri ruoli (player, ecc.) → negato
+if (!in_array($userType, ['super_admin', 'group_admin'], true)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Accesso non autorizzato']);
     exit;
 }
 
@@ -28,18 +36,29 @@ $pdo = getPDO();
 // ══════════════════════════════════════════
 if ($method === 'GET') {
     try {
-        $stmt = $pdo->query("
+        $sql = "
             SELECT
                 g.id, g.name, g.description, g.logo_url,
+                g.invite_code, g.group_type,
                 g.created_at, g.created_by,
                 a.email AS created_by_email,
                 (SELECT COUNT(*) FROM players  WHERE group_id = g.id) AS players_count,
                 (SELECT COUNT(*) FROM sessions WHERE group_id = g.id) AS sessions_count,
                 (SELECT COUNT(*) FROM admin_roles WHERE group_id = g.id) AS admins_count
             FROM `groups` g
-            LEFT JOIN admins a ON g.created_by = a.id
-            ORDER BY g.created_at DESC
-        ");
+            LEFT JOIN admins a ON g.created_by = a.id";
+
+        $params = [];
+        if ($userType === 'group_admin') {
+            // group_admin vede solo il proprio gruppo
+            $sql .= " WHERE g.id = ?";
+            $params[] = getGroupId($payload);
+        } else {
+            $sql .= " ORDER BY g.created_at DESC";
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         echo json_encode(['success' => true, 'groups' => $stmt->fetchAll()]);
     } catch (Exception $e) {
         http_response_code(500);
@@ -62,24 +81,36 @@ if ($method === 'POST') {
     }
 
     try {
+        $groupType = in_array($data['group_type'] ?? '', ['challenge', 'casual'])
+            ? $data['group_type'] : 'challenge';
+
         $stmt = $pdo->prepare("
-            INSERT INTO `groups` (name, description, logo_url, created_by)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO `groups` (name, description, logo_url, group_type, created_by)
+            VALUES (?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $name,
             $data['description'] ?? null,
             $data['logo_url']    ?? null,
+            $groupType,
             $payload['admin_id'] ?? null,
         ]);
         $groupId = (int)$pdo->lastInsertId();
+
+        // Genera invite_code univoco
+        do {
+            $inviteCode = strtoupper(substr(md5(uniqid($groupId . mt_rand(), true)), 0, 8));
+            $chk = $pdo->prepare("SELECT id FROM `groups` WHERE invite_code = ?");
+            $chk->execute([$inviteCode]);
+        } while ($chk->fetch());
+        $pdo->prepare("UPDATE `groups` SET invite_code = ? WHERE id = ?")->execute([$inviteCode, $groupId]);
 
         logSecurityEvent($pdo, 'group_created', 'WARNING', $payload['admin_id'] ?? null, [
             'group_id'   => $groupId,
             'group_name' => $name,
         ]);
 
-        echo json_encode(['success' => true, 'group_id' => $groupId, 'message' => 'Gruppo creato con successo']);
+        echo json_encode(['success' => true, 'group_id' => $groupId, 'invite_code' => $inviteCode, 'message' => 'Gruppo creato con successo']);
     } catch (Exception $e) {
         $msg = stripos($e->getMessage(), 'Duplicate') !== false
             ? "Nome '$name' già esistente"
@@ -168,6 +199,8 @@ if ($method === 'DELETE') {
             exit;
         }
 
+        // Elimina admin_roles collegati prima del gruppo (FK)
+        $pdo->prepare("DELETE FROM admin_roles WHERE group_id = ?")->execute([$id]);
         $pdo->prepare("DELETE FROM `groups` WHERE id = ?")->execute([$id]);
 
         logSecurityEvent($pdo, 'group_deleted', 'CRITICAL', $payload['admin_id'] ?? null, ['group_id' => $id]);

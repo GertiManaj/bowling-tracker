@@ -26,6 +26,7 @@ $groupName   = trim($body['group_name']    ?? '');
 $adminEmail  = trim($body['admin_email']   ?? '');
 $adminPass   = $body['admin_password'] ?? '';
 $groupDesc   = trim($body['group_description'] ?? '');
+$groupType   = in_array($body['group_type'] ?? '', ['challenge', 'casual']) ? $body['group_type'] : 'challenge';
 $fullName    = trim($body['admin_full_name'] ?? '');
 $phone       = trim($body['admin_phone']    ?? '');
 
@@ -70,11 +71,19 @@ try {
 
     // 1. Crea gruppo (created_by sarà aggiornato dopo)
     $stmt = $pdo->prepare("
-        INSERT INTO `groups` (name, description, created_by)
-        VALUES (?, ?, NULL)
+        INSERT INTO `groups` (name, description, group_type, created_by)
+        VALUES (?, ?, ?, NULL)
     ");
-    $stmt->execute([$groupName, $groupDesc ?: null]);
+    $stmt->execute([$groupName, $groupDesc ?: null, $groupType]);
     $groupId = (int)$pdo->lastInsertId();
+
+    // Genera invite_code univoco
+    do {
+        $inviteCode = strtoupper(substr(md5(uniqid($groupId . mt_rand(), true)), 0, 8));
+        $chk = $pdo->prepare("SELECT id FROM `groups` WHERE invite_code = ?");
+        $chk->execute([$inviteCode]);
+    } while ($chk->fetch());
+    $pdo->prepare("UPDATE `groups` SET invite_code = ? WHERE id = ?")->execute([$inviteCode, $groupId]);
 
     // 2. Crea admin
     $displayName  = $fullName ?: explode('@', $adminEmail)[0];
@@ -110,10 +119,11 @@ try {
     ]);
 
     echo json_encode([
-        'success'  => true,
-        'group_id' => $groupId,
-        'admin_id' => $adminId,
-        'message'  => 'Gruppo creato con successo',
+        'success'     => true,
+        'group_id'    => $groupId,
+        'admin_id'    => $adminId,
+        'invite_code' => $inviteCode,
+        'message'     => 'Gruppo creato con successo',
     ]);
 
 } catch (Exception $e) {

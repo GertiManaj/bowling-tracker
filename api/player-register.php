@@ -22,16 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
 // ── Validazione ──────────────────────────────
-$groupId  = (int)($body['group_id']  ?? 0);
-$name     = trim($body['name']       ?? '');
-$emoji    = trim($body['emoji']      ?? '🎳');
-$nickname = trim($body['nickname']   ?? '');
-$email    = trim($body['email']      ?? '');
-$pass     = $body['password'] ?? '';
+$inviteCode = strtoupper(trim($body['invite_code'] ?? ''));
+$name       = trim($body['name']       ?? '');
+$emoji      = trim($body['emoji']      ?? '🎳');
+$nickname   = trim($body['nickname']   ?? '');
+$email      = trim($body['email']      ?? '');
+$pass       = $body['password'] ?? '';
 
-if (!$groupId) {
+if ($inviteCode === '') {
     http_response_code(400);
-    echo json_encode(['error' => 'Gruppo obbligatorio']);
+    echo json_encode(['error' => 'Codice invito obbligatorio']);
     exit;
 }
 if ($name === '') {
@@ -53,14 +53,16 @@ if (strlen($pass) < 8) {
 try {
     $pdo = getPDO();
 
-    // Check gruppo esiste
-    $stmt = $pdo->prepare("SELECT id FROM `groups` WHERE id = ?");
-    $stmt->execute([$groupId]);
-    if (!$stmt->fetch()) {
+    // Trova gruppo da invite_code
+    $stmt = $pdo->prepare("SELECT id FROM `groups` WHERE invite_code = ?");
+    $stmt->execute([$inviteCode]);
+    $group = $stmt->fetch();
+    if (!$group) {
         http_response_code(404);
-        echo json_encode(['error' => 'Gruppo non trovato']);
+        echo json_encode(['error' => 'Codice invito non valido']);
         exit;
     }
+    $groupId = (int)$group['id'];
 
     // Check email già registrata in player_auth
     $stmt = $pdo->prepare("SELECT id FROM player_auth WHERE email = ?");
