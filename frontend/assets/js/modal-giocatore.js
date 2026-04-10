@@ -90,7 +90,7 @@ async function savePlayer() {
       : { name: name, nickname: nickname, emoji: emoji };
 
     var res = await authFetch('/api/players.php', {
-      method: 'POST',
+      method: method,
       body: JSON.stringify(payload)
     })
     var data = await res.json();
