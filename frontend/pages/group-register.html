@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Strike Zone — Crea Gruppo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <style>
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem 4rem; }
+
+    .reg-wrap { width: 100%; max-width: 560px; }
+
+    .reg-hero { text-align: center; padding: 2rem 0 1.5rem; }
+    .reg-hero-icon { font-size: 3rem; display: block; margin-bottom: 0.6rem; animation: wobble 2s ease-in-out infinite; }
+    .reg-hero-title { font-family: 'Black Han Sans', sans-serif; font-size: 1.8rem; color: var(--neon); letter-spacing: 0.08em; }
+    .reg-hero-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.3rem; }
+    @keyframes wobble { 0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)} }
+
+    .reg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.8rem; margin-bottom: 1rem; }
+    .reg-section-title { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--neon); margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.4rem; }
+    .reg-section-title::before { content: '▌'; }
+
+    .reg-group { display: flex; flex-direction: column; gap: 1rem; }
+    .reg-field label { display: block; font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .reg-field input, .reg-field textarea {
+      width: 100%; box-sizing: border-box;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.7rem 0.9rem; color: var(--text);
+      font-family: 'Barlow Condensed', sans-serif; font-size: 1rem;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .reg-field input:focus, .reg-field textarea:focus { border-color: var(--neon); }
+    .reg-field textarea { resize: vertical; min-height: 80px; }
+    .reg-field small { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; color: var(--text-muted); margin-top: 0.3rem; display: block; }
+
+    .reg-error {
+      background: rgba(255,60,172,0.1); border: 1px solid var(--neon2);
+      border-radius: 6px; padding: 0.7rem 1rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.72rem;
+      color: var(--neon2); display: none; margin-bottom: 1rem;
+    }
+    .reg-success {
+      background: rgba(232,255,0,0.08); border: 1px solid rgba(232,255,0,0.4);
+      border-radius: 6px; padding: 0.9rem 1rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      color: var(--neon); display: none; text-align: center; margin-bottom: 1rem;
+    }
+
+    .reg-actions { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.5rem; }
+    .btn-reg-primary {
+      background: var(--neon); color: #0a0a0f;
+      border: none; border-radius: 8px; padding: 0.95rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 1rem; letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 0 20px rgba(232,255,0,0.25);
+    }
+    .btn-reg-primary:hover:not(:disabled) { box-shadow: 0 0 35px rgba(232,255,0,0.45); transform: translateY(-2px); }
+    .btn-reg-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-reg-back {
+      background: none; color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.9rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
+      font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+      text-align: center; display: block;
+    }
+    .btn-reg-back:hover { border-color: var(--text-muted); color: var(--text); }
+
+    .reg-divider { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+
+<div class="reg-wrap">
+
+  <div class="reg-hero">
+    <span class="reg-hero-icon">🏆</span>
+    <div class="reg-hero-title">CREA GRUPPO</div>
+    <div class="reg-hero-sub">Diventa amministratore del tuo gruppo bowling</div>
+  </div>
+
+  <div id="regError" class="reg-error"></div>
+  <div id="regSuccess" class="reg-success"></div>
+
+  <!-- GRUPPO -->
+  <div class="reg-card">
+    <div class="reg-section-title">Informazioni Gruppo</div>
+    <div class="reg-group">
+      <div class="reg-field">
+        <label for="groupName">Nome Gruppo *</label>
+        <input type="text" id="groupName" placeholder="es. Strike Zone Milano" maxlength="80" />
+      </div>
+      <div class="reg-field">
+        <label for="groupDesc">Descrizione</label>
+        <textarea id="groupDesc" placeholder="Una breve descrizione del tuo gruppo..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="reg-card">
+    <div class="reg-section-title">I tuoi dati (Admin del Gruppo)</div>
+    <div class="reg-group">
+      <div class="reg-field">
+        <label for="adminFullName">Nome Completo</label>
+        <input type="text" id="adminFullName" placeholder="Mario Rossi" maxlength="100" />
+      </div>
+      <div class="reg-field">
+        <label for="adminEmail">Email *</label>
+        <input type="email" id="adminEmail" placeholder="mario@esempio.it" autocomplete="email" />
+      </div>
+      <div class="reg-field">
+        <label for="adminPhone">Telefono</label>
+        <input type="tel" id="adminPhone" placeholder="+39 123 456 7890" />
+      </div>
+      <div class="reg-field">
+        <label for="adminPassword">Password *</label>
+        <input type="password" id="adminPassword" placeholder="Minimo 8 caratteri" autocomplete="new-password" />
+        <small>Minimo 8 caratteri</small>
+      </div>
+      <div class="reg-field">
+        <label for="adminPasswordConfirm">Conferma Password *</label>
+        <input type="password" id="adminPasswordConfirm" placeholder="Ripeti la password" autocomplete="new-password" />
+      </div>
+    </div>
+  </div>
+
+  <div class="reg-actions">
+    <button class="btn-reg-primary" id="btnRegister" onclick="registerGroup()">
+      🏆 Crea Gruppo e Registrati
+    </button>
+    <a href="welcome.html" class="btn-reg-back">← Torna alla Home</a>
+  </div>
+
+</div>
+
+<script>
+async function registerGroup() {
+  const btn = document.getElementById('btnRegister');
+  const errEl = document.getElementById('regError');
+  const okEl  = document.getElementById('regSuccess');
+
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  const groupName = document.getElementById('groupName').value.trim();
+  const email     = document.getElementById('adminEmail').value.trim();
+  const pass      = document.getElementById('adminPassword').value;
+  const passConf  = document.getElementById('adminPasswordConfirm').value;
+
+  if (!groupName)       { showError('Nome gruppo obbligatorio'); return; }
+  if (!email)           { showError('Email obbligatoria'); return; }
+  if (pass.length < 8)  { showError('Password minimo 8 caratteri'); return; }
+  if (pass !== passConf){ showError('Le password non corrispondono'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Creazione in corso...';
+
+  try {
+    const res  = await fetch('/api/group-register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        group_name:        groupName,
+        group_description: document.getElementById('groupDesc').value.trim(),
+        admin_email:       email,
+        admin_password:    pass,
+        admin_full_name:   document.getElementById('adminFullName').value.trim(),
+        admin_phone:       document.getElementById('adminPhone').value.trim(),
+      })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      okEl.textContent = '✓ Gruppo "' + groupName + '" creato! Ora puoi accedere come amministratore.';
+      okEl.style.display = 'block';
+      btn.textContent = '✓ Gruppo Creato!';
+      setTimeout(() => { window.location.href = 'welcome.html'; }, 2000);
+    } else {
+      showError(data.error || 'Errore durante la registrazione');
+      btn.disabled = false;
+      btn.textContent = '🏆 Crea Gruppo e Registrati';
+    }
+  } catch (e) {
+    showError('Errore di connessione');
+    btn.disabled = false;
+    btn.textContent = '🏆 Crea Gruppo e Registrati';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('regError');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') registerGroup();
+});
+</script>
+
+</body>
+</html>

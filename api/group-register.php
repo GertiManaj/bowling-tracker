@@ -1,0 +1,123 @@
+<?php
+// ============================================
+//  api/group-register.php
+//  POST (pubblico) → crea gruppo + group_admin
+// ============================================
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
+
+header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Metodo non supportato']);
+    exit;
+}
+
+$body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+// ── Validazione ──────────────────────────────
+$groupName   = trim($body['group_name']    ?? '');
+$adminEmail  = trim($body['admin_email']   ?? '');
+$adminPass   = $body['admin_password'] ?? '';
+$groupDesc   = trim($body['group_description'] ?? '');
+$fullName    = trim($body['admin_full_name'] ?? '');
+$phone       = trim($body['admin_phone']    ?? '');
+
+if ($groupName === '') {
+    http_response_code(400);
+    echo json_encode(['error' => 'Nome gruppo obbligatorio']);
+    exit;
+}
+if ($adminEmail === '' || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Email non valida']);
+    exit;
+}
+if (strlen($adminPass) < 8) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Password minimo 8 caratteri']);
+    exit;
+}
+
+try {
+    $pdo = getPDO();
+
+    // Check email già registrata
+    $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ?");
+    $stmt->execute([$adminEmail]);
+    if ($stmt->fetch()) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Email già registrata']);
+        exit;
+    }
+
+    // Check nome gruppo già esistente
+    $stmt = $pdo->prepare("SELECT id FROM `groups` WHERE name = ?");
+    $stmt->execute([$groupName]);
+    if ($stmt->fetch()) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Nome gruppo già esistente']);
+        exit;
+    }
+
+    $pdo->beginTransaction();
+
+    // 1. Crea gruppo (created_by sarà aggiornato dopo)
+    $stmt = $pdo->prepare("
+        INSERT INTO `groups` (name, description, created_by)
+        VALUES (?, ?, NULL)
+    ");
+    $stmt->execute([$groupName, $groupDesc ?: null]);
+    $groupId = (int)$pdo->lastInsertId();
+
+    // 2. Crea admin
+    $displayName  = $fullName ?: explode('@', $adminEmail)[0];
+    $passwordHash = password_hash($adminPass, PASSWORD_DEFAULT);
+
+    $stmt = $pdo->prepare("
+        INSERT INTO admins (email, password_hash, name, full_name, phone, active)
+        VALUES (?, ?, ?, ?, ?, 1)
+    ");
+    $stmt->execute([$adminEmail, $passwordHash, $displayName, $fullName ?: null, $phone ?: null]);
+    $adminId = (int)$pdo->lastInsertId();
+
+    // 3. Aggiorna created_by nel gruppo
+    $pdo->prepare("UPDATE `groups` SET created_by = ? WHERE id = ?")
+        ->execute([$adminId, $groupId]);
+
+    // 4. Assegna ruolo group_admin con tutti i permessi operativi
+    $pdo->prepare("
+        INSERT INTO admin_roles (
+            admin_id, group_id, role,
+            can_add_players, can_edit_players, can_delete_players,
+            can_add_sessions, can_edit_sessions, can_delete_sessions,
+            can_export_data, can_view_security_logs
+        ) VALUES (?, ?, 'group_admin', 1, 1, 1, 1, 1, 1, 1, 0)
+    ")->execute([$adminId, $groupId]);
+
+    $pdo->commit();
+
+    logSecurityEvent($pdo, 'group_self_registered', 'INFO', $adminId, [
+        'group_id'   => $groupId,
+        'group_name' => $groupName,
+        'email'      => $adminEmail,
+    ]);
+
+    echo json_encode([
+        'success'  => true,
+        'group_id' => $groupId,
+        'admin_id' => $adminId,
+        'message'  => 'Gruppo creato con successo',
+    ]);
+
+} catch (Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    http_response_code(500);
+    echo json_encode(['error' => 'Errore durante la registrazione']);
+}

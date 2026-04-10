@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Strike Zone — Registrati come Giocatore</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <script src="../assets/js/shared.js"></script>
+  <style>
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem 4rem; }
+
+    .reg-wrap { width: 100%; max-width: 560px; }
+
+    .reg-hero { text-align: center; padding: 2rem 0 1.5rem; }
+    .reg-hero-icon { font-size: 3rem; display: block; margin-bottom: 0.6rem; animation: wobble 2s ease-in-out infinite; }
+    .reg-hero-title { font-family: 'Black Han Sans', sans-serif; font-size: 1.8rem; color: var(--neon); letter-spacing: 0.08em; }
+    .reg-hero-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.3rem; }
+    @keyframes wobble { 0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)} }
+
+    .reg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.8rem; margin-bottom: 1rem; }
+    .reg-section-title { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--neon); margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.4rem; }
+    .reg-section-title::before { content: '▌'; }
+
+    .reg-group { display: flex; flex-direction: column; gap: 1rem; }
+    .reg-field label { display: block; font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .reg-field input, .reg-field select {
+      width: 100%; box-sizing: border-box;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.7rem 0.9rem; color: var(--text);
+      font-family: 'Barlow Condensed', sans-serif; font-size: 1rem;
+      transition: border-color 0.2s; outline: none;
+    }
+    .reg-field input:focus, .reg-field select:focus { border-color: var(--neon); }
+    .reg-field select option { background: var(--surface2); }
+    .reg-field small { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; color: var(--text-muted); margin-top: 0.3rem; display: block; }
+
+    /* Emoji picker */
+    .emoji-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .emoji-opt {
+      width: 38px; height: 38px; font-size: 1.3rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .emoji-opt:hover { border-color: var(--neon); transform: scale(1.1); }
+    .emoji-opt.selected { border-color: var(--neon); background: rgba(232,255,0,0.1); }
+
+    .reg-error {
+      background: rgba(255,60,172,0.1); border: 1px solid var(--neon2);
+      border-radius: 6px; padding: 0.7rem 1rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.72rem;
+      color: var(--neon2); display: none; margin-bottom: 1rem;
+    }
+    .reg-success {
+      background: rgba(232,255,0,0.08); border: 1px solid rgba(232,255,0,0.4);
+      border-radius: 6px; padding: 0.9rem 1rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      color: var(--neon); display: none; text-align: center; margin-bottom: 1rem;
+    }
+
+    .reg-actions { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.5rem; }
+    .btn-reg-primary {
+      background: var(--neon); color: #0a0a0f;
+      border: none; border-radius: 8px; padding: 0.95rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 1rem; letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 0 20px rgba(232,255,0,0.25);
+    }
+    .btn-reg-primary:hover:not(:disabled) { box-shadow: 0 0 35px rgba(232,255,0,0.45); transform: translateY(-2px); }
+    .btn-reg-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-reg-back {
+      background: none; color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.9rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
+      font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+      text-align: center; display: block;
+    }
+    .btn-reg-back:hover { border-color: var(--text-muted); color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="reg-wrap">
+
+  <div class="reg-hero">
+    <span class="reg-hero-icon">🎳</span>
+    <div class="reg-hero-title">REGISTRATI</div>
+    <div class="reg-hero-sub">Unisciti a un gruppo bowling</div>
+  </div>
+
+  <div id="regError" class="reg-error"></div>
+  <div id="regSuccess" class="reg-success"></div>
+
+  <!-- GRUPPO -->
+  <div class="reg-card">
+    <div class="reg-section-title">Scegli il tuo Gruppo</div>
+    <div class="reg-group">
+      <div class="reg-field">
+        <label for="groupSelect">Gruppo Bowling *</label>
+        <select id="groupSelect">
+          <option value="">— Caricamento... —</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- GIOCATORE -->
+  <div class="reg-card">
+    <div class="reg-section-title">I tuoi dati</div>
+    <div class="reg-group">
+      <div class="reg-field">
+        <label>Avatar</label>
+        <div class="emoji-row" id="emojiRow"></div>
+        <input type="hidden" id="selectedEmoji" value="🎳"/>
+      </div>
+      <div class="reg-field">
+        <label for="playerName">Nome Giocatore *</label>
+        <input type="text" id="playerName" placeholder="es. Mario" maxlength="50" />
+      </div>
+      <div class="reg-field">
+        <label for="playerNickname">Soprannome</label>
+        <input type="text" id="playerNickname" placeholder="es. The Wolf" maxlength="50" />
+      </div>
+      <div class="reg-field">
+        <label for="playerEmail">Email *</label>
+        <input type="email" id="playerEmail" placeholder="mario@esempio.it" autocomplete="email" />
+      </div>
+      <div class="reg-field">
+        <label for="playerPassword">Password *</label>
+        <input type="password" id="playerPassword" placeholder="Minimo 8 caratteri" autocomplete="new-password" />
+        <small>Minimo 8 caratteri</small>
+      </div>
+      <div class="reg-field">
+        <label for="playerPasswordConfirm">Conferma Password *</label>
+        <input type="password" id="playerPasswordConfirm" placeholder="Ripeti la password" autocomplete="new-password" />
+      </div>
+    </div>
+  </div>
+
+  <div class="reg-actions">
+    <button class="btn-reg-primary" id="btnRegister" onclick="registerPlayer()">
+      🎳 Registrati
+    </button>
+    <a href="welcome.html" class="btn-reg-back">← Torna alla Home</a>
+  </div>
+
+</div>
+
+<script>
+const EMOJIS = [
+  '🎳','🐺','🦊','🐻','🦁','🐯','🦋','🐸',
+  '🦅','🐉','🦈','🐆','🦎','🐬','🦄','🐼',
+  '🐙','🐝','🦉','🦚','🦀','⚡','🔥','💎',
+  '🏆','👑','🎯','🚀','💥','🌟','🎪','🎭'
+];
+
+function buildEmojiRow() {
+  const row = document.getElementById('emojiRow');
+  row.innerHTML = EMOJIS.map(e =>
+    `<button type="button" class="emoji-opt${e === '🎳' ? ' selected' : ''}" onclick="selectEmoji('${e}', this)">${e}</button>`
+  ).join('');
+}
+
+function selectEmoji(e, btn) {
+  document.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('selectedEmoji').value = e;
+}
+
+async function loadGroups() {
+  try {
+    const res  = await fetch('/api/public-groups.php');
+    const data = await res.json();
+    const sel  = document.getElementById('groupSelect');
+
+    if (data.success && data.groups && data.groups.length) {
+      sel.innerHTML = '<option value="">— Seleziona gruppo —</option>' +
+        data.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+    } else {
+      sel.innerHTML = '<option value="">Nessun gruppo disponibile</option>';
+    }
+  } catch (e) {
+    document.getElementById('groupSelect').innerHTML = '<option value="">Errore caricamento gruppi</option>';
+  }
+}
+
+async function registerPlayer() {
+  const btn = document.getElementById('btnRegister');
+  const errEl = document.getElementById('regError');
+  const okEl  = document.getElementById('regSuccess');
+
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  const groupId  = parseInt(document.getElementById('groupSelect').value);
+  const name     = document.getElementById('playerName').value.trim();
+  const email    = document.getElementById('playerEmail').value.trim();
+  const pass     = document.getElementById('playerPassword').value;
+  const passConf = document.getElementById('playerPasswordConfirm').value;
+
+  if (!groupId)         { showError('Seleziona un gruppo'); return; }
+  if (!name)            { showError('Nome giocatore obbligatorio'); return; }
+  if (!email)           { showError('Email obbligatoria'); return; }
+  if (pass.length < 8)  { showError('Password minimo 8 caratteri'); return; }
+  if (pass !== passConf){ showError('Le password non corrispondono'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Registrazione in corso...';
+
+  try {
+    const res  = await fetch('/api/player-register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        group_id: groupId,
+        name:     name,
+        nickname: document.getElementById('playerNickname').value.trim(),
+        emoji:    document.getElementById('selectedEmoji').value,
+        email:    email,
+        password: pass,
+      })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      okEl.textContent = '✓ Registrazione completata! Ora puoi accedere come giocatore.';
+      okEl.style.display = 'block';
+      btn.textContent = '✓ Registrato!';
+      setTimeout(() => { window.location.href = 'welcome.html'; }, 2000);
+    } else {
+      showError(data.error || 'Errore durante la registrazione');
+      btn.disabled = false;
+      btn.textContent = '🎳 Registrati';
+    }
+  } catch (e) {
+    showError('Errore di connessione');
+    btn.disabled = false;
+    btn.textContent = '🎳 Registrati';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('regError');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') registerPlayer();
+});
+
+buildEmojiRow();
+loadGroups();
+</script>
+
+</body>
+</html>
