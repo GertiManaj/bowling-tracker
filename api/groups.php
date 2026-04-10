@@ -10,6 +10,7 @@
 require_once __DIR__ . '/jwt_protection.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/mailer.php';
 
 $method   = $_SERVER['REQUEST_METHOD'];
 $payload  = requireAuth(['GET', 'POST', 'PUT', 'DELETE']);
@@ -110,7 +111,17 @@ if ($method === 'POST') {
             'group_name' => $name,
         ]);
 
-        echo json_encode(['success' => true, 'group_id' => $groupId, 'invite_code' => $inviteCode, 'message' => 'Gruppo creato con successo']);
+        // Invia email benvenuto se admin_email fornito (opzionale)
+        $emailSent = false;
+        $adminEmail = trim($data['admin_email'] ?? '');
+        if ($adminEmail && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $adminName = trim($data['admin_name'] ?? explode('@', $adminEmail)[0]);
+            try {
+                $emailSent = sendWelcomeAdmin($adminEmail, $adminName, $name, $inviteCode);
+            } catch (\Throwable $ignored) {}
+        }
+
+        echo json_encode(['success' => true, 'group_id' => $groupId, 'invite_code' => $inviteCode, 'message' => 'Gruppo creato con successo', 'email_sent' => $emailSent]);
     } catch (Exception $e) {
         $msg = stripos($e->getMessage(), 'Duplicate') !== false
             ? "Nome '$name' già esistente"

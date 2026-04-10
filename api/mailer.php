@@ -11,6 +11,13 @@
  * Ritorna true se inviata, false altrimenti (non blocca il flusso).
  */
 function sendEmail(string $to, string $subject, string $html): bool {
+    // Skip in modalità test: logga invece di inviare
+    if (getenv('SKIP_OTP_FOR_TESTING') === 'true') {
+        error_log("[MAIL-SKIP] Email non inviata (SKIP_OTP_FOR_TESTING=true)");
+        error_log("[MAIL-SKIP] To: $to | Subject: $subject");
+        return true;
+    }
+
     $apiKey = getenv('RESEND_API_KEY');
     if (!$apiKey) {
         error_log('[MAIL] RESEND_API_KEY non configurata');
