@@ -10,13 +10,13 @@ if (!isset($_GET['token']) || $_GET['token'] !== $SECRET) {
     die('Forbidden');
 }
 
+require_once __DIR__ . '/config.php';
+
 header('Content-Type: text/plain; charset=utf-8');
 
 echo "═══════════════════════════════════════════════════════\n";
 echo " SYSTEM INTEGRATION TEST — " . date('Y-m-d H:i:s') . "\n";
 echo "═══════════════════════════════════════════════════════\n\n";
-
-require_once __DIR__ . '/config.php';
 
 try {
     $pdo = getPDO();
@@ -33,7 +33,7 @@ $tables = [
     'admins' => ['id', 'email', 'password_hash', 'name', 'full_name', 'phone'],
     'admin_roles' => ['id', 'admin_id', 'role', 'group_id', 'can_add_players', 'can_edit_players'],
     'players' => ['id', 'name', 'emoji', 'group_id'],
-    'sessions' => ['id', 'session_date', 'group_id'],
+    'sessions' => ['id', 'date', 'group_id'],
     'player_auth' => ['id', 'player_id', 'email', 'password_hash']
 ];
 
@@ -86,12 +86,13 @@ if (empty($groups)) {
     echo "  ⚠️  Nessun gruppo trovato\n";
 } else {
     foreach ($groups as $g) {
+        $adminNote = $g['admin_count'] == 0 ? ' (gestito da super_admin)' : '';
         echo "  Gruppo [{$g['id']}] {$g['name']}\n";
         echo "    Tipo: {$g['group_type']}\n";
         echo "    Codice Invito: " . ($g['invite_code'] ?: 'MANCANTE ❌') . "\n";
         echo "    Players: {$g['player_count']}\n";
         echo "    Sessions: {$g['session_count']}\n";
-        echo "    Admin: {$g['admin_count']}\n\n";
+        echo "    Admin in admin_roles: {$g['admin_count']}{$adminNote}\n\n";
     }
 }
 
@@ -232,6 +233,29 @@ foreach ($frontendFiles as $file) {
     }
 }
 
+// ── TEST 9: OTP CONFIG ──
+echo "\n── TEST 9: OTP / Auth Config ──\n";
+
+$skipOtp = getenv('SKIP_OTP_FOR_TESTING');
+$otpTtl  = getenv('OTP_TTL_SECONDS');
+$appUrl  = getenv('APP_URL');
+$resendKey = getenv('RESEND_API_KEY') ? '✅ configurata' : '❌ NON configurata';
+$emailFrom = getenv('EMAIL_FROM') ?: '(non configurata)';
+
+echo "  SKIP_OTP_FOR_TESTING: " . ($skipOtp ?: '(non impostata)') . "\n";
+echo "  OTP_TTL_SECONDS:      " . ($otpTtl ?: '(non impostata)') . "\n";
+echo "  APP_URL:              " . ($appUrl ?: '(non impostata)') . "\n";
+echo "  RESEND_API_KEY:       $resendKey\n";
+echo "  EMAIL_FROM:           $emailFrom\n";
+
+// Verifica se auth.php gestisce SKIP_OTP
+$authContent = file_get_contents(__DIR__ . '/auth.php');
+if (strpos($authContent, 'SKIP_OTP') !== false) {
+    echo "  ✅ auth.php supporta SKIP_OTP_FOR_TESTING\n";
+} else {
+    echo "  ⚠️  auth.php NON supporta SKIP_OTP_FOR_TESTING\n";
+}
+
 // ── RIEPILOGO ──
 echo "\n═══════════════════════════════════════════════════════\n";
 echo " RIEPILOGO\n";
@@ -249,11 +273,11 @@ echo "  - Data Integrity: " . ($nullPlayers === 0 && $nullSessions === 0 ? 'OK' 
 echo "  - Frontend Files: " . ($allFrontendOk ? 'OK' : 'MANCANTI') . "\n";
 
 echo "\n⚠️  PROSSIMI STEP:\n";
-echo "  1. Fix OTP (verificare logs Railway)\n";
-echo "  2. Test login admin gruppo\n";
-echo "  3. Test registrazione player con codice invito\n";
-echo "  4. Test modalità ospite\n";
-echo "  5. Test isolamento gruppi\n";
+echo "  1. Verifica OTP (vedi TEST 9 sopra)\n";
+echo "  2. Test login: gerti.manaj@porettiatu.it (gruppo test-Sfide1)\n";
+echo "  3. Test registrazione player con codice invito gruppo\n";
+echo "  4. Test modalità ospite (?guest=1)\n";
+echo "  5. Verifica isolamento dati tra gruppi\n";
 
 echo "\n═══════════════════════════════════════════════════════\n";
 echo " ELIMINA QUESTO FILE DOPO IL TEST\n";
