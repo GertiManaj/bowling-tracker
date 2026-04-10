@@ -63,7 +63,9 @@ if (window.isGuestMode) {
     style.textContent =
       '.payment-column{display:none!important}' +
       '.admin-only{display:none!important}' +
-      '.action-btn-wrap{display:none!important}';
+      '.action-btn-wrap{display:none!important}' +
+      // statistiche.html: griglia classifica senza 3 colonne € (11→8 colonne dati)
+      '.rank-table-header,.rank-table-row{grid-template-columns:36px 130px repeat(8,minmax(70px,1fr))!important}';
     document.head.appendChild(style);
   })();
 }

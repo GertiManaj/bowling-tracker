@@ -202,9 +202,9 @@ function renderRanking() {
         <div class="rank-table-val ${isActive('sfide') ? 'active-val' : ''}">${serateConSquadra || '—'}</div>
         <div class="rank-table-val ${isActive('partite_sfide') ? 'active-val' : ''}">${parseInt(p.partite_sfide) || 0}</div>
         <div class="rank-table-val ${isActive('partite_singolo') ? 'active-val' : ''}">${p.partite_singolo != null ? parseInt(p.partite_singolo) : 0}</div>
-        <div class="rank-table-val ${isActive('pagato_sfide') ? 'active-val' : ''}">${eur(p.pagato_sfide)}</div>
-        <div class="rank-table-val ${isActive('pagato_singolo') ? 'active-val' : ''}">${eur(p.pagato_singolo)}</div>
-        <div class="rank-table-val ${isActive('pagato_totale') ? 'active-val' : ''}" style="font-weight:700">${eur(p.pagato_totale)}</div>
+        <div class="rank-table-val payment-column ${isActive('pagato_sfide') ? 'active-val' : ''}">${eur(p.pagato_sfide)}</div>
+        <div class="rank-table-val payment-column ${isActive('pagato_singolo') ? 'active-val' : ''}">${eur(p.pagato_singolo)}</div>
+        <div class="rank-table-val payment-column ${isActive('pagato_totale') ? 'active-val' : ''}" style="font-weight:700">${eur(p.pagato_totale)}</div>
         <div class="rank-table-val ${isActive('vitt') ? 'active-val' : ''}" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem">${vnpBadge}</div>
         <div class="rank-table-val ${isActive('media_recente') ? 'active-val' : ''}">${formaBadge}</div>
       </div>`;
