@@ -1526,3 +1526,68 @@ body.light .skeleton {
 @media (max-width: 640px) {
   .emoji-grid { grid-template-columns: repeat(6, 1fr); }
 }
+
+/* ── FASE 4: Multi-gruppo UI ── */
+
+/* Tabs */
+.sz-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.sz-tab-btn { padding: 0.7rem 1.2rem; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; margin-bottom: -1px; }
+.sz-tab-btn:hover { color: var(--text); }
+.sz-tab-btn.active { border-bottom-color: var(--neon); color: var(--neon); }
+.sz-tab-content { display: none; }
+.sz-tab-content.active { display: block; }
+
+/* Group Cards Grid */
+.group-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.group-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; transition: border-color 0.2s; }
+.group-card:hover { border-color: rgba(232,255,0,0.3); }
+.group-card-name { font-family: 'Black Han Sans', sans-serif; font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--neon); margin-bottom: 0.4rem; }
+.group-card-desc { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.8rem; min-height: 1.2em; }
+.group-card-stats { display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+.group-card-stat { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.05em; }
+.group-card-actions { display: flex; gap: 0.5rem; }
+
+/* Section Header */
+.section-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+
+/* Badges */
+.sz-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+.sz-badge-super { background: rgba(232,255,0,0.15); color: var(--neon); border: 1px solid rgba(232,255,0,0.3); }
+.sz-badge-group { background: rgba(124,58,237,0.15); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+
+/* Permissions Grid */
+.permissions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 1rem 0; }
+.permissions-grid label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; }
+.permissions-grid label:hover { color: var(--text); }
+.permissions-grid input[type=checkbox] { accent-color: var(--neon); width: 14px; height: 14px; }
+
+/* Analytics stats */
+.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.analytics-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; text-align: center; }
+.analytics-stat-val { font-family: 'Black Han Sans', sans-serif; font-size: 2rem; color: var(--neon); }
+.analytics-stat-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 0.3rem; }
+
+/* Group selector in dashboard */
+.group-selector-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; padding: 0.6rem 0.8rem; background: rgba(232,255,0,0.04); border: 1px solid rgba(232,255,0,0.15); border-radius: 6px; }
+.group-selector-bar label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.group-selector-bar select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.3rem 0.6rem; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; flex: 1; max-width: 220px; }
+.group-selector-bar select:focus { outline: none; border-color: var(--neon); }
+
+/* Admin table */
+.sa-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.sa-table th { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); padding: 0.6rem 0.8rem; text-align: left; }
+.sa-table td { padding: 0.7rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.sa-table tr:last-child td { border-bottom: none; }
+.sa-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* btn-small */
+.btn-small { background: none; border: 1px solid var(--border); color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; padding: 0.25rem 0.6rem; border-radius: 3px; cursor: pointer; transition: all 0.2s; }
+.btn-small:hover { border-color: var(--neon); color: var(--neon); }
+.btn-small.danger:hover { border-color: var(--neon2); color: var(--neon2); }
+
+/* Super admin modal form */
+.sa-form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
+.sa-form-group label { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.sa-form-group input, .sa-form-group select, .sa-form-group textarea { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 0.7rem; border-radius: 4px; font-size: 0.85rem; font-family: inherit; width: 100%; box-sizing: border-box; }
+.sa-form-group input:focus, .sa-form-group select:focus, .sa-form-group textarea:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 8px rgba(232,255,0,0.1); }
+.sa-form-group textarea { resize: vertical; min-height: 70px; }

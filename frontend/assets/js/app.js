@@ -5,6 +5,42 @@
 
 const API = '/api'; // percorso assoluto
 
+// ── GROUP FILTER (super_admin) ───────────────
+let currentGroupId = 'all';
+
+async function initGroupSelector() {
+  const bar = document.getElementById('groupSelectorBar');
+  if (!bar) return;
+
+  // Mostra solo a super_admin
+  if (typeof isSuperAdmin !== 'function' || !isSuperAdmin()) return;
+  bar.style.display = 'flex';
+
+  try {
+    const res    = await authFetch(`${API}/groups.php`);
+    const data   = await res.json();
+    const groups = data.groups || [];
+    const sel = document.getElementById('groupSelector');
+    groups.forEach(function(g) {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+function onGroupChange(value) {
+  currentGroupId = value === 'all' ? 'all' : parseInt(value);
+  loadStats();
+  loadLeaderboard();
+  loadSessions();
+}
+
+function groupParam() {
+  return currentGroupId !== 'all' ? `?group_id=${currentGroupId}` : '';
+}
+
 // ── UTILITY ─────────────────────────────────
 
 function formatDate(d) {
@@ -25,7 +61,7 @@ function showToast(msg, type = 'success') {
 
 async function loadStats() {
   try {
-    const data = await fetch(`${API}/stats.php`).then(r => r.json());
+    const data = await fetch(`${API}/stats.php${groupParam()}`).then(r => r.json());
 
     document.getElementById('stat-sessioni').textContent = data.totale_sessioni ?? '—';
     document.getElementById('stat-sessioni-sub').textContent = "dall'inizio";
@@ -79,7 +115,7 @@ function setLeaderboardMode(mode, btn) {
 
 async function loadLeaderboard() {
   try {
-    cachedPlayers = await fetch(`${API}/leaderboard.php`).then(r => r.json());
+    cachedPlayers = await fetch(`${API}/leaderboard.php${groupParam()}`).then(r => r.json());
     window.cachedPlayers = cachedPlayers;
     renderLeaderboard();
     buildSuggestPlayers();
@@ -427,7 +463,7 @@ function renderLastSessionLeaderboard() {
 
 async function loadSessions() {
   try {
-    const sessions = await fetch(`${API}/sessions.php`).then(r => r.json());
+    const sessions = await fetch(`${API}/sessions.php${groupParam()}`).then(r => r.json());
 
     // Lista ultime 5
     let html = '';
@@ -1240,6 +1276,7 @@ function useSuggestedTeams() {
 // ── INIT ─────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  initGroupSelector();
   loadStats();
   loadLeaderboard();
   loadSessions();

@@ -49,6 +49,14 @@
 <div id="app-header" data-active="dashboard"></div>
 <script src="../assets/js/header.js"></script>
 
+<!-- ══ GROUP SELECTOR (solo super_admin) ══ -->
+<div class="group-selector-bar" id="groupSelectorBar" style="display:none">
+  <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase">Visualizza gruppo:</div>
+  <select id="groupSelector" class="form-input" style="max-width:200px;padding:0.35rem 0.6rem;font-size:0.85rem" onchange="onGroupChange(this.value)">
+    <option value="all">Tutti i gruppi</option>
+  </select>
+</div>
+
 <!-- ══ HERO BAR ══ -->
 <div class="hero-bar">
   <div class="hero-bar-inner">

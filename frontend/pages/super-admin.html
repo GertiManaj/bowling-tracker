@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🌐 Super Admin — Strike Zone</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/auth.css"/>
+  <script src="../assets/js/shared.js"></script>
+  <script src="../assets/js/auth-fetch.js"></script>
+</head>
+<body>
+
+<div id="app-header" data-active=""></div>
+<script src="../assets/js/header.js"></script>
+
+<main style="max-width:1100px;margin:0 auto;padding:1.5rem 1rem">
+
+  <!-- Accesso negato -->
+  <div id="saAccessDenied" style="display:none;text-align:center;padding:4rem 2rem">
+    <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
+    <div style="font-family:'Black Han Sans',sans-serif;font-size:1.5rem;color:var(--neon2);margin-bottom:0.5rem">Accesso negato</div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--text-muted)">Questa pagina richiede i privilegi di Super Amministratore.</div>
+    <a href="index.html" style="display:inline-block;margin-top:1.5rem;color:var(--neon);font-family:'Share Tech Mono',monospace;font-size:0.75rem">← Torna alla dashboard</a>
+  </div>
+
+  <!-- Contenuto principale -->
+  <div id="saContent" style="display:none">
+
+    <div class="section-header-row">
+      <div class="section-title" style="margin-bottom:0">
+        <span class="accent"></span>
+        <span class="sz-badge sz-badge-super" style="margin-right:0.5rem">SUPER ADMIN</span>
+        Pannello di Controllo
+      </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="analytics-grid" style="margin:1.5rem 0">
+      <div class="analytics-stat">
+        <div class="analytics-stat-val" id="ana-groups">—</div>
+        <div class="analytics-stat-lbl">Gruppi</div>
+      </div>
+      <div class="analytics-stat">
+        <div class="analytics-stat-val" id="ana-players">—</div>
+        <div class="analytics-stat-lbl">Giocatori totali</div>
+      </div>
+      <div class="analytics-stat">
+        <div class="analytics-stat-val" id="ana-sessions">—</div>
+        <div class="analytics-stat-lbl">Sessioni totali</div>
+      </div>
+      <div class="analytics-stat">
+        <div class="analytics-stat-val" id="ana-record">—</div>
+        <div class="analytics-stat-lbl">Record assoluto</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="sz-tabs">
+      <button class="sz-tab-btn" id="tab-btn-groups"  onclick="openTab('groups')">🏘 Gruppi</button>
+      <button class="sz-tab-btn" id="tab-btn-admins"  onclick="openTab('admins')">👤 Amministratori</button>
+    </div>
+
+    <!-- TAB: GRUPPI -->
+    <div class="sz-tab-content" id="tab-groups">
+      <div class="section-header-row" style="margin:1.2rem 0 0.8rem">
+        <div class="section-title" style="margin-bottom:0"><span class="accent"></span>Gruppi</div>
+        <button class="btn-primary" style="padding:0.5rem 1rem;font-size:0.8rem" onclick="openAddGroup()">+ Nuovo Gruppo</button>
+      </div>
+
+      <!-- Form gruppo -->
+      <div id="groupFormSection" style="display:none" class="card" style="margin-bottom:1.2rem;padding:1.2rem">
+        <div class="section-title" style="font-size:0.9rem;margin-bottom:1rem" id="groupFormTitle">Nuovo Gruppo</div>
+        <div class="sa-form-group">
+          <label class="form-label">Nome gruppo *</label>
+          <input type="text" class="form-input" id="groupName" placeholder="es. Amici del Bowling" maxlength="100"/>
+        </div>
+        <div class="sa-form-group">
+          <label class="form-label">Descrizione</label>
+          <input type="text" class="form-input" id="groupDesc" placeholder="Descrizione opzionale" maxlength="255"/>
+        </div>
+        <div style="display:flex;gap:0.8rem;margin-top:1rem">
+          <button class="btn-primary" onclick="saveGroup()">Salva</button>
+          <button class="btn-secondary" onclick="cancelGroupForm()">Annulla</button>
+        </div>
+      </div>
+
+      <div class="group-cards" id="groupsGrid">
+        <div style="color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:0.75rem">Caricamento...</div>
+      </div>
+    </div>
+
+    <!-- TAB: AMMINISTRATORI -->
+    <div class="sz-tab-content" id="tab-admins" style="display:none">
+      <div class="section-header-row" style="margin:1.2rem 0 0.8rem">
+        <div class="section-title" style="margin-bottom:0"><span class="accent"></span>Amministratori</div>
+        <button class="btn-primary" style="padding:0.5rem 1rem;font-size:0.8rem" onclick="openAddAdmin()">+ Nuovo Admin</button>
+      </div>
+
+      <!-- Form admin -->
+      <div id="adminFormSection" style="display:none" class="card" style="margin-bottom:1.2rem;padding:1.2rem">
+        <div class="section-title" style="font-size:0.9rem;margin-bottom:1rem" id="adminFormTitle">Nuovo Amministratore</div>
+        <div class="sa-form-group">
+          <label class="form-label">Email *</label>
+          <input type="email" class="form-input" id="adminEmail" placeholder="admin@example.com"/>
+        </div>
+        <div class="sa-form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="adminPassword" placeholder="Minimo 8 caratteri"/>
+          <div id="adminPasswordNote" style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-muted);margin-top:0.3rem">Minimo 8 caratteri</div>
+        </div>
+        <div class="sa-form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="adminUserType" onchange="toggleAdminTypeFields()">
+            <option value="group_admin">Group Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
+        </div>
+        <div class="sa-form-group" id="adminGroupRow">
+          <label class="form-label">Gruppo</label>
+          <select class="form-input" id="adminGroupId">
+            <option value="">— Seleziona gruppo —</option>
+          </select>
+        </div>
+        <div class="sa-form-group" id="adminPermsRow">
+          <label class="form-label">Permessi</label>
+          <div class="permissions-grid">
+            <label><input type="checkbox" id="perm_can_add_sessions"/> Aggiungere sessioni</label>
+            <label><input type="checkbox" id="perm_can_edit_sessions"/> Modificare sessioni</label>
+            <label><input type="checkbox" id="perm_can_delete_sessions"/> Eliminare sessioni</label>
+            <label><input type="checkbox" id="perm_can_add_players"/> Aggiungere giocatori</label>
+            <label><input type="checkbox" id="perm_can_edit_players"/> Modificare giocatori</label>
+            <label><input type="checkbox" id="perm_can_delete_players"/> Eliminare giocatori</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.8rem;margin-top:1rem">
+          <button class="btn-primary" onclick="saveAdmin()">Salva</button>
+          <button class="btn-secondary" onclick="cancelAdminForm()">Annulla</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:auto">
+        <table class="sa-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Gruppo / Ruolo</th>
+              <th>Ultimo accesso</th>
+              <th>Permessi</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="adminsTableBody">
+            <tr><td colspan="5" style="color:var(--text-muted);text-align:center;font-size:0.75rem">Caricamento...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/super-admin.js"></script>
+</body>
+</html>

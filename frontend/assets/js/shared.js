@@ -97,6 +97,35 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// ── JWT HELPERS ──────────────────────────────
+
+function getJWTPayload() {
+  const token = localStorage.getItem('sz_auth_token');
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    return JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+  } catch(e) { return null; }
+}
+
+function isSuperAdmin() {
+  const p = getJWTPayload();
+  return p && p.user_type === 'super_admin';
+}
+
+function getGroupId() {
+  const p = getJWTPayload();
+  return p ? (p.group_id || null) : null;
+}
+
+function hasPermission(permission) {
+  const p = getJWTPayload();
+  if (!p) return false;
+  if (p.user_type === 'super_admin') return true;
+  return p.permissions && p.permissions[permission] === true;
+}
+
 // ── EXPORT DATI (solo admin) ──────────────────
 
 async function exportData() {

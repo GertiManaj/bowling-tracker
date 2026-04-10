@@ -84,6 +84,9 @@ function loadTicketBadge() {
           '<div class="hamburger-divider"></div>' +
           '<button class="hamburger-item" onclick="window.location.href=\'tickets.html\';closeHamburgerMenu()">🎫 Ticket<span id="ticketBtnBadge" style="color:var(--neon2);font-weight:700"></span></button>' +
           '<div class="hamburger-divider"></div>' +
+          (typeof isSuperAdmin === 'function' && isSuperAdmin()
+            ? '<button class="hamburger-item" onclick="window.location.href=\'super-admin.html\';closeHamburgerMenu()">🌐 Super Admin</button>'
+            : '') +
           '<button class="hamburger-item" onclick="openChangePasswordModal();closeHamburgerMenu()">🔐 Cambia Password</button>' +
           '<button class="hamburger-item" onclick="openTrustedDevicesModal();closeHamburgerMenu()">🛡 Dispositivi Fidati</button>' +
           '<button class="hamburger-item" onclick="openSecurityLogsModal();closeHamburgerMenu()">🔒 Security Logs</button>' +
