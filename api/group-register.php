@@ -119,6 +119,10 @@ try {
         'email'      => $adminEmail,
     ]);
 
+    // Log prima del flush — Railway cattura questi log
+    error_log("[group-register] ✅ Gruppo creato: id=$groupId name='$groupName' admin='$adminEmail' code='$inviteCode'");
+    error_log("[group-register] ➤ Invio email benvenuto a $adminEmail (displayName='$displayName')");
+
     // Invia risposta al client PRIMA di inviare le email (evita timeout)
     $responseJson = json_encode([
         'success'     => true,
@@ -136,7 +140,15 @@ try {
     if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
 
     // Email di benvenuto (dopo aver risposto al client)
-    try { sendWelcomeAdmin($adminEmail, $displayName, $groupName, $inviteCode); } catch (\Throwable $ignored) {}
+    try {
+        $sent = sendWelcomeAdmin($adminEmail, $displayName, $groupName, $inviteCode);
+        error_log($sent
+            ? "[group-register] ✅ Email benvenuto inviata a $adminEmail"
+            : "[group-register] ❌ Email benvenuto fallita per $adminEmail"
+        );
+    } catch (\Throwable $e) {
+        error_log("[group-register] ❌ Eccezione email: " . $e->getMessage());
+    }
 
 } catch (\Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
