@@ -253,7 +253,10 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
         echo json_encode(['success' => false, 'error' => 'Email e password richiesti']);
         exit;
     }
-    
+
+    error_log("[OTP-REQ] Email: $email | IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'N/A'));
+    error_log("[OTP-REQ] SKIP_OTP: " . (getenv('SKIP_OTP_FOR_TESTING') ?: 'false') . " | RESEND_KEY: " . (getenv('RESEND_API_KEY') ? 'SI' : 'NO'));
+
     try {
         $pdo = getPDO();
 
@@ -277,6 +280,7 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$admin) {
+            error_log("[OTP-REQ] Admin NON trovato per: $email");
             logLogin($pdo, null, $email, false, 'Email non trovata');
             logSecurityEvent($pdo, 'login_failed', 'WARNING', null, ['email' => $email, 'reason' => 'email_not_found']);
             http_response_code(401);
@@ -284,8 +288,11 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
             exit;
         }
 
+        error_log("[OTP-REQ] Admin trovato: ID {$admin['id']} | Nome: {$admin['name']}");
+
         // Verifica password hashata
         if (!password_verify($password, $admin['password_hash'])) {
+            error_log("[OTP-REQ] Password NON valida per: $email");
             logLogin($pdo, $admin['id'], $email, false, 'Password errata');
             logSecurityEvent($pdo, 'login_failed', 'WARNING', $admin['id'], ['email' => $email, 'reason' => 'wrong_password']);
             // Rileva tentativi multipli (>3 fallimenti per IP negli ultimi 5 minuti)
@@ -329,6 +336,26 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
             }
         }
 
+        error_log("[OTP-REQ] Password valida per: $email — procedo con OTP");
+
+        // ── SKIP OTP per testing (SKIP_OTP_FOR_TESTING=true in Railway) ──
+        if (getenv('SKIP_OTP_FOR_TESTING') === 'true') {
+            error_log("[OTP-SKIP] SKIP_OTP_FOR_TESTING attivo — JWT diretto per: $email");
+            $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")->execute([$admin['id']]);
+            logLogin($pdo, $admin['id'], $email, true);
+            logSecurityEvent($pdo, 'login_success', 'INFO', $admin['id'], ['email' => $email, 'via' => 'skip_otp_testing']);
+            $roleData  = fetchAdminRole($pdo, $admin['id']);
+            $tokenSkip = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn, $roleData);
+            echo json_encode([
+                'success'     => true,
+                'otp_skipped' => true,
+                'token'       => $tokenSkip,
+                'expires_in'  => $expiresIn,
+                'admin'       => ['id' => $admin['id'], 'email' => $admin['email'], 'name' => $admin['name']]
+            ]);
+            exit;
+        }
+
         // Genera OTP
         $otpLength = (int)(getenv('OTP_LENGTH') ?: 6);
         $code = generateOTP($otpLength);
@@ -337,6 +364,7 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
         $expiresAt = saveOTP($pdo, $admin['id'], $code);
         
         // Invia email
+        error_log("[OTP-REQ] Invio OTP a: $email | RESEND_KEY: " . (getenv('RESEND_API_KEY') ? 'SI' : 'NO'));
         $sent = sendOTPEmail($email, $code, $admin['name']);
 
         if (!$sent) {
@@ -374,27 +402,49 @@ if ($_GET['action'] === 'verify-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $body = json_decode(file_get_contents('php://input'), true);
     $email = trim($body['email'] ?? '');
     $code = trim($body['code'] ?? '');
-    
+
     if (empty($email) || empty($code)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Email e codice richiesti']);
         exit;
     }
-    
+
+    error_log("[OTP-VER] Email: $email | Codice fornito: $code | SKIP_OTP: " . (getenv('SKIP_OTP_FOR_TESTING') ?: 'false'));
+
     try {
         $pdo = getPDO();
-        
+
         // Trova admin
         $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = :email AND active = 1");
         $stmt->execute([':email' => $email]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$admin) {
+            error_log("[OTP-VER] Admin NON trovato per: $email");
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Sessione non valida']);
             exit;
         }
-        
+
+        error_log("[OTP-VER] Admin trovato: ID {$admin['id']}");
+
+        // ── SKIP OTP: accetta '123456' come codice fisso se in modalità test ──
+        if (getenv('SKIP_OTP_FOR_TESTING') === 'true' && $code === '123456') {
+            error_log("[OTP-SKIP] Codice 123456 accettato per: $email");
+            $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")->execute([$admin['id']]);
+            logLogin($pdo, $admin['id'], $email, true);
+            logSecurityEvent($pdo, 'login_success', 'INFO', $admin['id'], ['email' => $email, 'via' => 'skip_otp_123456']);
+            $roleData  = fetchAdminRole($pdo, $admin['id']);
+            $tokenSkip = createJWT($admin['id'], $admin['email'], $jwtSecret, $expiresIn, $roleData);
+            echo json_encode([
+                'success'    => true,
+                'token'      => $tokenSkip,
+                'expires_in' => $expiresIn,
+                'admin'      => ['id' => $admin['id'], 'email' => $admin['email'], 'name' => $admin['name']]
+            ]);
+            exit;
+        }
+
         // Trova OTP valido
         $stmt = $pdo->prepare("
             SELECT * FROM otp_codes 

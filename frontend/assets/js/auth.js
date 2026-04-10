@@ -120,8 +120,8 @@ async function submitLogin() {
     const data = await res.json();
 
     if (data.success) {
-      // Trusted device: skip OTP, login diretto
-      if (data.trusted_device && data.token) {
+      // Login diretto (trusted device o SKIP_OTP_FOR_TESTING)
+      if (data.token && (data.trusted_device || data.otp_skipped)) {
         saveToken(data.token);
         window.isLoggedIn = true;
         closeLoginModal();
