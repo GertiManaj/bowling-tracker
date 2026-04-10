@@ -178,7 +178,9 @@ function renderAllTimeLeaderboard() {
     return lbSortDir === 'desc' ? vb - va : va - vb;
   });
 
-  const cols = '48px 1fr 90px 80px 80px 80px 70px 80px 72px';
+  const cols = window.isGuestMode
+    ? '48px 1fr 90px 80px 80px 80px 70px 80px'    // senza saldo
+    : '48px 1fr 90px 80px 80px 80px 70px 80px 72px';
 
   // Freccia indicatore ordinamento
   const arrow = (field) => {
@@ -203,7 +205,7 @@ function renderAllTimeLeaderboard() {
     <div ${hStyle('win_pct')}>% Vitt ${arrow('win_pct')}</div>
     <div ${hStyle('top_scorer')}>Top 🏆 ${arrow('top_scorer')}</div>
     <div ${hStyle('forma')}>Forma ${arrow('forma')}</div>
-    <div ${hStyle('saldo')}>💶 ${arrow('saldo')}</div>`;
+    ${window.isGuestMode ? '' : `<div ${hStyle('saldo')}>💶 ${arrow('saldo')}</div>`}`;
   document.getElementById('lb-header').style.gridTemplateColumns = cols;
 
   const maxM = sorted.length ? Math.max(...sorted.map(p => parseFloat(p.media) || 0)) : 1;
@@ -288,9 +290,10 @@ function renderAllTimeLeaderboard() {
         <div class="stat-cell" style="${cellStyle('win_pct')}">${winPct !== null ? winPct.toFixed(1) + '%' : '—'}</div>
         <div class="stat-cell" style="${cellStyle('top_scorer')}">${topScore || '—'}</div>
         <div class="stat-cell" style="${cellStyle('forma')}">${formaBadge}</div>
+        ${window.isGuestMode ? '' : `
         <div class="stat-cell" style="${cellStyle('saldo') || (p.saldo_pagamenti === 0 ? 'color:var(--neon)' : p.saldo_pagamenti > 0 ? 'color:var(--neon2)' : '')}">
           ${p.saldo_pagamenti != null ? '€' + p.saldo_pagamenti.toFixed(2) : '—'}
-        </div>
+        </div>`}
       </div>`;
   });
 
@@ -312,6 +315,7 @@ function renderAllTimeLeaderboard() {
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
         <div class="stat-cell">—</div>
+        ${window.isGuestMode ? '' : '<div class="stat-cell">—</div>'}
       </div>`;
   });
 

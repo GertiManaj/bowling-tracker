@@ -77,10 +77,18 @@ function loadTicketBadge() {
 (function () {
 
   function buildHTML(active, extraBtn) {
+    var isGuest = window.isGuestMode || false;
+    var guestSuffix = isGuest ? '?guest=1' : '';
 
     var navHtml = NAV_LINKS.map(function(l) {
-      return '<a href="' + l.href + '"' + (active === l.key ? ' class="active"' : '') + '>' + l.label + '</a>';
+      var href = l.href + guestSuffix;
+      return '<a href="' + href + '"' + (active === l.key ? ' class="active"' : '') + '>' + l.label + '</a>';
     }).join('');
+
+    // Badge ospite (visibile solo in guest mode)
+    var guestBadgeHtml = isGuest
+      ? '<div style="font-family:\'Share Tech Mono\',monospace;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:0.2rem 0.7rem;color:var(--text-muted)">👁 Ospite</div>'
+      : '';
 
     var splashHtml = '<div id="splashScreen" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.5s ease,visibility 0.5s ease"><div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem"><div style="font-size:4rem;animation:splashWobble 0.6s ease-in-out infinite">🎳</div><div style="text-align:center"><div style="font-family:\'Black Han Sans\',sans-serif;font-size:2.5rem;color:var(--neon);text-shadow:0 0 30px rgba(232,255,0,0.6);letter-spacing:0.1em">STRIKE ZONE</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.3em;text-transform:uppercase;margin-top:0.3rem">Bowling Tracker v1.0</div></div><div style="width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div id="splashBar" style="height:100%;width:0%;background:var(--neon);box-shadow:0 0 8px var(--neon);border-radius:2px;transition:width 1.2s ease"></div></div><div style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.2em" id="splashText">CARICAMENTO...</div></div></div><style>@keyframes splashWobble{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.1)}}</style>';
 
@@ -132,10 +140,12 @@ function loadTicketBadge() {
           '</a>' +
           '<nav>' + navHtml + '</nav>' +
           '<div class="header-actions">' +
+            guestBadgeHtml +
             '<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>' +
             '<button class="btn-share" onclick="shareLink()">🔗 Condividi</button>' +
-            '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' +
-            menuHtml +
+            (isGuest
+              ? '<a href="welcome.html" style="font-family:\'Barlow Condensed\',sans-serif;font-weight:600;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;transition:all 0.2s" onmouseover="this.style.color=\'var(--neon)\';this.style.borderColor=\'var(--neon)\'" onmouseout="this.style.color=\'\';this.style.borderColor=\'\'">🔐 Accedi</a>'
+              : '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' + menuHtml) +
           '</div>' +
         '</div>' +
       '</header>';

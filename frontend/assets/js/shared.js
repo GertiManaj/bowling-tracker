@@ -52,6 +52,22 @@ function initSplash() {
 
 window.addEventListener('DOMContentLoaded', initSplash);
 
+// ── GUEST MODE ───────────────────────────────
+
+window.isGuestMode = new URLSearchParams(window.location.search).get('guest') === '1';
+
+if (window.isGuestMode) {
+  // Inietta CSS: nasconde elementi sensibili
+  (function() {
+    const style = document.createElement('style');
+    style.textContent =
+      '.payment-column{display:none!important}' +
+      '.admin-only{display:none!important}' +
+      '.action-btn-wrap{display:none!important}';
+    document.head.appendChild(style);
+  })();
+}
+
 // ── SHARE LINK ───────────────────────────────
 
 function shareLink() {
