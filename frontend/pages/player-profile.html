@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎳 Il mio Profilo — Strike Zone</title>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <script src="../assets/js/shared.js"></script>
+  <style>
+    .profile-wrap { max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+    /* ── HERO CARD ── */
+    .profile-hero {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 2rem 1.5rem; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+    }
+    .profile-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(0,229,255,0.08); border: 2px solid var(--neon2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.8rem; flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(0,229,255,0.2);
+    }
+    .profile-info { flex: 1; min-width: 160px; }
+    .profile-name {
+      font-family: 'Black Han Sans', sans-serif; font-size: 1.8rem;
+      color: var(--neon2); letter-spacing: 0.05em; margin-bottom: 0.2rem;
+    }
+    .profile-group {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted);
+    }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.8rem; margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem 1.2rem;
+      text-align: center; transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--neon2); }
+    .stat-card-val {
+      font-family: 'Black Han Sans', sans-serif; font-size: 1.7rem;
+      color: var(--neon); margin-bottom: 0.2rem;
+    }
+    .stat-card-val.accent { color: var(--neon2); }
+    .stat-card-label {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);
+    }
+
+    /* ── SESSIONI TABLE ── */
+    .section-title {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted);
+      margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .sessions-table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 1.5rem;
+    }
+    .sessions-header, .session-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 70px 70px 70px;
+      gap: 0; align-items: center;
+    }
+    .sessions-header {
+      background: var(--surface2);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
+      padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
+    }
+    .session-row {
+      padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.88rem; transition: background 0.12s;
+    }
+    .session-row:last-child { border-bottom: none; }
+    .session-row:hover { background: rgba(255,255,255,0.025); }
+    .session-date {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .session-loc { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-media { font-family: 'Black Han Sans', sans-serif; color: var(--neon); text-align: right; }
+    .session-best  { color: var(--neon2); text-align: right; font-size: 0.82rem; }
+    .session-games { color: var(--text-muted); text-align: right; font-size: 0.8rem; }
+
+    /* Scores chips */
+    .score-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+    .score-chip {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 5px;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+    .score-chip.best { border-color: rgba(0,229,255,0.3); color: var(--neon2); }
+
+    /* ── LOADING / EMPTY ── */
+    .pp-loading, .pp-empty {
+      text-align: center; padding: 3rem 1rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      color: var(--text-muted); letter-spacing: 0.1em;
+    }
+    .pp-spinner {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: var(--neon2);
+      animation: spin 0.8s linear infinite; margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BACK LINK ── */
+    .back-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: var(--text-muted); text-decoration: none;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem;
+      letter-spacing: 0.08em; margin-bottom: 1.2rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    @media (max-width: 520px) {
+      .sessions-header, .session-row {
+        grid-template-columns: 90px 1fr 60px 60px;
+      }
+      .sessions-header > *:last-child,
+      .session-row > *:last-child { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-header" data-active=""></div>
+
+<div class="profile-wrap">
+
+  <a href="index.html" class="back-link">← Dashboard</a>
+
+  <!-- HERO -->
+  <div class="profile-hero" id="profileHero">
+    <div class="pp-loading"><div class="pp-spinner"></div>Caricamento...</div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- SESSIONI -->
+  <div class="section-title"><span style="color:var(--neon2)">▌</span> Storico Sessioni</div>
+  <div class="sessions-table-wrap" id="sessionsTable">
+    <div class="pp-loading"><div class="pp-spinner"></div>Caricamento...</div>
+  </div>
+
+</div>
+
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/header.js"></script>
+<script>
+// Redirect se non loggato come player (o admin)
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuth();
+
+  if (!window.isPlayerLoggedIn && !window.isLoggedIn) {
+    window.location.href = 'welcome.html';
+    return;
+  }
+
+  loadProfile();
+});
+
+// ── CARICAMENTO PROFILO ───────────────────────
+async function loadProfile() {
+  const token = localStorage.getItem('sz_auth_token');
+  if (!token) { window.location.href = 'welcome.html'; return; }
+
+  try {
+    const res  = await fetch('/api/player-profile.php', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      document.getElementById('profileHero').innerHTML =
+        '<div class="pp-empty">❌ ' + (data.error || 'Errore caricamento') + '</div>';
+      return;
+    }
+
+    renderHero(data.player);
+    renderStats(data.stats);
+    renderSessions(data.sessions);
+
+  } catch(e) {
+    document.getElementById('profileHero').innerHTML =
+      '<div class="pp-empty">❌ Errore di connessione</div>';
+  }
+}
+
+// ── HERO ──────────────────────────────────────
+function renderHero(p) {
+  document.getElementById('profileHero').innerHTML = `
+    <div class="profile-avatar">${p.emoji || '🎳'}</div>
+    <div class="profile-info">
+      <div class="profile-name">${esc(p.name)}</div>
+      <div class="profile-group">🏠 ${esc(p.group_name)}</div>
+    </div>
+  `;
+  document.title = '🎳 ' + p.name + ' — Strike Zone';
+}
+
+// ── STAT CARDS ───────────────────────────────
+function renderStats(s) {
+  const cards = [
+    { val: s.media  || '—', label: 'Media',    accent: false },
+    { val: s.record || '—', label: 'Record',   accent: true  },
+    { val: s.total_games,   label: 'Game Tot.', accent: false },
+    { val: s.total_serate,  label: 'Serate',   accent: false },
+    { val: s.best5_avg !== null ? s.best5_avg : '—', label: 'Top 5 avg', accent: true },
+  ];
+
+  document.getElementById('statsGrid').innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <div class="stat-card-val ${c.accent ? 'accent' : ''}">${c.val}</div>
+      <div class="stat-card-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+// ── SESSIONI ─────────────────────────────────
+function renderSessions(sessions) {
+  const el = document.getElementById('sessionsTable');
+
+  if (!sessions.length) {
+    el.innerHTML = '<div class="pp-empty">Nessuna sessione ancora 🎳</div>';
+    return;
+  }
+
+  const rows = sessions.map(s => {
+    const bestScore = s.best;
+    const chips = s.scores.map(sc =>
+      `<span class="score-chip ${sc === bestScore ? 'best' : ''}">${sc}</span>`
+    ).join('');
+
+    return `
+      <div class="session-row">
+        <div class="session-date">${formatDate(s.date)}</div>
+        <div class="session-loc">
+          ${esc(s.location)}
+          <div class="score-chips">${chips}</div>
+        </div>
+        <div class="session-media">${s.media}</div>
+        <div class="session-best">${s.best}</div>
+        <div class="session-games">${s.games} game</div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="sessions-header">
+      <div>Data</div>
+      <div>Luogo / Punteggi</div>
+      <div style="text-align:right">Media</div>
+      <div style="text-align:right">Best</div>
+      <div style="text-align:right">Game</div>
+    </div>
+    ${rows}`;
+}
+
+// ── UTILITY ──────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'2-digit' });
+}
+</script>
+</body>
+</html>

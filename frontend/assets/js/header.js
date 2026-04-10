@@ -28,6 +28,17 @@ function closeHamburgerMenu() {
   if (menu) menu.classList.remove('open');
 }
 
+// ── PLAYER DROPDOWN ──────────────────────────
+function togglePlayerMenu() {
+  var dd = document.getElementById('playerDropdown');
+  if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function closePlayerMenu() {
+  var dd = document.getElementById('playerDropdown');
+  if (dd) dd.style.display = 'none';
+}
+
 function updateHamburgerSections() {
   var menu = document.getElementById('hamburgerMenu');
   if (!menu) return;
@@ -77,17 +88,49 @@ function loadTicketBadge() {
 (function () {
 
   function buildHTML(active, extraBtn) {
-    var isGuest = window.isGuestMode || false;
-    var guestSuffix = isGuest ? '?guest=1' : '';
+    var isGuest  = window.isGuestMode || false;
+    var isPlayer = window.isPlayerLoggedIn || false;
+    var guestSuffix = (isGuest && !isPlayer) ? '?guest=1' : '';
 
     var navHtml = NAV_LINKS.map(function(l) {
       var href = l.href + guestSuffix;
       return '<a href="' + href + '"' + (active === l.key ? ' class="active"' : '') + '>' + l.label + '</a>';
     }).join('');
 
-    // Badge ospite (visibile solo in guest mode)
-    var guestBadgeHtml = isGuest
+    // Badge ospite (solo guest URL, non player)
+    var guestBadgeHtml = (isGuest && !isPlayer)
       ? '<div style="font-family:\'Share Tech Mono\',monospace;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:0.2rem 0.7rem;color:var(--text-muted)">👁 Ospite</div>'
+      : '';
+
+    // Badge player (visibile quando loggato come giocatore)
+    var playerBadgeHtml = isPlayer
+      ? '<div class="player-badge-wrap" style="position:relative">' +
+          '<button id="playerBadge" onclick="togglePlayerMenu()" style="' +
+            'display:flex;align-items:center;gap:0.4rem;' +
+            'background:rgba(0,229,255,0.08);border:1px solid var(--neon2);' +
+            'border-radius:20px;padding:0.35rem 0.85rem;cursor:pointer;' +
+            'font-family:\'Barlow Condensed\',sans-serif;font-weight:600;font-size:0.88rem;' +
+            'color:var(--neon2);letter-spacing:0.05em;transition:all 0.2s">' +
+            '<span id="playerBadgeEmoji">' + (window.currentPlayerEmoji || '🎳') + '</span>' +
+            '<span id="playerBadgeName">'  + (window.currentPlayerName  || 'Giocatore') + '</span>' +
+            '<span style="font-size:0.55rem;opacity:0.7;margin-left:2px">▾</span>' +
+          '</button>' +
+          '<div id="playerDropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);' +
+            'background:var(--surface);border:1px solid var(--border);border-radius:8px;' +
+            'min-width:170px;z-index:10000;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5)">' +
+            '<a href="player-profile.html" onclick="closePlayerMenu()" style="display:block;padding:0.75rem 1rem;' +
+              'color:var(--text);text-decoration:none;font-family:\'Barlow Condensed\',sans-serif;font-weight:600;' +
+              'font-size:0.9rem;letter-spacing:0.05em;border-bottom:1px solid var(--border);transition:background 0.15s"' +
+              'onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'\'">' +
+              '👤 Il mio profilo</a>' +
+            '<button onclick="logout();closePlayerMenu()" style="width:100%;background:none;border:none;' +
+              'padding:0.75rem 1rem;text-align:left;cursor:pointer;color:var(--neon2);' +
+              'font-family:\'Barlow Condensed\',sans-serif;font-weight:600;font-size:0.9rem;' +
+              'letter-spacing:0.05em;transition:background 0.15s"' +
+              'onmouseover="this.style.background=\'rgba(255,60,172,0.06)\'" onmouseout="this.style.background=\'\'">' +
+              '🚪 Esci</button>' +
+          '</div>' +
+        '</div>'
       : '';
 
     var splashHtml = '<div id="splashScreen" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.5s ease,visibility 0.5s ease"><div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem"><div style="font-size:4rem;animation:splashWobble 0.6s ease-in-out infinite">🎳</div><div style="text-align:center"><div style="font-family:\'Black Han Sans\',sans-serif;font-size:2.5rem;color:var(--neon);text-shadow:0 0 30px rgba(232,255,0,0.6);letter-spacing:0.1em">STRIKE ZONE</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.3em;text-transform:uppercase;margin-top:0.3rem">Bowling Tracker v1.0</div></div><div style="width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div id="splashBar" style="height:100%;width:0%;background:var(--neon);box-shadow:0 0 8px var(--neon);border-radius:2px;transition:width 1.2s ease"></div></div><div style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.2em" id="splashText">CARICAMENTO...</div></div></div><style>@keyframes splashWobble{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.1)}}</style>';
@@ -143,9 +186,11 @@ function loadTicketBadge() {
             guestBadgeHtml +
             '<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambia tema">☀️</button>' +
             '<button class="btn-share" onclick="shareLink()">🔗 Condividi</button>' +
-            (isGuest
-              ? '<a href="welcome.html" style="font-family:\'Barlow Condensed\',sans-serif;font-weight:600;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;transition:all 0.2s" onmouseover="this.style.color=\'var(--neon)\';this.style.borderColor=\'var(--neon)\'" onmouseout="this.style.color=\'\';this.style.borderColor=\'\'">🔐 Accedi</a>'
-              : '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' + menuHtml) +
+            (isPlayer
+              ? playerBadgeHtml
+              : (isGuest
+                  ? '<a href="welcome.html" style="font-family:\'Barlow Condensed\',sans-serif;font-weight:600;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;transition:all 0.2s" onmouseover="this.style.color=\'var(--neon)\';this.style.borderColor=\'var(--neon)\'" onmouseout="this.style.color=\'\';this.style.borderColor=\'\'">🔐 Accedi</a>'
+                  : '<button class="btn-login auth-hidden" id="btnLogin" onclick="openLoginModal()">🔐 Accedi</button>' + menuHtml)) +
           '</div>' +
         '</div>' +
       '</header>';
@@ -165,6 +210,8 @@ function loadTicketBadge() {
     document.addEventListener('click', function(e) {
       var wrap = document.querySelector('.hamburger-wrap');
       if (wrap && !wrap.contains(e.target)) closeHamburgerMenu();
+      var pbWrap = document.querySelector('.player-badge-wrap');
+      if (pbWrap && !pbWrap.contains(e.target)) closePlayerMenu();
     });
     // Carica badge ticket dopo auth
     setTimeout(function() {

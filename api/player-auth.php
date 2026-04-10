@@ -22,11 +22,14 @@ function generatePlayerJWT(array $pa): string {
 
     $header  = pauth_base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
     $payload = pauth_base64url_encode(json_encode([
-        'iat'       => time(),
-        'exp'       => time() + (24 * 60 * 60),
-        'user_type' => 'player',
-        'player_id' => (int)$pa['player_id'],
-        'group_id'  => (int)$pa['group_id'],
+        'iat'        => time(),
+        'exp'        => time() + (24 * 60 * 60),
+        'user_type'  => 'player',
+        'player_id'  => (int)$pa['player_id'],
+        'group_id'   => (int)$pa['group_id'],
+        'name'       => $pa['player_name'] ?? '',
+        'emoji'      => $pa['emoji']       ?? '🎳',
+        'group_name' => $pa['group_name']  ?? '',
     ]));
     $sig = pauth_base64url_encode(hash_hmac('sha256', "$header.$payload", $secret, true));
     return "$header.$payload.$sig";
@@ -62,7 +65,7 @@ if ($method === 'POST' && $action === 'login') {
 
     try {
         $stmt = $pdo->prepare("
-            SELECT pa.*, p.name AS player_name, p.group_id,
+            SELECT pa.*, p.name AS player_name, p.emoji, p.group_id,
                    g.name AS group_name
             FROM player_auth pa
             JOIN players p ON pa.player_id = p.id

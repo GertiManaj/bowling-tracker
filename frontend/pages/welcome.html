@@ -154,6 +154,64 @@
       display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
     .wc-btn-continue:hover { background: rgba(232,255,0,0.08); transform: translateY(-2px); }
+    .wc-btn-player {
+      background: none; color: var(--neon2);
+      border: 1px solid rgba(0,229,255,0.4); border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
+      font-size: 1rem; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .wc-btn-player:hover { border-color: var(--neon2); background: rgba(0,229,255,0.06); transform: translateY(-2px); }
+
+    /* ── MODAL LOGIN GIOCATORE ── */
+    .pl-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 99999; align-items: center; justify-content: center;
+    }
+    .pl-overlay.open { display: flex; }
+    .pl-modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 2rem; width: 100%; max-width: 360px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    }
+    .pl-title {
+      font-family: 'Black Han Sans', sans-serif; font-size: 1.3rem;
+      color: var(--neon2); letter-spacing: 0.06em; margin-bottom: 1.2rem; text-align: center;
+    }
+    .pl-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+    .pl-field label {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .pl-field input {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.65rem 0.85rem; color: var(--text); font-size: 0.95rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .pl-field input:focus { border-color: var(--neon2); }
+    .pl-error {
+      display: none; background: rgba(255,60,172,0.1); border: 1px solid rgba(255,60,172,0.3);
+      border-radius: 6px; padding: 0.6rem 0.8rem; color: var(--neon2);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.72rem;
+      margin-bottom: 1rem; text-align: center;
+    }
+    .pl-btn {
+      width: 100%; background: var(--neon2); color: #0a0a0f;
+      border: none; border-radius: 8px; padding: 0.85rem;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: opacity 0.2s; margin-bottom: 0.7rem;
+    }
+    .pl-btn:hover { opacity: 0.85; }
+    .pl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pl-cancel {
+      width: 100%; background: none; border: none; color: var(--text-muted);
+      font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem;
+      letter-spacing: 0.08em; cursor: pointer; padding: 0.4rem; transition: color 0.2s;
+    }
+    .pl-cancel:hover { color: var(--text); }
 
     /* ── REGISTRAZIONE ── */
     .wc-reg-row {
@@ -217,6 +275,25 @@
     </div>
   </div>
 
+</div>
+
+<!-- MODAL LOGIN GIOCATORE -->
+<div class="pl-overlay" id="plOverlay" onclick="handlePlOverlayClick(event)">
+  <div class="pl-modal">
+    <div class="pl-title">🎳 Accesso Giocatore</div>
+    <div class="pl-field">
+      <label>Email</label>
+      <input type="email" id="plEmail" placeholder="tua@email.com" autocomplete="username"/>
+    </div>
+    <div class="pl-field">
+      <label>Password</label>
+      <input type="password" id="plPassword" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') submitPlayerLogin()"/>
+    </div>
+    <div class="pl-error" id="plError"></div>
+    <button class="pl-btn" id="plSubmitBtn" onclick="submitPlayerLogin()">🎳 Accedi</button>
+    <button class="pl-cancel" onclick="closePlModal()">Annulla</button>
+  </div>
 </div>
 
 <script>
@@ -316,7 +393,11 @@ function buildButtons() {
     try {
       const pl = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
       if (pl.exp > Math.floor(Date.now() / 1000)) {
-        extra = '<button class="wc-btn-continue" onclick="window.location.href=\'index.html\'">⚡ Continua sessione</button>';
+        const label = pl.user_type === 'player'
+          ? '⚡ Continua come ' + (pl.name || 'Giocatore')
+          : '⚡ Continua sessione';
+        const dest = pl.user_type === 'player' ? 'index.html' : 'index.html';
+        extra = '<button class="wc-btn-continue" onclick="window.location.href=\'' + dest + '\'">' + label + '</button>';
       }
     } catch(e) {}
   }
@@ -324,11 +405,69 @@ function buildButtons() {
   container.innerHTML =
     extra +
     '<button class="wc-btn-admin" onclick="goAdmin()">🔐 Accesso Amministratore</button>' +
+    '<button class="wc-btn-player" onclick="openPlModal()">🎳 Accesso Giocatore</button>' +
     '<button class="wc-btn-guest" onclick="goGuest()">👤 Entra come ospite</button>';
 }
 
 function goAdmin() { window.location.href = 'index.html?login=1'; }
 function goGuest()  { localStorage.removeItem(TOKEN_KEY); window.location.href = 'index.html?guest=1'; }
+
+// ── PLAYER LOGIN MODAL ───────────────────────
+function openPlModal() {
+  document.getElementById('plEmail').value = '';
+  document.getElementById('plPassword').value = '';
+  document.getElementById('plError').style.display = 'none';
+  document.getElementById('plOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('plEmail').focus(), 100);
+}
+
+function closePlModal() {
+  document.getElementById('plOverlay').classList.remove('open');
+}
+
+function handlePlOverlayClick(e) {
+  if (e.target === document.getElementById('plOverlay')) closePlModal();
+}
+
+async function submitPlayerLogin() {
+  const email    = document.getElementById('plEmail').value.trim();
+  const password = document.getElementById('plPassword').value;
+  const btn      = document.getElementById('plSubmitBtn');
+  const errEl    = document.getElementById('plError');
+
+  if (!email || !password) {
+    errEl.textContent = 'Inserisci email e password';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Accesso...';
+  errEl.style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/player-auth.php?action=login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (data.success && data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      window.location.href = 'index.html';
+    } else {
+      errEl.textContent = data.error || 'Credenziali non valide';
+      errEl.style.display = 'block';
+    }
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione';
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🎳 Accedi';
+}
 
 // ══════════════════════════════════════════
 // UTILITY

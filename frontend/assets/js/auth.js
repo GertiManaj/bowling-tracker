@@ -44,6 +44,14 @@ function isTokenValid() {
 async function checkAuth() {
   if (!isTokenValid()) {
     removeToken();
+    window.isLoggedIn       = false;
+    window.isPlayerLoggedIn = false;
+    applyAuthUI();
+    return false;
+  }
+
+  // Player JWT: self-contained, nessuna chiamata server necessaria
+  if (window.isPlayerLoggedIn) {
     window.isLoggedIn = false;
     applyAuthUI();
     return false;
@@ -70,24 +78,39 @@ async function checkAuth() {
 // ══════════════════════════════════════════
 
 function applyAuthUI() {
+  const loggedIn = window.isLoggedIn || false;
+  const playerIn = window.isPlayerLoggedIn || false;
+
   document.querySelectorAll('.auth-required').forEach(el => {
-    el.style.display = window.isLoggedIn ? '' : 'none';
+    el.style.display = loggedIn ? '' : 'none';
   });
 
   document.querySelectorAll('.auth-hidden').forEach(el => {
-    el.style.display = window.isLoggedIn ? 'none' : '';
+    el.style.display = (loggedIn || playerIn) ? 'none' : '';
   });
 
   const btnLogin = document.getElementById('btnLogin');
-  if (btnLogin) btnLogin.style.display = window.isLoggedIn ? 'none' : '';
+  if (btnLogin) btnLogin.style.display = (loggedIn || playerIn) ? 'none' : '';
 
   document.querySelectorAll('.action-btn-wrap').forEach(el => {
-    el.style.display = window.isLoggedIn ? '' : 'none';
+    el.style.display = loggedIn ? '' : 'none';
   });
+
+  // Player badge: mostra nome + emoji quando loggato come giocatore
+  const playerBadge = document.getElementById('playerBadge');
+  if (playerBadge) {
+    playerBadge.style.display = playerIn ? '' : 'none';
+    if (playerIn) {
+      const nameEl  = document.getElementById('playerBadgeName');
+      const emojiEl = document.getElementById('playerBadgeEmoji');
+      if (nameEl)  nameEl.textContent  = window.currentPlayerName  || 'Giocatore';
+      if (emojiEl) emojiEl.textContent = window.currentPlayerEmoji || '🎳';
+    }
+  }
 
   // Hooks opzionali per pagine specifiche
   if (typeof updateHamburgerSections === 'function') updateHamburgerSections();
-  if (typeof loadInviteCode === 'function' && window.isLoggedIn) loadInviteCode();
+  if (typeof loadInviteCode === 'function' && loggedIn) loadInviteCode();
 }
 
 // ══════════════════════════════════════════
@@ -435,7 +458,7 @@ document.addEventListener('keydown', e => {
 // INIT
 // ══════════════════════════════════════════
 
-window.isLoggedIn = isTokenValid();
+window.isLoggedIn = isTokenValid() && !window.isPlayerLoggedIn;
 applyAuthUI();
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -262,9 +262,12 @@ function renderAllTimeLeaderboard() {
       : '';
 
     const isSelected = suggestSelected.has(p.id);
+    const isMyRow    = !!(window.isPlayerLoggedIn && window.currentPlayerId && p.id === window.currentPlayerId);
     const rowSelStyle = isSelected
       ? 'background:rgba(232,255,0,0.07);border-left:2px solid rgba(232,255,0,0.5);'
-      : 'border-left:2px solid transparent;';
+      : isMyRow
+        ? 'background:rgba(0,229,255,0.05);border-left:3px solid var(--neon2);box-shadow:inset 0 0 24px rgba(0,229,255,0.03);'
+        : 'border-left:2px solid transparent;';
 
     html += `
       <div class="leaderboard-row" data-player-id="${p.id}"
@@ -273,9 +276,9 @@ function renderAllTimeLeaderboard() {
            style="animation-delay:${delay}s;grid-template-columns:${cols};cursor:pointer;${rowSelStyle}transition:background 0.15s,border-color 0.15s">
         ${rankEl}
         <div class="player-info">
-          <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
+          <div class="avatar" style="background:${bc}18;border-color:${isMyRow ? 'var(--neon2)' : bc + '44'}">${p.emoji || '🎳'}</div>
           <div>
-            <div class="player-name">${p.name}</div>
+            <div class="player-name">${p.name}${isMyRow ? ' <span style="font-size:0.52rem;color:var(--neon2);letter-spacing:0.12em;font-family:\'Share Tech Mono\',monospace;vertical-align:middle;opacity:0.9">● TU</span>' : ''}</div>
             <div class="player-tag">${p.partite} serate · ${p.game_totali || 0} game</div>
           </div>
         </div>

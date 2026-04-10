@@ -56,6 +56,30 @@ window.addEventListener('DOMContentLoaded', initSplash);
 
 window.isGuestMode = new URLSearchParams(window.location.search).get('guest') === '1';
 
+// ── PLAYER MODE ──────────────────────────────
+// Se in localStorage c'è un token player, imposta le variabili globali
+// e abilita le stesse restrizioni visive della modalità ospite.
+window.isPlayerLoggedIn  = false;
+window.currentPlayerId   = null;
+window.currentPlayerName  = null;
+window.currentPlayerEmoji = null;
+
+(function () {
+  const tok = localStorage.getItem('sz_auth_token');
+  if (!tok) return;
+  try {
+    const p = JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (p && p.user_type === 'player' && p.exp > Math.floor(Date.now() / 1000)) {
+      window.isPlayerLoggedIn   = true;
+      window.currentPlayerId    = p.player_id || null;
+      window.currentPlayerName  = p.name  || 'Giocatore';
+      window.currentPlayerEmoji = p.emoji || '🎳';
+      // Stesse restrizioni visive dell'ospite (niente €, niente bottoni admin)
+      window.isGuestMode = true;
+    }
+  } catch (e) {}
+})();
+
 if (window.isGuestMode) {
   // Inietta CSS: nasconde elementi sensibili
   (function() {
