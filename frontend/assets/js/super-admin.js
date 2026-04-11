@@ -147,18 +147,111 @@ async function saveGroup() {
 async function deleteGroup(id) {
   var g = saGroups.find(function(x) { return x.id == id; });
   if (!g) return;
-  if (!confirm('Eliminare il gruppo "' + g.name + '"?\nIl gruppo deve essere vuoto (nessun giocatore o sessione).')) return;
+
+  // Step 1: prima conferma semplice
+  if (!confirm('Eliminare il gruppo "' + g.name + '"?')) return;
 
   try {
-    const res  = await authFetch(SA_API + '/groups.php', { method: 'DELETE', body: JSON.stringify({ id: id }) });
-    const data = await res.json();
-    if (data.error) { showToast(data.error, 'error'); return; }
-    showToast('Gruppo eliminato');
-    await loadGroups();
-    loadAnalytics();
+    // Primo tentativo senza confirm → il server restituisce i conteggi se ci sono dati
+    const res1  = await authFetch(SA_API + '/groups.php', { method: 'DELETE', body: JSON.stringify({ id: id }) });
+    const data1 = await res1.json();
+
+    if (data1.error) { showToast(data1.error, 'error'); return; }
+
+    // Gruppo vuoto → eliminato direttamente
+    if (data1.success) {
+      showToast('Gruppo eliminato');
+      await loadGroups();
+      loadAnalytics();
+      return;
+    }
+
+    // Il server chiede conferma perché ci sono dati
+    if (data1.requires_confirmation) {
+      const confirmed = await showDeleteConfirmModal(data1);
+      if (!confirmed) return;
+
+      // Step 2: eliminazione confermata
+      const res2  = await authFetch(SA_API + '/groups.php', { method: 'DELETE', body: JSON.stringify({ id: id, confirm: true }) });
+      const data2 = await res2.json();
+
+      if (data2.error) { showToast(data2.error, 'error'); return; }
+      showToast('Gruppo "' + escHtml(data1.group_name) + '" eliminato con tutti i dati');
+      await loadGroups();
+      loadAnalytics();
+    }
   } catch(e) {
     showToast('Errore eliminazione gruppo', 'error');
   }
+}
+
+// Mostra modal di conferma con conteggi dati; restituisce Promise<boolean>
+function showDeleteConfirmModal(info) {
+  return new Promise(function(resolve) {
+    // Rimuovi eventuale modal precedente
+    var existing = document.getElementById('deleteGroupModal');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'deleteGroupModal';
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.75)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'z-index:99999', 'padding:1rem'
+    ].join(';');
+
+    overlay.innerHTML =
+      '<div style="background:var(--surface);border:1px solid var(--neon2);border-radius:16px;' +
+      'padding:2rem 2rem 1.5rem;max-width:420px;width:100%;box-shadow:0 0 60px rgba(255,60,172,0.3)">' +
+        '<div style="font-size:2rem;text-align:center;margin-bottom:0.75rem">⚠️</div>' +
+        '<div style="font-family:\'Black Han Sans\',sans-serif;font-size:1.3rem;color:var(--neon2);' +
+        'text-align:center;margin-bottom:1rem">ATTENZIONE</div>' +
+        '<p style="font-family:\'Barlow Condensed\',sans-serif;font-size:0.95rem;' +
+        'color:var(--text);margin-bottom:1rem;text-align:center">' +
+          'Il gruppo <strong style="color:var(--neon)">' + escHtml(info.group_name) + '</strong> contiene dati:' +
+        '</p>' +
+        '<div style="background:var(--surface2);border-radius:8px;padding:1rem;' +
+        'margin-bottom:1.25rem;font-family:\'Share Tech Mono\',monospace;font-size:0.8rem">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:0.4rem">' +
+            '<span style="color:var(--text-muted)">Giocatori</span>' +
+            '<span style="color:var(--neon2)">' + info.players + '</span>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:0.4rem">' +
+            '<span style="color:var(--text-muted)">Sessioni</span>' +
+            '<span style="color:var(--neon2)">' + info.sessions + '</span>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-between">' +
+            '<span style="color:var(--text-muted)">Punteggi</span>' +
+            '<span style="color:var(--neon2)">' + info.scores + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<p style="font-family:\'Barlow Condensed\',sans-serif;font-size:0.85rem;' +
+        'color:var(--neon2);text-align:center;margin-bottom:1.5rem;font-weight:700">' +
+          'Questa operazione è IRREVERSIBILE. Tutti i dati verranno eliminati definitivamente.' +
+        '</p>' +
+        '<div style="display:flex;gap:0.75rem">' +
+          '<button id="deleteGroupCancel" style="flex:1;padding:0.75rem;background:transparent;' +
+          'border:1px solid var(--border);border-radius:8px;color:var(--text-muted);' +
+          'font-family:\'Barlow Condensed\',sans-serif;font-size:0.9rem;cursor:pointer;' +
+          'letter-spacing:0.1em;text-transform:uppercase">Annulla</button>' +
+          '<button id="deleteGroupConfirm" style="flex:1;padding:0.75rem;background:var(--neon2);' +
+          'border:none;border-radius:8px;color:#fff;font-family:\'Barlow Condensed\',sans-serif;' +
+          'font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.1em;' +
+          'text-transform:uppercase">Elimina Tutto</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+
+    function close(result) {
+      overlay.remove();
+      resolve(result);
+    }
+
+    document.getElementById('deleteGroupConfirm').addEventListener('click', function() { close(true); });
+    document.getElementById('deleteGroupCancel').addEventListener('click', function() { close(false); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) close(false); });
+  });
 }
 
 // ── AMMINISTRATORI ────────────────────────────

@@ -202,28 +202,51 @@ if ($method === 'DELETE') {
     }
 
     try {
-        // Blocca se gruppo ha dati
+        // Conta dati del gruppo
         $stmt = $pdo->prepare("
             SELECT
-                (SELECT COUNT(*) FROM players  WHERE group_id = ?) AS players,
-                (SELECT COUNT(*) FROM sessions WHERE group_id = ?) AS sessions
+                g.name,
+                (SELECT COUNT(*) FROM players  WHERE group_id = g.id) AS players,
+                (SELECT COUNT(*) FROM sessions WHERE group_id = g.id) AS sessions,
+                (SELECT COUNT(*) FROM scores sc
+                 JOIN sessions se ON sc.session_id = se.id
+                 WHERE se.group_id = g.id)                            AS scores
+            FROM `groups` g WHERE g.id = ?
         ");
-        $stmt->execute([$id, $id]);
+        $stmt->execute([$id]);
         $counts = $stmt->fetch();
 
-        if ($counts['players'] > 0 || $counts['sessions'] > 0) {
-            http_response_code(409);
+        if (!$counts) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Gruppo non trovato']);
+            exit;
+        }
+
+        $hasData  = ((int)$counts['players'] > 0 || (int)$counts['sessions'] > 0);
+        $confirmed = !empty($data['confirm']);
+
+        // Gruppo con dati e senza conferma → chiedi conferma con dettagli
+        if ($hasData && !$confirmed) {
             echo json_encode([
-                'error'    => 'Impossibile eliminare: gruppo contiene dati',
-                'players'  => (int)$counts['players'],
-                'sessions' => (int)$counts['sessions'],
+                'requires_confirmation' => true,
+                'group_name' => $counts['name'],
+                'players'    => (int)$counts['players'],
+                'sessions'   => (int)$counts['sessions'],
+                'scores'     => (int)$counts['scores'],
             ]);
             exit;
         }
 
-        // Elimina admin_roles collegati prima del gruppo (FK)
+        // Elimina tutto in ordine (rispetta FK)
+        $pdo->beginTransaction();
+        $pdo->prepare("DELETE sc FROM scores sc JOIN sessions se ON sc.session_id = se.id WHERE se.group_id = ?")->execute([$id]);
+        $pdo->prepare("DELETE t  FROM teams  t  JOIN sessions se ON t.session_id  = se.id WHERE se.group_id = ?")->execute([$id]);
+        $pdo->prepare("DELETE FROM sessions    WHERE group_id = ?")->execute([$id]);
+        $pdo->prepare("DELETE pa FROM player_auth pa JOIN players p ON pa.player_id = p.id WHERE p.group_id = ?")->execute([$id]);
+        $pdo->prepare("DELETE FROM players     WHERE group_id = ?")->execute([$id]);
         $pdo->prepare("DELETE FROM admin_roles WHERE group_id = ?")->execute([$id]);
-        $pdo->prepare("DELETE FROM `groups` WHERE id = ?")->execute([$id]);
+        $pdo->prepare("DELETE FROM `groups`    WHERE id = ?")->execute([$id]);
+        $pdo->commit();
 
         logSecurityEvent($pdo, 'group_deleted', 'CRITICAL', $payload['admin_id'] ?? null, ['group_id' => $id]);
         echo json_encode(['success' => true, 'message' => 'Gruppo eliminato']);
