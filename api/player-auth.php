@@ -228,7 +228,7 @@ if ($method === 'POST' && $action === 'register') {
     } catch (Exception $e) {
         $msg = stripos($e->getMessage(), 'Duplicate') !== false
             ? 'Email o player_id già registrato'
-            : 'Errore: ' . $e->getMessage(); // mostra errore reale per debug
+            : 'Errore creazione credenziali';
         ob_end_clean();
         http_response_code(409);
         echo json_encode(['error' => $msg]);
