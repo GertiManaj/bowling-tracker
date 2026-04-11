@@ -215,8 +215,6 @@ function openPlayerLoginModal(id, name) {
   document.getElementById('playerLoginName').textContent = name;
   document.getElementById('playerLoginModalTitle').textContent = '🔑 Crea Login — ' + name;
   document.getElementById('playerLoginEmail').value = '';
-  document.getElementById('playerLoginPassword').value = '';
-  document.getElementById('playerLoginPasswordConfirm').value = '';
   document.getElementById('playerLoginError').style.display = 'none';
   document.getElementById('playerLoginOverlay').classList.add('open');
   setTimeout(() => document.getElementById('playerLoginEmail').focus(), 100);
