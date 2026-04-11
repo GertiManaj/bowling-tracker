@@ -299,6 +299,42 @@
   </div>
 </div>
 
+<!-- MODAL CAMBIO PASSWORD OBBLIGATORIO (non chiudibile) -->
+<div id="fcOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:999999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--surface);border:2px solid var(--neon2);border-radius:16px;padding:2rem;width:100%;max-width:400px;box-shadow:0 0 80px rgba(255,60,172,0.3)">
+    <div style="text-align:center;margin-bottom:1.2rem">
+      <div style="font-size:2.2rem;margin-bottom:0.5rem">🔒</div>
+      <div style="font-family:'Black Han Sans',sans-serif;font-size:1.3rem;color:var(--neon2);letter-spacing:0.06em">CAMBIO PASSWORD RICHIESTO</div>
+    </div>
+    <div style="background:rgba(255,60,172,0.08);border:1px solid rgba(255,60,172,0.3);border-radius:8px;padding:0.8rem 1rem;margin-bottom:1.2rem;font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--neon2);line-height:1.6">
+      Per motivi di sicurezza devi impostare una password personale prima di accedere. La password temporanea non può essere riutilizzata.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem">
+      <label style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted)">Nuova Password (min. 8 caratteri)</label>
+      <input type="password" id="fcNewPassword" class="pl-field input"
+             style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.65rem 0.85rem;color:var(--text);font-size:0.95rem;outline:none"
+             placeholder="••••••••••••" autocomplete="new-password"
+             onkeydown="if(event.key==='Enter') submitForceChange()"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1.2rem">
+      <label style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted)">Conferma Password</label>
+      <input type="password" id="fcConfirmPassword"
+             style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.65rem 0.85rem;color:var(--text);font-size:0.95rem;outline:none"
+             placeholder="••••••••••••" autocomplete="new-password"
+             onkeydown="if(event.key==='Enter') submitForceChange()"/>
+    </div>
+    <div id="fcError" style="display:none;background:rgba(255,60,172,0.1);border:1px solid rgba(255,60,172,0.3);border-radius:6px;padding:0.6rem 0.8rem;color:var(--neon2);font-family:'Share Tech Mono',monospace;font-size:0.72rem;margin-bottom:0.8rem"></div>
+    <div id="fcSuccess" style="display:none;background:rgba(232,255,0,0.08);border:1px solid rgba(232,255,0,0.3);border-radius:6px;padding:0.6rem 0.8rem;color:var(--neon);font-family:'Share Tech Mono',monospace;font-size:0.72rem;margin-bottom:0.8rem"></div>
+    <button id="fcSubmitBtn" onclick="submitForceChange()"
+            style="width:100%;background:var(--neon2);color:#0a0a0f;border:none;border-radius:8px;padding:0.9rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">
+      Cambia Password e Accedi
+    </button>
+    <p style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted);margin-top:1rem;line-height:1.6">
+      Non puoi accedere all'applicazione finché non completi questo passaggio.
+    </p>
+  </div>
+</div>
+
 <script>
 const TOKEN_KEY = 'sz_auth_token';
 
@@ -459,6 +495,9 @@ async function submitPlayerLogin() {
     if (data.success && data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
       window.location.href = 'index.html';
+    } else if (data.must_change_password) {
+      closePlModal();
+      openForceChangeModal(email, password);
     } else {
       errEl.textContent = data.error || 'Credenziali non valide';
       errEl.style.display = 'block';
@@ -470,6 +509,80 @@ async function submitPlayerLogin() {
 
   btn.disabled = false;
   btn.textContent = '🎳 Accedi';
+}
+
+// ══════════════════════════════════════════
+// CAMBIO PASSWORD FORZATO
+// ══════════════════════════════════════════
+
+let _forceEmail = '', _forceOldPass = '';
+
+function openForceChangeModal(email, oldPass) {
+  _forceEmail   = email;
+  _forceOldPass = oldPass;
+  document.getElementById('fcNewPassword').value    = '';
+  document.getElementById('fcConfirmPassword').value = '';
+  document.getElementById('fcError').style.display  = 'none';
+  document.getElementById('fcSuccess').style.display = 'none';
+  document.getElementById('fcOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('fcNewPassword').focus(), 100);
+}
+
+async function submitForceChange() {
+  const newPass  = document.getElementById('fcNewPassword').value;
+  const confPass = document.getElementById('fcConfirmPassword').value;
+  const errEl    = document.getElementById('fcError');
+  const btn      = document.getElementById('fcSubmitBtn');
+
+  errEl.style.display = 'none';
+
+  if (newPass.length < 8) {
+    errEl.textContent = 'Password di almeno 8 caratteri'; errEl.style.display = 'block'; return;
+  }
+  if (newPass !== confPass) {
+    errEl.textContent = 'Le password non coincidono'; errEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Aggiornamento...';
+
+  try {
+    const res  = await fetch('/api/force-change-password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: _forceEmail, old_password: _forceOldPass, new_password: newPass })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const succEl = document.getElementById('fcSuccess');
+      succEl.textContent = '✓ Password cambiata! Accesso in corso...';
+      succEl.style.display = 'block';
+      // Login automatico con la nuova password
+      setTimeout(async () => {
+        const r2   = await fetch('/api/player-auth.php?action=login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: _forceEmail, password: newPass })
+        });
+        const d2 = await r2.json();
+        if (d2.success && d2.token) {
+          localStorage.setItem(TOKEN_KEY, d2.token);
+          window.location.href = 'index.html';
+        }
+      }, 1000);
+    } else {
+      errEl.textContent = data.error || 'Errore aggiornamento';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Cambia Password e Accedi';
+    }
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Cambia Password e Accedi';
+  }
 }
 
 // ══════════════════════════════════════════

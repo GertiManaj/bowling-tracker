@@ -247,7 +247,14 @@ function runMigrations(PDO $pdo) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
 
-        // STEP 9: Tabella player_password_resets
+        // STEP 9: must_change_password su player_auth
+        try {
+            $pdo->query("SELECT must_change_password FROM player_auth LIMIT 1");
+        } catch (Exception $e) {
+            $pdo->exec("ALTER TABLE player_auth ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0");
+        }
+
+        // STEP 10: Tabella player_password_resets
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS player_password_resets (
                 id         INT AUTO_INCREMENT PRIMARY KEY,

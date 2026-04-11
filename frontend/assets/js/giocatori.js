@@ -240,14 +240,11 @@ function showPlayerLoginError(msg) {
 async function savePlayerLogin() {
   const btn   = document.getElementById('btnSavePlayerLogin');
   const email = document.getElementById('playerLoginEmail').value.trim();
-  const pass  = document.getElementById('playerLoginPassword').value;
-  const conf  = document.getElementById('playerLoginPasswordConfirm').value;
 
   document.getElementById('playerLoginError').style.display = 'none';
 
   if (!email) { showPlayerLoginError('Email obbligatoria'); return; }
-  if (pass.length < 8) { showPlayerLoginError('Password minimo 8 caratteri'); return; }
-  if (pass !== conf) { showPlayerLoginError('Le password non corrispondono'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showPlayerLoginError('Email non valida'); return; }
 
   btn.disabled = true;
   btn.textContent = 'Creazione...';
@@ -255,7 +252,7 @@ async function savePlayerLogin() {
   try {
     const res  = await authFetch('/api/player-auth.php?action=register', {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerLoginId, email: email, password: pass })
+      body: JSON.stringify({ player_id: playerLoginId, email })
     });
     const data = await res.json();
 

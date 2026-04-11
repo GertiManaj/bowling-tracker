@@ -89,6 +89,16 @@ if ($method === 'POST' && $action === 'login') {
             exit;
         }
 
+        // Blocca se deve cambiare password (account appena attivato dall'admin)
+        if (!empty($pa['must_change_password'])) {
+            http_response_code(403);
+            echo json_encode([
+                'must_change_password' => true,
+                'message'              => 'Devi impostare una nuova password prima di accedere',
+            ]);
+            exit;
+        }
+
         // Aggiorna last_login
         $pdo->prepare("UPDATE player_auth SET last_login = NOW() WHERE id = ?")->execute([$pa['id']]);
 
@@ -133,16 +143,15 @@ if ($method === 'POST' && $action === 'register') {
     $data     = json_decode(file_get_contents('php://input'), true) ?? [];
     $playerId = (int)($data['player_id'] ?? 0);
     $email    = trim($data['email']     ?? '');
-    $pass     = $data['password'] ?? '';
 
-    if (!$playerId || $email === '' || $pass === '') {
+    if (!$playerId || $email === '') {
         http_response_code(400);
-        echo json_encode(['error' => 'player_id, email e password obbligatori']);
+        echo json_encode(['error' => 'player_id e email obbligatori']);
         exit;
     }
-    if (strlen($pass) < 8) {
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
-        echo json_encode(['error' => 'Password minimo 8 caratteri']);
+        echo json_encode(['error' => 'Email non valida']);
         exit;
     }
 
@@ -170,12 +179,19 @@ if ($method === 'POST' && $action === 'register') {
         $infoStmt->execute([$playerId]);
         $playerInfo = $infoStmt->fetch();
 
-        $pdo->prepare("
-            INSERT INTO player_auth (player_id, email, password_hash)
-            VALUES (?, ?, ?)
-        ")->execute([$playerId, $email, password_hash($pass, PASSWORD_DEFAULT)]);
+        // Genera password temporanea casuale (admin non la conosce)
+        $chars    = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%';
+        $tempPass = '';
+        for ($i = 0; $i < 12; $i++) {
+            $tempPass .= $chars[random_int(0, strlen($chars) - 1)];
+        }
 
-        // Invia email benvenuto con credenziali (dopo la risposta HTTP)
+        $pdo->prepare("
+            INSERT INTO player_auth (player_id, email, password_hash, must_change_password)
+            VALUES (?, ?, ?, 1)
+        ")->execute([$playerId, $email, password_hash($tempPass, PASSWORD_DEFAULT)]);
+
+        // Invia email con password temporanea e avviso cambio obbligatorio
         $emailSent = false;
         if ($playerInfo) {
             if (function_exists('fastcgi_finish_request')) {
@@ -183,7 +199,7 @@ if ($method === 'POST' && $action === 'register') {
                 fastcgi_finish_request();
             }
             try {
-                $emailSent = sendPlayerActivation($email, $playerInfo['player_name'], $playerInfo['group_name'], $pass);
+                $emailSent = sendPlayerActivation($email, $playerInfo['player_name'], $playerInfo['group_name'], $tempPass);
                 error_log($emailSent
                     ? "[player-auth] ✅ Email attivazione inviata a $email"
                     : "[player-auth] ❌ Email attivazione fallita per $email");

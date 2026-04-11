@@ -149,33 +149,38 @@ function sendWelcomePlayer(string $email, string $playerName, string $groupName,
     return sendEmail($email, $subject, mailWrap($body));
 }
 
-// ── 3. Attivazione Player — con credenziali ───
-function sendPlayerActivation(string $email, string $playerName, string $groupName, string $password): bool {
+// ── 3. Attivazione Player — password temporanea ───
+function sendPlayerActivation(string $email, string $playerName, string $groupName, string $tempPassword): bool {
     $appUrl   = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
     $loginUrl = $appUrl . '/frontend/pages/welcome.html';
     $eName    = htmlspecialchars($playerName);
     $eGroup   = htmlspecialchars($groupName);
     $eEmail   = htmlspecialchars($email);
-    $ePass    = htmlspecialchars($password);
+    $ePass    = htmlspecialchars($tempPassword);
 
     $body = "
 <p>Ciao <strong>$eName</strong>! 🎳</p>
-<p>Il tuo account per il gruppo <strong>«$eGroup»</strong> è pronto.</p>
+<p>Il tuo account per il gruppo <strong>«$eGroup»</strong> è stato creato.</p>
 
-<div class='info-box' style='border-color:#e8ff00'>
-  <strong style='color:#e8ff00'>🔑 Le tue credenziali:</strong><br><br>
-  <div style='margin-bottom:0.4em'>Email: <strong style='color:#fff'>$eEmail</strong></div>
-  <div class='code-box' style='font-size:1.3rem;letter-spacing:4px'>$ePass</div>
-  <span style='font-size:12px'>Cambia la password dopo il primo accesso.</span>
+<div class='info-box' style='border-left-color:#ff3cac;background:#1a0d15'>
+  <strong style='color:#ff3cac'>⚠️ PASSWORD TEMPORANEA — CAMBIO OBBLIGATORIO</strong><br>
+  <span style='font-size:13px'>Al primo accesso ti verrà chiesto di scegliere una nuova password personale.
+  Non potrai usare l'applicazione finché non la cambi.</span>
 </div>
 
-<a href='$loginUrl' class='btn'>🎳 Accedi ora</a>
+<div class='info-box' style='border-color:#e8ff00;margin-top:16px'>
+  <strong style='color:#e8ff00'>🔑 Credenziali temporanee:</strong><br><br>
+  <div style='margin-bottom:0.4em'>Email: <strong style='color:#fff'>$eEmail</strong></div>
+  <div class='code-box' style='font-size:1.2rem;letter-spacing:3px;border-color:#ff3cac;color:#ff3cac'>$ePass</div>
+</div>
+
+<a href='$loginUrl' class='btn'>🎳 Accedi e cambia password</a>
 
 <p style='font-size:13px;color:#555570;margin-top:24px'>
-  Entra nella sezione <em>Player Login</em> dalla pagina di benvenuto e usa l'email e la password sopra.
+  Usa l'email e la password temporanea sopra per il primo accesso, poi scegli una password che solo tu conosci.
 </p>";
 
-    $subject = "🎳 Il tuo account «$groupName» su Strike Zone è pronto!";
+    $subject = "🎳 Account creato in «$groupName» — Cambia password richiesto";
     return sendEmail($email, $subject, mailWrap($body));
 }
 
