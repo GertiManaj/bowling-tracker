@@ -247,6 +247,22 @@ function runMigrations(PDO $pdo) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
 
+        // STEP 9: Tabella player_password_resets
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS player_password_resets (
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                player_id  INT NOT NULL,
+                token      VARCHAR(64) NOT NULL UNIQUE,
+                expires_at DATETIME NOT NULL,
+                used       TINYINT(1) NOT NULL DEFAULT 0,
+                used_at    DATETIME DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (player_id) REFERENCES player_auth(id) ON DELETE CASCADE,
+                INDEX idx_token   (token),
+                INDEX idx_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
     } catch (Exception $e) {
         error_log("Migration 012 error: " . $e->getMessage());
     }

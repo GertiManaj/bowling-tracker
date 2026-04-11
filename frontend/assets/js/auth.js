@@ -393,8 +393,7 @@ function setupOTPInputs() {
 function logout() {
   removeToken();
   window.isLoggedIn = false;
-  applyAuthUI();
-  showToast('Disconnesso', 'success');
+  window.location.href = 'welcome.html';
 }
 
 // ══════════════════════════════════════════

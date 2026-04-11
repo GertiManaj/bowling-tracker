@@ -693,35 +693,56 @@ if ($_GET['action'] === 'request-reset' && $_SERVER['REQUEST_METHOD'] === 'POST'
         $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? AND active = 1");
         $stmt->execute([$email]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Sempre successo per sicurezza (non rivelare se email esiste)
+
+        // Se non trovato tra gli admin, cerca tra i player
+        $playerAuth = null;
         if (!$admin) {
+            $stmt = $pdo->prepare("SELECT pa.*, p.name AS player_name FROM player_auth pa JOIN players p ON pa.player_id = p.id WHERE pa.email = ? AND pa.active = 1");
+            $stmt->execute([$email]);
+            $playerAuth = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        // Sempre successo per sicurezza (non rivelare se email esiste)
+        if (!$admin && !$playerAuth) {
             echo json_encode(['success' => true, 'message' => 'Se l\'email esiste, riceverai le istruzioni']);
             exit;
         }
-        
+
         // Genera token sicuro
         $token = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + (60 * 60)); // 1 ora
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO password_resets (admin_id, token, expires_at, ip_address)
-            VALUES (:admin_id, :token, :expires_at, :ip)
-        ");
-        
-        $stmt->execute([
-            ':admin_id' => $admin['id'],
-            ':token' => $token,
-            ':expires_at' => $expiresAt,
-            ':ip' => $_SERVER['REMOTE_ADDR'] ?? null
-        ]);
-        
+
+        if ($admin) {
+            $pdo->prepare("
+                INSERT INTO password_resets (admin_id, token, expires_at, ip_address)
+                VALUES (:admin_id, :token, :expires_at, :ip)
+            ")->execute([
+                ':admin_id'   => $admin['id'],
+                ':token'      => $token,
+                ':expires_at' => $expiresAt,
+                ':ip'         => $_SERVER['REMOTE_ADDR'] ?? null,
+            ]);
+            $displayName = $admin['name'];
+            logSecurityEvent($pdo, 'password_reset_requested', 'WARNING', $admin['id'], ['email' => $email]);
+        } else {
+            $pdo->prepare("
+                INSERT INTO player_password_resets (player_id, token, expires_at)
+                VALUES (:player_id, :token, :expires_at)
+            ")->execute([
+                ':player_id'  => $playerAuth['id'],
+                ':token'      => $token,
+                ':expires_at' => $expiresAt,
+            ]);
+            $displayName = $playerAuth['player_name'];
+            logSecurityEvent($pdo, 'player_password_reset_requested', 'WARNING', null, ['email' => $email]);
+        }
+
         // Invia email
-        $resetLink = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . 
-                     $_SERVER['HTTP_HOST'] . 
+        $resetLink = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') .
+                     $_SERVER['HTTP_HOST'] .
                      '/frontend/pages/reset-password.html?token=' . $token;
-        
-        $sent = sendPasswordResetEmail($admin['email'], $resetLink, $admin['name']);
+
+        $sent = sendPasswordResetEmail($email, $resetLink, $displayName);
 
         if (!$sent) {
             http_response_code(500);
@@ -729,7 +750,6 @@ if ($_GET['action'] === 'request-reset' && $_SERVER['REQUEST_METHOD'] === 'POST'
             exit;
         }
 
-        logSecurityEvent($pdo, 'password_reset_requested', 'WARNING', $admin['id'], ['email' => $email]);
         echo json_encode(['success' => true, 'message' => 'Se l\'email esiste, riceverai le istruzioni']);
         
     } catch (Exception $e) {
@@ -765,37 +785,45 @@ if ($_GET['action'] === 'reset-password' && $_SERVER['REQUEST_METHOD'] === 'POST
     try {
         $pdo = getPDO();
         
+        // Cerca prima tra i reset admin
         $stmt = $pdo->prepare("
-            SELECT * FROM password_resets 
-            WHERE token = :token 
-            AND used = 0 
-            AND expires_at > NOW()
-            ORDER BY created_at DESC
-            LIMIT 1
+            SELECT *, 'admin' AS reset_type FROM password_resets
+            WHERE token = :token AND used = 0 AND expires_at > NOW()
+            ORDER BY created_at DESC LIMIT 1
         ");
         $stmt->execute([':token' => $token]);
         $reset = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
+        // Se non trovato, cerca tra i reset player
+        if (!$reset) {
+            $stmt = $pdo->prepare("
+                SELECT *, 'player' AS reset_type FROM player_password_resets
+                WHERE token = :token AND used = 0 AND expires_at > NOW()
+                ORDER BY created_at DESC LIMIT 1
+            ");
+            $stmt->execute([':token' => $token]);
+            $reset = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
         if (!$reset) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Token non valido o scaduto']);
             exit;
         }
-        
-        // Aggiorna password
+
         $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
 
-        $stmt = $pdo->prepare("UPDATE admins SET password_hash = ? WHERE id = ?");
-        $stmt->execute([$newHash, $reset['admin_id']]);
-
-        // Marca token come usato
-        $stmt = $pdo->prepare("UPDATE password_resets SET used = 1, used_at = NOW() WHERE id = ?");
-        $stmt->execute([$reset['id']]);
-
-        // Revoca tutti i dispositivi fidati
-        $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$reset['admin_id']]);
-        setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
-        logSecurityEvent($pdo, 'password_reset_completed', 'WARNING', $reset['admin_id'], []);
+        if ($reset['reset_type'] === 'admin') {
+            $pdo->prepare("UPDATE admins SET password_hash = ? WHERE id = ?")->execute([$newHash, $reset['admin_id']]);
+            $pdo->prepare("UPDATE password_resets SET used = 1, used_at = NOW() WHERE id = ?")->execute([$reset['id']]);
+            $pdo->prepare("DELETE FROM trusted_devices WHERE admin_id = ?")->execute([$reset['admin_id']]);
+            setcookie('trusted_device', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+            logSecurityEvent($pdo, 'password_reset_completed', 'WARNING', $reset['admin_id'], []);
+        } else {
+            $pdo->prepare("UPDATE player_auth SET password_hash = ? WHERE id = ?")->execute([$newHash, $reset['player_id']]);
+            $pdo->prepare("UPDATE player_password_resets SET used = 1, used_at = NOW() WHERE id = ?")->execute([$reset['id']]);
+            logSecurityEvent($pdo, 'player_password_reset_completed', 'WARNING', null, ['player_auth_id' => $reset['player_id']]);
+        }
 
         echo json_encode(['success' => true, 'message' => 'Password reimpostata con successo']);
         
