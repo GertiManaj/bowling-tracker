@@ -17,14 +17,7 @@ if (file_exists($envFile)) {
     }
 }
 
-// Headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
-
-// Config
+// CORS + OPTIONS handled by config.php (included below)
 $jwtSecret = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
 $expiresIn = 24 * 60 * 60; // 24 ore
 
@@ -223,6 +216,24 @@ function sendOTPEmail($email, $code, $name = 'Admin') {
     return true;
 }
 
+/**
+ * Rate limit per email — blocca dopo $maxAttempts fallimenti in $windowMinutes minuti.
+ */
+function isEmailRateLimited(PDO $pdo, string $email, int $maxAttempts = 20, int $windowMinutes = 60): bool {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) FROM login_logs
+        WHERE email = ? AND success = 0
+          AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+    ");
+    $stmt->execute([$email, $windowMinutes]);
+    $count = (int)$stmt->fetchColumn();
+    if ($count >= $maxAttempts) {
+        error_log("[auth] Rate limit EMAIL: $email ($count tentativi in $windowMinutes min)");
+        return true;
+    }
+    return false;
+}
+
 function logLogin($pdo, $adminId, $email, $success, $reason = null) {
     $stmt = $pdo->prepare("
         INSERT INTO login_logs (admin_id, email, success, failure_reason, ip_address, user_agent)
@@ -271,6 +282,14 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
             logSecurityEvent($pdo, 'login_blocked_rate_limit', 'CRITICAL', null, ['ip' => $clientIp, 'email' => $email]);
             http_response_code(429);
             echo json_encode(['success' => false, 'error' => 'Troppi tentativi. Riprova tra 15 minuti.']);
+            exit;
+        }
+
+        // Per-email rate limit: max 20 tentativi falliti per email in 1 ora
+        if (isEmailRateLimited($pdo, $email, 20, 60)) {
+            logSecurityEvent($pdo, 'login_blocked_email_rate_limit', 'CRITICAL', null, ['email' => $email]);
+            http_response_code(429);
+            echo json_encode(['success' => false, 'error' => 'Troppi tentativi per questa email. Riprova tra 1 ora.']);
             exit;
         }
 
@@ -686,10 +705,30 @@ if ($_GET['action'] === 'request-reset' && $_SERVER['REQUEST_METHOD'] === 'POST'
         echo json_encode(['success' => false, 'error' => 'Email richiesta']);
         exit;
     }
-    
+
     try {
         $pdo = getPDO();
-        
+
+        // Rate limit IP: max 10 richieste in 15 minuti
+        $clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $stmtRLip = $pdo->prepare("
+            SELECT COUNT(*) FROM login_logs
+            WHERE ip_address = ? AND success = 0 AND created_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        ");
+        $stmtRLip->execute([$clientIp]);
+        if ((int)$stmtRLip->fetchColumn() >= 10) {
+            http_response_code(429);
+            echo json_encode(['success' => false, 'error' => 'Troppi tentativi. Riprova tra 15 minuti.']);
+            exit;
+        }
+
+        // Rate limit email: max 5 reset per email in 1 ora
+        if (isEmailRateLimited($pdo, $email, 5, 60)) {
+            http_response_code(429);
+            echo json_encode(['success' => true, 'message' => 'Se l\'email esiste, riceverai le istruzioni']);
+            exit; // risposta generica per non rivelare se l'email esiste
+        }
+
         $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? AND active = 1");
         $stmt->execute([$email]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);

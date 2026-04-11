@@ -153,6 +153,7 @@ try {
 } catch (\Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     error_log('[group-register] ' . $e->getMessage());
+    error_log('[group-register] Stack trace: ' . $e->getTraceAsString());
     http_response_code(500);
-    echo json_encode(['error' => 'Errore durante la registrazione: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Errore durante la registrazione. Riprova.']);
 }

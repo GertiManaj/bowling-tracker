@@ -275,7 +275,7 @@ function renderSessions() {
             <div class="session-date-month">${formatMonth(s.date)}</div>
           </div>
           <div class="session-card-info">
-            <div class="session-location">${s.location}</div>
+            <div class="session-location">${escHtml(s.location)}</div>
             <div class="session-players">${players.join(' · ') || '—'}</div>
           </div>
           <div class="session-card-winner">

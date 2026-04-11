@@ -485,7 +485,7 @@ function buildDistSelect() {
   sel.innerHTML = '<option value="all">Tutti i giocatori</option>' +
     (statsData.leaderboard || [])
       .filter(p => parseInt(p.partite) > 0)
-      .map(p => `<option value="${p.id}" ${p.id == cur ? 'selected':''}>${p.emoji || ''} ${p.name}</option>`)
+      .map(p => `<option value="${p.id}" ${p.id == cur ? 'selected':''}>${p.emoji || ''} ${escHtml(p.name)}</option>`)
       .join('');
 }
 
@@ -591,7 +591,7 @@ function renderWins() {
 function buildH2HSelects() {
   const players = statsData.leaderboard || [];
   const opts    = players.map(p =>
-    `<option value="${p.id}">${p.emoji || '🎳'} ${p.name}</option>`
+    `<option value="${p.id}">${p.emoji || '🎳'} ${escHtml(p.name)}</option>`
   ).join('');
 
   const sel1 = document.getElementById('h2hP1');
@@ -674,7 +674,7 @@ function buildChemSelect() {
   const sel     = document.getElementById('chemPlayer');
   const cur     = sel.value;
   sel.innerHTML = '<option value="">Tutti</option>' +
-    players.map(p => `<option value="${p.id}" ${p.id == cur ? 'selected':''}>${p.emoji || ''} ${p.name}</option>`).join('');
+    players.map(p => `<option value="${p.id}" ${p.id == cur ? 'selected':''}>${p.emoji || ''} ${escHtml(p.name)}</option>`).join('');
 }
 
 function renderChemistry() {

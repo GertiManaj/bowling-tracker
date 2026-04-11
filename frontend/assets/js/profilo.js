@@ -76,8 +76,8 @@ function renderHero(data, color) {
     <div class="profile-hero-body">
       <div class="profile-avatar-big" style="border-color:${color};box-shadow:0 0 30px ${color}44">${p.emoji || '🎳'}</div>
       <div>
-        <div class="profile-name">${p.name}</div>
-        ${p.nickname ? `<div class="profile-nickname">${p.nickname.toUpperCase()}</div>` : ''}
+        <div class="profile-name">${escHtml(p.name)}</div>
+        ${p.nickname ? `<div class="profile-nickname">${escHtml(p.nickname.toUpperCase())}</div>` : ''}
         ${since ? `<div class="profile-since">Nel gruppo dal ${since}</div>` : ''}
       </div>
       <div class="profile-vs-group">
@@ -261,7 +261,7 @@ function renderHistory(data, color) {
             <div class="history-date-month">${formatMonth(h.date)}</div>
           </div>
           <div>
-            <div class="history-location">${h.location}</div>
+            <div class="history-location">${escHtml(h.location)}</div>
             ${h.team_name ? `<div class="history-team">🏷 ${h.team_name}</div>` : ''}
           </div>
           <div style="display:flex;align-items:center;gap:0.4rem">${badges.join('')}</div>

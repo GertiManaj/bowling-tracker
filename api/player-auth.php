@@ -68,6 +68,19 @@ if ($method === 'POST' && $action === 'login') {
         exit;
     }
 
+    // Per-email rate limit: max 20 tentativi falliti per email in 1 ora
+    $stmtRLe = $pdo->prepare("
+        SELECT COUNT(*) FROM login_logs
+        WHERE email = ? AND success = 0 AND created_at > DATE_SUB(NOW(), INTERVAL 60 MINUTE)
+    ");
+    $stmtRLe->execute([$email]);
+    if ((int)$stmtRLe->fetchColumn() >= 20) {
+        logSecurityEvent($pdo, 'login_blocked_email_rate_limit', 'CRITICAL', null, ['email' => $email]);
+        http_response_code(429);
+        echo json_encode(['error' => 'Troppi tentativi per questa email. Riprova tra 1 ora.']);
+        exit;
+    }
+
     try {
         $stmt = $pdo->prepare("
             SELECT pa.*, p.name AS player_name, p.emoji, p.group_id,
