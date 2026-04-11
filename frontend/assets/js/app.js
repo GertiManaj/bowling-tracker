@@ -61,7 +61,7 @@ function showToast(msg, type = 'success') {
 
 async function loadStats() {
   try {
-    const data = await fetch(`${API}/stats.php${groupParam()}`).then(r => r.json());
+    const data = await authFetch(`${API}/stats.php${groupParam()}`).then(r => r.json());
 
     document.getElementById('stat-sessioni').textContent = data.totale_sessioni ?? '—';
     document.getElementById('stat-sessioni-sub').textContent = "dall'inizio";
@@ -115,7 +115,7 @@ function setLeaderboardMode(mode, btn) {
 
 async function loadLeaderboard() {
   try {
-    cachedPlayers = await fetch(`${API}/leaderboard.php${groupParam()}`).then(r => r.json());
+    cachedPlayers = await authFetch(`${API}/leaderboard.php${groupParam()}`).then(r => r.json());
     window.cachedPlayers = cachedPlayers;
     renderLeaderboard();
     buildSuggestPlayers();
@@ -470,7 +470,7 @@ function renderLastSessionLeaderboard() {
 
 async function loadSessions() {
   try {
-    const sessions = await fetch(`${API}/sessions.php${groupParam()}`).then(r => r.json());
+    const sessions = await authFetch(`${API}/sessions.php${groupParam()}`).then(r => r.json());
 
     // Lista ultime 5
     let html = '';
@@ -652,7 +652,7 @@ function renderLastSession(s) {
 
 async function loadHof() {
   try {
-    const d = await fetch(`${API}/stats.php`).then(r => r.json());
+    const d = await authFetch(`${API}/stats.php${groupParam()}`).then(r => r.json());
 
     // Riga uniforme HoF
     const hofRow = (label, icon, nameStr, sub, valStr, valColor) => `
@@ -705,7 +705,7 @@ let allPlayers = [];
 async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
   try {
-    allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
+    allPlayers = await authFetch(`${API}/players.php`).then(r => r.json());
   } catch (e) {
     allPlayers = [];
   }

@@ -30,7 +30,7 @@ function showToast(msg, type = 'success') {
 
 async function loadPlayers() {
   try {
-    allPlayers = await fetch(`${API}/players.php`).then(r => r.json());
+    allPlayers = await authFetch(`${API}/players.php`).then(r => r.json());
     updateHeroBar();
     renderPlayers();
   } catch (e) {
