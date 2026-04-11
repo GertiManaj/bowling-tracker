@@ -288,7 +288,7 @@ function runMigrations(PDO $pdo) {
                 VALUES (?, ?, ?, 1)
             ")->execute([$defaultEmail, $defaultPasswordHash, 'Admin']);
             
-            error_log("✅ Admin creato: $defaultEmail / $defaultPassword");
+            error_log("✅ Admin di default creato: $defaultEmail — cambia la password al primo accesso!");
         }
     } catch (Exception $e) {
         error_log("Errore creazione admin: " . $e->getMessage());
