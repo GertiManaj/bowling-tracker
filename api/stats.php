@@ -5,8 +5,28 @@
 //  ?group_id=X  → filtra per gruppo
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/jwt_protection.php';
 $pdo = getPDO();
 
+// ── Group filter: JWT ha precedenza su ?group_id (sicurezza) ──
+$payload = null;
+$ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
+    $parts = explode('.', $m[1]);
+    if (count($parts) === 3) {
+        $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+        if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
+    }
+}
+
+if ($payload && !isSuperAdmin($payload)) {
+    // group_admin o player: sempre il proprio gruppo, ignora ?group_id
+    $groupId = getGroupId($payload);
+} else {
+    // super_admin o guest: rispetta ?group_id
+    $groupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
+        ? (int)$_GET['group_id'] : null;
+}
 
 $from = $_GET['from'] ?? null;
 $to   = $_GET['to']   ?? null;
@@ -16,10 +36,6 @@ $dateParams = [];
 if ($from && $to)  { $dateWhere = 'WHERE se.date BETWEEN ? AND ?'; $dateParams = [$from, $to]; }
 elseif ($from)     { $dateWhere = 'WHERE se.date >= ?';            $dateParams = [$from]; }
 elseif ($to)       { $dateWhere = 'WHERE se.date <= ?';            $dateParams = [$to]; }
-
-// ── Group filter (valore intero sicuro per interpolazione) ──
-$groupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
-    ? (int)$_GET['group_id'] : null;
 
 // Condizioni per query che usano alias "p" (players) + "$dateWhere" (sessions)
 $gAfterDate  = $groupId !== null

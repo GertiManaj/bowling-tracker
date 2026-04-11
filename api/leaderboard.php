@@ -6,12 +6,29 @@
 //  LOGICA VITTORIE IDENTICA A stats.php
 // ============================================
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/jwt_protection.php';
 
 $pdo = getPDO();
 
-// ── Group filter ───────────────────────────
-$groupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
-    ? (int)$_GET['group_id'] : null;
+// ── Group filter: JWT ha precedenza su ?group_id (sicurezza) ──
+$payload = null;
+$ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
+    $parts = explode('.', $m[1]);
+    if (count($parts) === 3) {
+        $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+        if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
+    }
+}
+
+if ($payload && !isSuperAdmin($payload)) {
+    // group_admin o player: sempre il proprio gruppo, ignora ?group_id
+    $groupId = getGroupId($payload);
+} else {
+    // super_admin o guest: rispetta ?group_id
+    $groupId = isset($_GET['group_id']) && $_GET['group_id'] !== 'all'
+        ? (int)$_GET['group_id'] : null;
+}
 
 // Classifica completa (filtrata per gruppo se specificato)
 $lbWhere  = $groupId !== null ? 'WHERE p.group_id = ?' : '';
