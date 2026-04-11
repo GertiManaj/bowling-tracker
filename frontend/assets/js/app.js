@@ -278,7 +278,7 @@ function renderAllTimeLeaderboard() {
         <div class="player-info">
           <div class="avatar" style="background:${bc}18;border-color:${isMyRow ? 'var(--neon2)' : bc + '44'}">${p.emoji || '🎳'}</div>
           <div>
-            <div class="player-name">${p.name}${isMyRow ? ' <span style="font-size:0.52rem;color:var(--neon2);letter-spacing:0.12em;font-family:\'Share Tech Mono\',monospace;vertical-align:middle;opacity:0.9">● TU</span>' : ''}</div>
+            <div class="player-name">${escHtml(p.name)}${isMyRow ? ' <span style="font-size:0.52rem;color:var(--neon2);letter-spacing:0.12em;font-family:\'Share Tech Mono\',monospace;vertical-align:middle;opacity:0.9">● TU</span>' : ''}</div>
             <div class="player-tag">${p.partite} serate · ${p.game_totali || 0} game</div>
           </div>
         </div>
@@ -308,7 +308,7 @@ function renderAllTimeLeaderboard() {
         <div class="player-info">
           <div class="avatar" style="border-color:var(--border)">${p.emoji || '🎳'}</div>
           <div>
-            <div class="player-name">${p.name}</div>
+            <div class="player-name">${escHtml(p.name)}</div>
             <div class="player-tag">0 serate · 0 game</div>
           </div>
         </div>
@@ -451,7 +451,7 @@ function renderLastSessionLeaderboard() {
         <div class="player-info">
           <div class="avatar" style="background:${bc}18;border-color:${bc}44">${p.emoji || '🎳'}</div>
           <div>
-            <div class="player-name">${p.name}</div>
+            <div class="player-name">${escHtml(p.name)}</div>
             <div class="player-tag">${numGames} game</div>
           </div>
         </div>
@@ -489,12 +489,12 @@ async function loadSessions() {
       html += `
         <div class="session-item" onclick="window.location.href='sessioni.html'" style="cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
           <div class="session-item-left">
-            <div class="session-item-date">${formatDate(s.date)} · ${s.location}</div>
+            <div class="session-item-date">${formatDate(s.date)} · ${escHtml(s.location)}</div>
             <div class="session-item-players">${names || '—'}</div>
           </div>
           <div class="session-winner">
             <div class="session-winner-label">Miglior serata</div>
-            <div class="session-winner-name">${best.name || '—'}</div>
+            <div class="session-winner-name">${escHtml(best.name) || '—'}</div>
             <div class="session-winner-score">${best.total || '—'} pts</div>
           </div>
         </div>`;
@@ -529,7 +529,7 @@ function renderLastSession(s) {
 
   const makePlayerRow = (p, isTop, topColor) => `
     <div class="team-player-row">
-      <span>${p.emoji || '🎳'} ${p.name}</span>
+      <span>${p.emoji || '🎳'} ${escHtml(p.name)}</span>
       <div style="display:flex;align-items:center;gap:0.5rem">
         ${makeGamesHtml(p.games) ? `<span style="font-family:'Share Tech Mono',monospace">${makeGamesHtml(p.games)}</span>` : ''}
         <span class="team-player-score" style="${isTop ? 'color:' + topColor : ''}">${p.total}</span>
@@ -640,7 +640,7 @@ function renderLastSession(s) {
   document.getElementById('last-session-card').innerHTML = `
     <div class="card-header">
       <div class="card-title">${formatDate(s.date)}</div>
-      <div class="card-date">${s.location}${numGames > 1 ? ` · ${numGames} game` : ''}</div>
+      <div class="card-date">${escHtml(s.location)}${numGames > 1 ? ` · ${numGames} game` : ''}</div>
     </div>
     <div class="session-teams">
       ${mainHtml}${soloHtml}
@@ -756,7 +756,7 @@ function handleOverlayClick(e) {
 function addPlayerRow(team, selectedId = null, numGames = null) {
   const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${escHtml(p.name)}</option>`
   ).join('');
 
   // Crea input score per ogni game
@@ -1029,7 +1029,7 @@ function buildSuggestPlayers() {
           color:${isSelected ? 'var(--neon)' : 'var(--text-muted)'};
           padding:0.3rem 0.6rem;border-radius:20px;cursor:pointer;
           transition:all 0.15s;display:flex;align-items:center;gap:0.3rem
-        ">${p.emoji || '🎳'} ${p.name} ${badge}</button>
+        ">${p.emoji || '🎳'} ${escHtml(p.name)} ${badge}</button>
         ${isNew && isSelected ? `
           <select onchange="setLivello(${p.id}, this.value)" style="
             font-family:'Share Tech Mono',monospace;font-size:0.65rem;
@@ -1211,7 +1211,7 @@ function renderSuggestResult(data1, data2, data3) {
     const dots = Array(Math.max(0, 5 - risultati.length)).fill(emptyDot).join('') + risultati.map(dot).join('');
     const media = p.livello_manuale ? `~${p.livello_manuale}` : (p.media_storica > 0 ? p.media_storica : '—');
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid var(--border)22;gap:0.3rem;min-width:0">
-      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${p.emoji || '🎳'} ${p.name}</div>
+      <div style="font-size:0.8rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${p.emoji || '🎳'} ${escHtml(p.name)}</div>
       <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0">
         <div style="display:flex;gap:1px">${dots}</div>
       </div>

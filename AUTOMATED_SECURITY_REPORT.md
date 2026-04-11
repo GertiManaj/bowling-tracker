@@ -121,9 +121,9 @@ Minor risk of formula injection if CSV is opened in Excel with player-controlled
 | C1 | CRITICAL | Plaintext password in logs | ✅ Fixed (2026-04-11) |
 | C2 | CRITICAL | Weak invite code entropy | ✅ Fixed (2026-04-11) |
 | H1 | HIGH | SQL interpolation in stats.php | ⚠️ Mitigated (int cast) |
-| H2 | HIGH | CORS wildcard | ⏳ Accept until domain stable |
-| M1 | MEDIUM | JWT secret = fallback value | ⏳ Set strong secret on Railway |
-| M2 | MEDIUM | XSS via innerHTML | ⏳ Add escHtml() to shared.js |
+| H2 | HIGH | CORS wildcard | ✅ Fixed (2026-04-11) |
+| M1 | MEDIUM | JWT secret = fallback value | ✅ Documented in README (set on Railway) |
+| M2 | MEDIUM | XSS via innerHTML | ✅ Fixed (2026-04-11) |
 | M3 | MEDIUM | No per-email rate limit | ⏳ Future improvement |
 | L1 | LOW | Exception message leak | ⏳ |
 | L2 | LOW | No rate limit on password reset | ⏳ |

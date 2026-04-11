@@ -3,6 +3,18 @@
 //  Incluso PRIMA di auth.js in ogni pagina
 // ============================================
 
+// ── XSS ESCAPE ───────────────────────────────
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── TEMA ─────────────────────────────────────
 
 function applyTheme(theme) {

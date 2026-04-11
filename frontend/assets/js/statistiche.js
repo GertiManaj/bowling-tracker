@@ -109,7 +109,7 @@ function renderRanking() {
           ${p.emoji || '🎳'}
           <span class="podium-medal">${medal}</span>
         </div>
-        <div class="podium-name" style="color:${color}">${p.name}</div>
+        <div class="podium-name" style="color:${color}">${escHtml(p.name)}</div>
         <div class="podium-value" style="color:${color};text-shadow:0 0 20px ${color}66">
           ${currentRankMetric === 'media_recente'
             ? (() => {
@@ -192,8 +192,8 @@ function renderRanking() {
         <div class="rank-table-player">
           <div class="rank-table-avatar" style="border-color:${pcolor}44;background:${pcolor}12">${p.emoji||'🎳'}</div>
           <div>
-            <div class="rank-table-name">${p.name}</div>
-            ${p.nickname ? '<div class="rank-table-nick">' + p.nickname.toUpperCase() + '</div>' : ''}
+            <div class="rank-table-name">${escHtml(p.name)}</div>
+            ${p.nickname ? '<div class="rank-table-nick">' + escHtml(p.nickname.toUpperCase()) + '</div>' : ''}
           </div>
         </div>
         <div class="rank-table-val ${isActive('media') ? 'active-val' : ''}" style="${isActive('media')?'':'color:var(--neon)'}">${p.media ?? '—'}</div>
@@ -340,8 +340,8 @@ function buildTrendControls() {
     return `
       <button class="player-filter-btn${isActive ? ' active' : ''}"
         style="${isActive ? `background:${color};border-color:${color};` : `border-color:${color}44;color:${color};`}"
-        onclick="toggleTrendPlayer('${p.name}', this, '${color}')">
-        ${p.emoji || '🎳'} ${p.name}
+        onclick="toggleTrendPlayer('${p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this, '${color}')">
+        ${p.emoji || '🎳'} ${escHtml(p.name)}
       </button>`;
   }).join('');
 }
@@ -749,9 +749,9 @@ function buildPaymentControls() {
 
   container.innerHTML = eligible.map((p, i) => {
     const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
-    return `<button class="player-filter-btn active" data-name="${p.name}" data-color="${color}"
+    return `<button class="player-filter-btn active" data-name="${escHtml(p.name)}" data-color="${color}"
       style="border-color:${color};color:${color};background:${color}18"
-      onclick="togglePaymentPlayer('${p.name}', this)">${p.emoji||'🎳'} ${p.name}</button>`;
+      onclick="togglePaymentPlayer('${p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this)">${p.emoji||'🎳'} ${escHtml(p.name)}</button>`;
   }).join('');
 
   renderPaymentTrend();

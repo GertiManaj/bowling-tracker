@@ -68,7 +68,19 @@ function getDB() {
 
 // Headers JSON per tutte le API
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Allowed origins (Railway + custom domain)
+$_sz_allowedOrigins = [
+    'https://web-production-e43fd.up.railway.app',
+    'https://mystrikezone.xyz',
+];
+$_sz_origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($_sz_origin, $_sz_allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: $_sz_origin");
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    // Fallback per richieste senza Origin (server-to-server, curl, ecc.)
+    header('Access-Control-Allow-Origin: https://web-production-e43fd.up.railway.app');
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
