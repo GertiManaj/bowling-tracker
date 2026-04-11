@@ -46,11 +46,14 @@ if ($method === 'GET') {
     $sql = '
         SELECT
             p.id, p.name, p.nickname, p.emoji, p.group_id, p.created_at,
+            MAX(pa.id IS NOT NULL) AS has_account,
+            MAX(pa.email)          AS account_email,
             COUNT(s.id)            AS partite,
             ROUND(AVG(s.score), 1) AS media,
             MAX(s.score)           AS record,
             MIN(s.score)           AS minimo
         FROM players p
+        LEFT JOIN player_auth pa ON pa.player_id = p.id
         LEFT JOIN scores s ON s.player_id = p.id';
 
     $params = [];

@@ -7,6 +7,7 @@
 // ============================================
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/mailer.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -159,12 +160,42 @@ if ($method === 'POST' && $action === 'register') {
     }
 
     try {
+        // Recupera nome player e gruppo per l'email
+        $infoStmt = $pdo->prepare("
+            SELECT p.name AS player_name, g.name AS group_name
+            FROM players p
+            JOIN `groups` g ON p.group_id = g.id
+            WHERE p.id = ?
+        ");
+        $infoStmt->execute([$playerId]);
+        $playerInfo = $infoStmt->fetch();
+
         $pdo->prepare("
             INSERT INTO player_auth (player_id, email, password_hash)
             VALUES (?, ?, ?)
         ")->execute([$playerId, $email, password_hash($pass, PASSWORD_DEFAULT)]);
 
-        echo json_encode(['success' => true, 'message' => 'Credenziali create']);
+        // Invia email benvenuto con credenziali (dopo la risposta HTTP)
+        $emailSent = false;
+        if ($playerInfo) {
+            if (function_exists('fastcgi_finish_request')) {
+                echo json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => true]);
+                fastcgi_finish_request();
+            }
+            try {
+                $emailSent = sendPlayerActivation($email, $playerInfo['player_name'], $playerInfo['group_name'], $pass);
+                error_log($emailSent
+                    ? "[player-auth] ✅ Email attivazione inviata a $email"
+                    : "[player-auth] ❌ Email attivazione fallita per $email");
+            } catch (\Throwable $ex) {
+                error_log("[player-auth] ❌ Eccezione email: " . $ex->getMessage());
+            }
+            if (!function_exists('fastcgi_finish_request')) {
+                echo json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => $emailSent]);
+            }
+        } else {
+            echo json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => false]);
+        }
     } catch (Exception $e) {
         $msg = stripos($e->getMessage(), 'Duplicate') !== false
             ? 'Email o player_id già registrato'

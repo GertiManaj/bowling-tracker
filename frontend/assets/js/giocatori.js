@@ -124,7 +124,10 @@ function renderPlayers() {
         ${statsHtml}
         <div class="player-card-actions action-btn-wrap" style="display:${window.isLoggedIn ? '' : 'none'}">
           <button class="player-action-btn edit" onclick="openEditModal(${p.id})">✏ Modifica</button>
-          <button class="player-action-btn" style="color:var(--neon);border-color:rgba(232,255,0,0.3)" onclick="openPlayerLoginModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🔑 Login</button>
+          ${p.has_account
+            ? `<span style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#34d399;letter-spacing:0.05em;padding:0.3rem 0.6rem;border:1px solid rgba(52,211,153,0.3);border-radius:4px">✅ Account attivo</span>`
+            : `<button class="player-action-btn" style="color:var(--neon);border-color:rgba(232,255,0,0.3)" onclick="openPlayerLoginModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🔑 Login</button>`
+          }
           <button class="player-action-btn delete" onclick="openDeleteModal(${p.id}, '${p.name.replace(/'/g, "\\'")}')">✕ Elimina</button>
         </div>
       </div>`;
@@ -258,7 +261,8 @@ async function savePlayerLogin() {
 
     if (data.success) {
       closePlayerLoginModal();
-      showToast('Accesso creato!');
+      showToast(data.email_sent ? 'Account creato! Email inviata.' : 'Account creato!');
+      await loadPlayers();
     } else {
       showPlayerLoginError(data.error || 'Errore creazione accesso');
     }

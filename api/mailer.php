@@ -149,7 +149,37 @@ function sendWelcomePlayer(string $email, string $playerName, string $groupName,
     return sendEmail($email, $subject, mailWrap($body));
 }
 
-// ── 3. Notifica admin: nuovo giocatore ────────
+// ── 3. Attivazione Player — con credenziali ───
+function sendPlayerActivation(string $email, string $playerName, string $groupName, string $password): bool {
+    $appUrl   = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
+    $loginUrl = $appUrl . '/frontend/pages/welcome.html';
+    $eName    = htmlspecialchars($playerName);
+    $eGroup   = htmlspecialchars($groupName);
+    $eEmail   = htmlspecialchars($email);
+    $ePass    = htmlspecialchars($password);
+
+    $body = "
+<p>Ciao <strong>$eName</strong>! 🎳</p>
+<p>Il tuo account per il gruppo <strong>«$eGroup»</strong> è pronto.</p>
+
+<div class='info-box' style='border-color:#e8ff00'>
+  <strong style='color:#e8ff00'>🔑 Le tue credenziali:</strong><br><br>
+  <div style='margin-bottom:0.4em'>Email: <strong style='color:#fff'>$eEmail</strong></div>
+  <div class='code-box' style='font-size:1.3rem;letter-spacing:4px'>$ePass</div>
+  <span style='font-size:12px'>Cambia la password dopo il primo accesso.</span>
+</div>
+
+<a href='$loginUrl' class='btn'>🎳 Accedi ora</a>
+
+<p style='font-size:13px;color:#555570;margin-top:24px'>
+  Entra nella sezione <em>Player Login</em> dalla pagina di benvenuto e usa l'email e la password sopra.
+</p>";
+
+    $subject = "🎳 Il tuo account «$groupName» su Strike Zone è pronto!";
+    return sendEmail($email, $subject, mailWrap($body));
+}
+
+// ── 4. Notifica admin: nuovo giocatore ────────
 function sendNewPlayerNotify(string $adminEmail, string $adminName, string $playerName, string $groupName): bool {
     $appUrl     = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
     $dashUrl    = $appUrl . '/frontend/pages/index.html';
