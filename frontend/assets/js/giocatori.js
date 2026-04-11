@@ -262,8 +262,8 @@ async function savePlayerLogin() {
       showPlayerLoginError(data.error || 'Errore creazione accesso');
     }
   } catch (e) {
-    showPlayerLoginError('Errore di connessione');
-    console.error(e);
+    showPlayerLoginError('Errore: ' + (e.message || 'connessione fallita'));
+    console.error('[savePlayerLogin] errore:', e);
   }
 
   btn.disabled = false;

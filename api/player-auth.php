@@ -5,6 +5,9 @@
 //  POST ?action=register  → crea credenziali giocatore (admin only)
 //  DELETE                 → elimina credenziali (admin only)
 // ============================================
+ini_set('display_errors', 0); // Mai outputtare HTML di errore in un'API JSON
+ob_start();                    // Buffer per catturare eventuali output inattesi
+
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/mailer.php';
@@ -109,6 +112,7 @@ if ($method === 'POST' && $action === 'login') {
             'email'     => $email,
         ]);
 
+        ob_end_clean();
         echo json_encode([
             'success' => true,
             'token'   => $jwt,
@@ -135,6 +139,7 @@ if ($method === 'POST' && $action === 'register') {
 
     $userType = $authPayload['user_type'] ?? '';
     if (!in_array($userType, ['super_admin', 'group_admin'], true)) {
+        ob_end_clean();
         http_response_code(403);
         echo json_encode(['error' => 'Solo admin possono creare credenziali giocatori']);
         exit;
@@ -145,11 +150,13 @@ if ($method === 'POST' && $action === 'register') {
     $email    = trim($data['email']     ?? '');
 
     if (!$playerId || $email === '') {
+        ob_end_clean();
         http_response_code(400);
         echo json_encode(['error' => 'player_id e email obbligatori']);
         exit;
     }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        ob_end_clean();
         http_response_code(400);
         echo json_encode(['error' => 'Email non valida']);
         exit;
@@ -193,8 +200,11 @@ if ($method === 'POST' && $action === 'register') {
 
         // Invia email con password temporanea e avviso cambio obbligatorio
         $emailSent = false;
+        $responseJson = json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => false]);
+
         if ($playerInfo) {
             if (function_exists('fastcgi_finish_request')) {
+                ob_end_clean();
                 echo json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => true]);
                 fastcgi_finish_request();
             }
@@ -204,18 +214,22 @@ if ($method === 'POST' && $action === 'register') {
                     ? "[player-auth] ✅ Email attivazione inviata a $email"
                     : "[player-auth] ❌ Email attivazione fallita per $email");
             } catch (\Throwable $ex) {
+                $emailSent = false;
                 error_log("[player-auth] ❌ Eccezione email: " . $ex->getMessage());
             }
             if (!function_exists('fastcgi_finish_request')) {
+                ob_end_clean();
                 echo json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => $emailSent]);
             }
         } else {
+            ob_end_clean();
             echo json_encode(['success' => true, 'message' => 'Credenziali create', 'email_sent' => false]);
         }
     } catch (Exception $e) {
         $msg = stripos($e->getMessage(), 'Duplicate') !== false
             ? 'Email o player_id già registrato'
-            : 'Errore creazione credenziali';
+            : 'Errore: ' . $e->getMessage(); // mostra errore reale per debug
+        ob_end_clean();
         http_response_code(409);
         echo json_encode(['error' => $msg]);
     }
