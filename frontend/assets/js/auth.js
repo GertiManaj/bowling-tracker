@@ -425,6 +425,10 @@ function openLoginModal() {
 function closeLoginModal() {
   document.getElementById('loginModalOverlay').classList.remove('open');
   otpEmail = null;
+  // Se siamo arrivati qui tramite ?login=1 da welcome, torna indietro
+  if (new URLSearchParams(window.location.search).get('login') === '1') {
+    window.location.href = 'welcome.html';
+  }
 }
 
 function handleLoginOverlayClick(e) {
@@ -463,4 +467,8 @@ applyAuthUI();
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   setupOTPInputs();
+  // Auto-apri modal login se arrivati da welcome.html (?login=1) e non già loggati
+  if (new URLSearchParams(window.location.search).get('login') === '1' && !isTokenValid()) {
+    openLoginModal();
+  }
 });
