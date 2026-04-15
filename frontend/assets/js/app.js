@@ -32,6 +32,7 @@ async function initGroupSelector() {
 
 function onGroupChange(value) {
   currentGroupId = value === 'all' ? 'all' : parseInt(value);
+  localStorage.setItem('sz_selected_group', value);
   loadStats();
   loadLeaderboard();
   loadSessions();

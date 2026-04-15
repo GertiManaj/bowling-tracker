@@ -37,11 +37,28 @@ function formatMonth(d) {
 
 // ── CARICA DATI ──────────────────────────────
 
+// Ritorna ?group_id=X per super_admin (legge selezione da localStorage).
+// Per group_admin il backend usa il JWT — nessun param necessario.
+function getSessionGroupParam() {
+  try {
+    const tok = localStorage.getItem('sz_auth_token');
+    if (!tok) return '';
+    const p = JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!p || p.exp <= Math.floor(Date.now() / 1000)) return '';
+    if (p.user_type === 'super_admin') {
+      const sel = localStorage.getItem('sz_selected_group');
+      return (sel && sel !== 'all') ? `?group_id=${parseInt(sel)}` : '';
+    }
+    return '';
+  } catch (e) { return ''; }
+}
+
 async function loadAll() {
   try {
+    const groupParam = getSessionGroupParam();
     [allSessions, allPlayers] = await Promise.all([
-      fetch(`${API}/sessions.php`).then(r => r.json()),
-      fetch(`${API}/players.php`).then(r => r.json())
+      authFetch(`${API}/sessions.php${groupParam}`).then(r => r.json()),
+      authFetch(`${API}/players.php`).then(r => r.json())
     ]);
     updateHeroBar();
     renderSessions();
@@ -50,6 +67,40 @@ async function loadAll() {
     document.getElementById('sessions-list').innerHTML =
       '<div class="empty-state"><span class="empty-state-icon">⚠️</span>Errore nel caricamento</div>';
   }
+}
+
+// ── GROUP SELECTOR (super_admin) ─────────────
+
+function onSessionGroupChange(value) {
+  localStorage.setItem('sz_selected_group', value);
+  loadAll();
+}
+
+async function initSessionsGroupSelector() {
+  try {
+    const tok = localStorage.getItem('sz_auth_token');
+    if (!tok) return;
+    const p = JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!p || p.user_type !== 'super_admin') return;
+
+    const bar = document.getElementById('groupSelectorBar');
+    if (!bar) return;
+    bar.style.display = 'flex';
+
+    const sel = document.getElementById('groupSelector');
+    const res  = await authFetch(`${API}/groups.php`);
+    const data = await res.json();
+    (data.groups || []).forEach(function(g) {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      sel.appendChild(opt);
+    });
+
+    // Ripristina gruppo selezionato dalla dashboard
+    const saved = localStorage.getItem('sz_selected_group');
+    if (saved && saved !== 'all') sel.value = saved;
+  } catch(e) {}
 }
 
 function updateHeroBar() {
@@ -467,6 +518,9 @@ document.addEventListener('keydown', e => {
 
 // ── INIT ─────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', loadAll);
+document.addEventListener('DOMContentLoaded', async () => {
+  await initSessionsGroupSelector();
+  loadAll();
+});
 // openAddModal usa openModal da modal-nuova-partita.js
 function openAddModal() { openModal(); }
