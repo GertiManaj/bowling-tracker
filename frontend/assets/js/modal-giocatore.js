@@ -36,6 +36,7 @@ function openAddModal() {
   document.getElementById('gModalTitle').textContent = '➕ Nuovo Giocatore';
   document.getElementById('playerName').value = '';
   document.getElementById('playerNickname').value = '';
+  document.getElementById('playerEmail').value = '';
   document.getElementById('btnSavePlayer').textContent = 'Salva';
   buildEmojiGrid('🎳');
   document.getElementById('gModalOverlay').classList.add('open');
@@ -53,6 +54,7 @@ function openEditModal(id) {
   document.getElementById('gModalTitle').textContent = '✏ Modifica Giocatore';
   document.getElementById('playerName').value = p.name;
   document.getElementById('playerNickname').value = p.nickname || '';
+  document.getElementById('playerEmail').value = p.email || '';
   document.getElementById('btnSavePlayer').textContent = 'Aggiorna';
   buildEmojiGrid(p.emoji || '🎳');
   document.getElementById('gModalOverlay').classList.add('open');
@@ -72,6 +74,7 @@ async function savePlayer() {
   var btn = document.getElementById('btnSavePlayer');
   var name = document.getElementById('playerName').value.trim();
   var nickname = document.getElementById('playerNickname').value.trim();
+  var email = document.getElementById('playerEmail').value.trim();
   var emoji = document.getElementById('selectedEmoji').value;
 
   if (!name) {
@@ -86,8 +89,8 @@ async function savePlayer() {
   try {
     var method = _gEditingId ? 'PUT' : 'POST';
     var payload = _gEditingId
-      ? { id: _gEditingId, name: name, nickname: nickname, emoji: emoji }
-      : { name: name, nickname: nickname, emoji: emoji };
+      ? { id: _gEditingId, name: name, nickname: nickname, emoji: emoji, email: email || null }
+      : { name: name, nickname: nickname, emoji: emoji, email: email || null };
 
     var res = await authFetch('/api/players.php', {
       method: method,

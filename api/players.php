@@ -41,11 +41,14 @@ if ($payload) {
 
 $pdo = getPDO();
 
+// Auto-migration: aggiunge colonna email a players se non esiste
+try { $pdo->exec("ALTER TABLE players ADD COLUMN email VARCHAR(255) DEFAULT NULL"); } catch (PDOException $e) {}
+
 // ── GET ──────────────────────────────────────
 if ($method === 'GET') {
     $sql = '
         SELECT
-            p.id, p.name, p.nickname, p.emoji, p.group_id, p.created_at,
+            p.id, p.name, p.nickname, p.emoji, p.email, p.group_id, p.created_at,
             MAX(pa.id IS NOT NULL) AS has_account,
             MAX(pa.email)          AS account_email,
             COUNT(s.id)            AS partite,
@@ -98,8 +101,8 @@ if ($method === 'POST') {
         exit;
     }
 
-    $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id) VALUES (?, ?, ?, ?)');
-    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId]);
+    $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id, email) VALUES (?, ?, ?, ?, ?)');
+    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, trim($data['email'] ?? '') ?: null]);
 
     http_response_code(201);
     echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
@@ -152,8 +155,8 @@ if ($method === 'PUT') {
         exit;
     }
 
-    $stmt = $pdo->prepare('UPDATE players SET name = ?, nickname = ?, emoji = ? WHERE id = ?');
-    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $id]);
+    $stmt = $pdo->prepare('UPDATE players SET name = ?, nickname = ?, emoji = ?, email = ? WHERE id = ?');
+    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', trim($data['email'] ?? '') ?: null, $id]);
 
     echo json_encode(['success' => true]);
     exit;
