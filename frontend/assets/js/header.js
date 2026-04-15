@@ -44,10 +44,18 @@ function closePlayerMenu() {
 function updateHamburgerSections() {
   var menu = document.getElementById('hamburgerMenu');
   if (!menu) return;
+  var superAdmin = typeof isSuperAdmin === 'function' && isSuperAdmin();
+
+  // Backup e Ticket: solo super_admin
+  var backupBtn = document.getElementById('backupMenuBtn');
+  var ticketBtn = document.getElementById('ticketMenuBtn');
+  if (backupBtn) backupBtn.style.display = superAdmin ? '' : 'none';
+  if (ticketBtn) ticketBtn.style.display = superAdmin ? '' : 'none';
+
+  // Bottone Super Admin panel
   var existing = document.getElementById('superAdminMenuBtn');
-  if (typeof isSuperAdmin === 'function' && isSuperAdmin()) {
+  if (superAdmin) {
     if (!existing) {
-      // Inserisci prima dell'ultimo divider (quello prima di Cambia Password)
       var dividers = menu.querySelectorAll('.hamburger-divider');
       var targetDivider = dividers.length >= 2 ? dividers[dividers.length - 1] : null;
       var btn = document.createElement('button');
@@ -158,9 +166,9 @@ function loadTicketBadge() {
           '<div class="hamburger-label">Azioni Admin</div>' +
           '<button class="hamburger-item" onclick="openModal();closeHamburgerMenu()">🎳 Nuova Partita</button>' +
           '<button class="hamburger-item" onclick="openAddModal();closeHamburgerMenu()">➕ Nuovo Giocatore</button>' +
-          '<button class="hamburger-item" onclick="exportData();closeHamburgerMenu()">💾 Backup Database</button>' +
+          '<button id="backupMenuBtn" class="hamburger-item" onclick="exportData();closeHamburgerMenu()" style="display:none">💾 Backup Database</button>' +
           '<div class="hamburger-divider"></div>' +
-          '<button class="hamburger-item" onclick="window.location.href=\'tickets.html\';closeHamburgerMenu()">🎫 Ticket<span id="ticketBtnBadge" style="color:var(--neon2);font-weight:700"></span></button>' +
+          '<button id="ticketMenuBtn" class="hamburger-item" onclick="window.location.href=\'tickets.html\';closeHamburgerMenu()" style="display:none">🎫 Ticket<span id="ticketBtnBadge" style="color:var(--neon2);font-weight:700"></span></button>' +
           '<div class="hamburger-divider"></div>' +
           (typeof isSuperAdmin === 'function' && isSuperAdmin()
             ? '<button id="superAdminMenuBtn" class="hamburger-item" onclick="window.location.href=\'super-admin.html\';closeHamburgerMenu()">🌐 Super Admin</button>'
