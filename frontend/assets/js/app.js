@@ -6,7 +6,7 @@
 const API = '/api'; // percorso assoluto
 
 // ── GROUP FILTER (super_admin) ───────────────
-let currentGroupId = 'all';
+let currentGroupId = null;
 let _groupSelectorReady = false; // evita doppia inizializzazione
 
 async function initGroupSelector() {
@@ -21,37 +21,35 @@ async function initGroupSelector() {
   _groupSelectorReady = true; // blocca invocazioni successive
 
   try {
-    const res    = await authFetch(`${API}/groups.php`);
-    const data   = await res.json();
+    const res = await authFetch(`${API}/groups.php`);
+    const data = await res.json();
     const groups = data.groups || [];
-    const sel    = document.getElementById('groupSelector');
+    const sel = document.getElementById('groupSelector');
 
     sel.innerHTML = '<option value="all">Tutti i gruppi</option>';
-    groups.forEach(function(g) {
+    groups.forEach(function (g) {
       const opt = document.createElement('option');
       opt.value = g.id;
       opt.textContent = g.name;
       sel.appendChild(opt);
     });
 
-    const saved = localStorage.getItem('sz_selected_group');
-    const savedValid = saved && saved !== 'all' && groups.find(function(g) { return String(g.id) === String(saved); });
-
-    if (savedValid) {
-      currentGroupId = parseInt(saved);
-      sel.value = saved;
-    } else if (groups.length > 0) {
-      // Nessun gruppo valido salvato → primo gruppo (id più basso = Strike Zone Original)
+    // DEFAULT: SEMPRE primo gruppo (Strike Zone Original)
+    if (groups.length > 0) {
       currentGroupId = groups[0].id;
       sel.value = groups[0].id;
       localStorage.setItem('sz_selected_group', groups[0].id);
     }
-  } catch(e) {}
+  } catch (e) { }
 }
 
 function onGroupChange(value) {
-  currentGroupId = value === 'all' ? 'all' : parseInt(value);
+  currentGroupId = parseInt(value);
   localStorage.setItem('sz_selected_group', value);
+
+  console.log('[onGroupChange] Nuovo gruppo:', currentGroupId);
+
+  // Ricarica TUTTI i dati
   loadStats();
   loadLeaderboard();
   loadSessions();
@@ -59,7 +57,10 @@ function onGroupChange(value) {
 }
 
 function groupParam() {
-  return currentGroupId !== 'all' ? `?group_id=${currentGroupId}` : '';
+  if (currentGroupId && currentGroupId !== null) {
+    return `?group_id=${currentGroupId}`;
+  }
+  return '';
 }
 
 // ── UTILITY ─────────────────────────────────
@@ -283,7 +284,7 @@ function renderAllTimeLeaderboard() {
       : '';
 
     const isSelected = suggestSelected.has(p.id);
-    const isMyRow    = !!(window.isPlayerLoggedIn && window.currentPlayerId && p.id === window.currentPlayerId);
+    const isMyRow = !!(window.isPlayerLoggedIn && window.currentPlayerId && p.id === window.currentPlayerId);
     const rowSelStyle = isSelected
       ? 'background:rgba(232,255,0,0.07);border-left:2px solid rgba(232,255,0,0.5);'
       : isMyRow
@@ -1142,7 +1143,7 @@ function suggestTeams() {
     let sumA = 0, sumB = 0;
     for (const p of sorted) {
       if (sumA <= sumB) { teamA.push(p); sumA += p._score; }
-      else              { teamB.push(p); sumB += p._score; }
+      else { teamB.push(p); sumB += p._score; }
     }
     return { teamA, teamB };
   }
@@ -1212,7 +1213,7 @@ function suggestTeams() {
   const { teamA: a3, teamB: b3 } = snakeDraft(playersRecent);
   const proposal3 = makeProposal(a3, b3, 'FORMA RECENTE');
 
-  window._lastSuggestData  = proposal1;
+  window._lastSuggestData = proposal1;
   window._lastSuggestData2 = proposal2;
   window._lastSuggestData3 = proposal3;
   renderSuggestResult(proposal1, proposal2, proposal3);
@@ -1285,8 +1286,8 @@ function selectProposal(idx) {
 function useSuggestedTeams() {
   const idx = window._selectedProposal || 1;
   const resultData = idx === 3 ? window._lastSuggestData3
-                   : idx === 2 ? window._lastSuggestData2
-                   :             window._lastSuggestData;
+    : idx === 2 ? window._lastSuggestData2
+      : window._lastSuggestData;
 
   openModal().then(() => {
     document.getElementById('teamARows').innerHTML = '';
