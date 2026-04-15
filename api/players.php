@@ -202,48 +202,36 @@ if ($method === 'PUT') {
     $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $newEmail, $id]);
 
     // ── Notifiche cambio email ────────────────────
-    $oldEmail = $playerRow['old_email'];
-    $pName    = htmlspecialchars($playerRow['name']);
+    $oldEmail   = $playerRow['old_email'];
+    $playerName = $playerRow['name'];
 
     if ($oldEmail !== $newEmail) {
-        // Notifica vecchia email
+        error_log("[players] Email cambiata per player_id=$id: '$oldEmail' → '$newEmail'");
+
+        // Notifica VECCHIA email
         if ($oldEmail && filter_var($oldEmail, FILTER_VALIDATE_EMAIL)) {
-            $body = "
-<p>Ciao <strong>$pName</strong>,</p>
-<p>L'amministratore ha modificato l'email associata al tuo account Strike Zone.</p>
-<div class='info-box' style='border-left-color:#ff3cac;background:#1a0d15'>
-  <strong style='color:#ff3cac'>⚠️ Email account modificata</strong><br>
-  La tua email precedente (<strong>" . htmlspecialchars($oldEmail) . "</strong>) non è più associata al tuo account.
-</div>
-<p style='font-size:13px;color:#555570;margin-top:24px'>
-  Se non hai autorizzato questa modifica, contatta l'amministratore del tuo gruppo.
-</p>";
-            $sent = sendEmail($oldEmail, '⚠️ Email account Strike Zone modificata', mailWrap($body));
+            error_log("[players] Invio notifica vecchia email: $oldEmail");
+            $sent = sendEmailChangeNotification($oldEmail, $playerName, 'old');
             error_log($sent
                 ? "[players] ✅ Notifica vecchia email inviata a $oldEmail"
                 : "[players] ❌ Notifica vecchia email fallita per $oldEmail");
         }
 
-        // Notifica nuova email + aggiorna player_auth se esiste account
+        // Notifica NUOVA email
         if ($newEmail && filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
-            $body = "
-<p>Ciao <strong>$pName</strong>,</p>
-<p>L'amministratore ha associato questa email al tuo account Strike Zone.</p>
-<div class='info-box' style='border-color:#00e5ff'>
-  <strong style='color:#00e5ff'>✅ Email account aggiornata</strong><br>
-  Da ora puoi accedere con questa email: <strong>" . htmlspecialchars($newEmail) . "</strong>
-</div>
-<p>Accedi a Strike Zone:</p>
-<a href='" . rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/') . "/frontend/pages/welcome.html' class='btn'>🎳 Accedi a Strike Zone</a>";
-            $sent = sendEmail($newEmail, '✅ Email account Strike Zone aggiornata', mailWrap($body));
+            error_log("[players] Invio notifica nuova email: $newEmail");
+            $sent = sendEmailChangeNotification($newEmail, $playerName, 'new');
             error_log($sent
                 ? "[players] ✅ Notifica nuova email inviata a $newEmail"
                 : "[players] ❌ Notifica nuova email fallita per $newEmail");
 
             // Aggiorna email in player_auth se l'account esiste
-            $pdo->prepare('UPDATE player_auth SET email = ? WHERE player_id = ?')->execute([$newEmail, $id]);
+            try {
+                $pdo->prepare('UPDATE player_auth SET email = ? WHERE player_id = ?')->execute([$newEmail, $id]);
+            } catch (\Throwable $ex) {
+                error_log("[players] Aggiornamento player_auth fallito per player_id=$id: " . $ex->getMessage());
+            }
         } elseif (!$newEmail && $oldEmail) {
-            // Email rimossa: rimuove anche player_auth per coerenza? No, mantieni l'account ma logga
             error_log("[players] Email rimossa per player_id=$id (vecchia: $oldEmail)");
         }
     }

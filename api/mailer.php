@@ -184,7 +184,46 @@ function sendPlayerActivation(string $email, string $playerName, string $groupNa
     return sendEmail($email, $subject, mailWrap($body));
 }
 
-// ── 4. Notifica admin: nuovo giocatore ────────
+// ── 4. Notifica cambio email giocatore ───────
+/**
+ * $type = 'old' → avvisa che l'email NON è più associata
+ * $type = 'new' → avvisa che l'email È ora associata
+ */
+function sendEmailChangeNotification(string $email, string $playerName, string $type): bool {
+    $appUrl   = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
+    $loginUrl = $appUrl . '/frontend/pages/welcome.html';
+    $eName    = htmlspecialchars($playerName);
+    $eEmail   = htmlspecialchars($email);
+
+    if ($type === 'old') {
+        $subject = '⚠️ Email account Strike Zone modificata';
+        $body = "
+<p>Ciao <strong>$eName</strong>,</p>
+<p>L'amministratore ha modificato l'email associata al tuo account Strike Zone.</p>
+<div class='info-box' style='border-left-color:#ff3cac;background:#1a0d15'>
+  <strong style='color:#ff3cac'>⚠️ Email account modificata</strong><br>
+  La tua email (<strong>$eEmail</strong>) non è più associata al tuo account.
+</div>
+<p style='font-size:13px;color:#555570;margin-top:24px'>
+  Se non hai autorizzato questa modifica, contatta l'amministratore del tuo gruppo.
+</p>";
+    } else {
+        $subject = '✅ Email account Strike Zone aggiornata';
+        $body = "
+<p>Ciao <strong>$eName</strong>,</p>
+<p>L'amministratore ha associato questa email al tuo account Strike Zone.</p>
+<div class='info-box' style='border-color:#00e5ff'>
+  <strong style='color:#00e5ff'>✅ Email account aggiornata</strong><br>
+  Da ora puoi accedere con questa email: <strong>$eEmail</strong>
+</div>
+<p>Accedi a Strike Zone:</p>
+<a href='$loginUrl' class='btn'>🎳 Accedi a Strike Zone</a>";
+    }
+
+    return sendEmail($email, $subject, mailWrap($body));
+}
+
+// ── 5. Notifica admin: nuovo giocatore ────────
 function sendNewPlayerNotify(string $adminEmail, string $adminName, string $playerName, string $groupName): bool {
     $appUrl     = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
     $dashUrl    = $appUrl . '/frontend/pages/index.html';
