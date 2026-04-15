@@ -12,7 +12,9 @@ var NAV_LINKS = [
 
 // ── HAMBURGER ────────────────────────────────
 function toggleHamburgerMenu() {
-  var loggedIn = window.isLoggedIn || false;
+  // Usa isTokenValid() come fallback per evitare race condition con checkAuth() async
+  var loggedIn = window.isLoggedIn ||
+    (typeof isTokenValid === 'function' && isTokenValid() && !window.isPlayerLoggedIn);
   if (!loggedIn) {
     if (typeof showToast === 'function') showToast('Devi prima accedere come amministratore', 'error');
     else alert('Devi prima accedere come amministratore');

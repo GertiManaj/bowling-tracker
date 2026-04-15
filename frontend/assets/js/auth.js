@@ -147,7 +147,7 @@ async function submitLogin() {
       if (data.token && (data.trusted_device || data.otp_skipped)) {
         saveToken(data.token);
         window.isLoggedIn = true;
-        closeLoginModal();
+        closeLoginModal(true);
         applyAuthUI();
         if (typeof loadStats === 'function') loadStats();
         if (typeof loadLeaderboard === 'function') loadLeaderboard();
@@ -267,7 +267,7 @@ async function submitOTP() {
     if (data.success && data.token) {
       saveToken(data.token);
       window.isLoggedIn = true;
-      closeLoginModal();
+      closeLoginModal(true);
       applyAuthUI();
       
       // Ricarica dati
@@ -422,12 +422,18 @@ function openLoginModal() {
   setTimeout(() => document.getElementById('loginEmail').focus(), 100);
 }
 
-function closeLoginModal() {
+function closeLoginModal(afterLogin) {
   document.getElementById('loginModalOverlay').classList.remove('open');
   otpEmail = null;
-  // Se siamo arrivati qui tramite ?login=1 da welcome, torna indietro
+  // Se siamo arrivati qui tramite ?login=1 da welcome:
+  // - Se stiamo CANCELLANDO → torna a welcome.html
+  // - Se login COMPLETATO con successo → rimuovi solo il param, resta sulla pagina
   if (new URLSearchParams(window.location.search).get('login') === '1') {
-    window.location.href = 'welcome.html';
+    if (afterLogin) {
+      window.history.replaceState({}, '', window.location.pathname);
+    } else {
+      window.location.href = 'welcome.html';
+    }
   }
 }
 
