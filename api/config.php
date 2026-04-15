@@ -5,6 +5,12 @@
 //  Unifica db.php e config.php precedenti
 // ============================================
 
+// Impedisce che notice/warning PHP corrompano le risposte JSON
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+error_reporting(E_ALL);   // logga tutto, ma non lo stampa
+ob_start();               // buffer: qualsiasi output spurio viene catturato
+
 // Carica .env se esiste (solo in locale)
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {

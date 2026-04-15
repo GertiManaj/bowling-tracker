@@ -113,20 +113,20 @@ if ($method === 'POST') {
     $emailSent      = false;
 
     if ($playerEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL)) {
-        // Fetch nome gruppo
-        $gStmt = $pdo->prepare('SELECT name FROM `groups` WHERE id = ?');
-        $gStmt->execute([$groupId]);
-        $group = $gStmt->fetch();
+        try {
+            // Fetch nome gruppo
+            $gStmt = $pdo->prepare('SELECT name FROM `groups` WHERE id = ?');
+            $gStmt->execute([$groupId]);
+            $group = $gStmt->fetch();
 
-        if ($group) {
-            // Genera password temporanea
-            $chars    = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%';
-            $tempPass = '';
-            for ($i = 0; $i < 12; $i++) {
-                $tempPass .= $chars[random_int(0, strlen($chars) - 1)];
-            }
+            if ($group) {
+                // Genera password temporanea
+                $chars    = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%';
+                $tempPass = '';
+                for ($i = 0; $i < 12; $i++) {
+                    $tempPass .= $chars[random_int(0, strlen($chars) - 1)];
+                }
 
-            try {
                 $pdo->prepare("
                     INSERT INTO player_auth (player_id, email, password_hash, must_change_password)
                     VALUES (?, ?, ?, 1)
@@ -138,10 +138,10 @@ if ($method === 'POST') {
                 error_log($emailSent
                     ? "[players] ✅ Email attivazione inviata a $playerEmail"
                     : "[players] ❌ Email attivazione fallita per $playerEmail");
-            } catch (\Throwable $ex) {
-                // Email già usata in player_auth: non blocca la creazione del giocatore
-                error_log("[players] player_auth fallita per $playerEmail: " . $ex->getMessage());
             }
+        } catch (\Throwable $ex) {
+            // Non blocca la creazione del giocatore: logga e prosegui
+            error_log("[players] Errore account/email per player_id=$newId ($playerEmail): " . $ex->getMessage());
         }
     }
 
