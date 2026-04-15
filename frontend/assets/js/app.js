@@ -45,6 +45,7 @@ function onGroupChange(value) {
   loadStats();
   loadLeaderboard();
   loadSessions();
+  loadHof();
 }
 
 function groupParam() {
