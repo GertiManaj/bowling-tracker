@@ -54,7 +54,7 @@ function openEditModal(id) {
   document.getElementById('gModalTitle').textContent = '✏ Modifica Giocatore';
   document.getElementById('playerName').value = p.name;
   document.getElementById('playerNickname').value = p.nickname || '';
-  document.getElementById('playerEmail').value = p.email || '';
+  document.getElementById('playerEmail').value = p.email || p.account_email || '';
   document.getElementById('btnSavePlayer').textContent = 'Aggiorna';
   buildEmojiGrid(p.emoji || '🎳');
   document.getElementById('gModalOverlay').classList.add('open');
