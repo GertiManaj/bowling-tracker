@@ -170,10 +170,7 @@ async function submitLogin() {
         saveToken(data.token);
         window.isLoggedIn = true;
         closeLoginModal(true);
-        applyAuthUI();
-        if (typeof loadStats === 'function') loadStats();
-        if (typeof loadLeaderboard === 'function') loadLeaderboard();
-        if (typeof loadSessions === 'function') loadSessions();
+        applyAuthUI(); // gestisce loadStats/loadLeaderboard/loadSessions via initGroupSelector().then()
         if (typeof loadPlayers === 'function') loadPlayers();
         if (typeof loadAll === 'function') loadAll();
         if (typeof loadProfile === 'function') loadProfile();
@@ -290,12 +287,9 @@ async function submitOTP() {
       saveToken(data.token);
       window.isLoggedIn = true;
       closeLoginModal(true);
-      applyAuthUI();
-      
-      // Ricarica dati
-      if (typeof loadStats === 'function') loadStats();
-      if (typeof loadLeaderboard === 'function') loadLeaderboard();
-      if (typeof loadSessions === 'function') loadSessions();
+      applyAuthUI(); // gestisce loadStats/loadLeaderboard/loadSessions via initGroupSelector().then()
+
+      // Ricarica dati (loadStats/loadLeaderboard/loadSessions già in applyAuthUI)
       if (typeof loadPlayers === 'function') loadPlayers();
       if (typeof loadAll === 'function') loadAll();
       if (typeof loadProfile === 'function') loadProfile();

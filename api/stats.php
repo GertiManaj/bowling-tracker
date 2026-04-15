@@ -519,7 +519,13 @@ $qWins = $pdo->prepare("
 $qWins->execute(array_merge($dateParams, $gGroupParam));
 $winsBreakdown = $qWins->fetchAll();
 
-$lastSession = $pdo->query('SELECT date, location FROM sessions ORDER BY date DESC LIMIT 1')->fetch();
+if ($groupId !== null) {
+    $stmtLS = $pdo->prepare('SELECT date, location FROM sessions WHERE group_id = ? ORDER BY date DESC LIMIT 1');
+    $stmtLS->execute([$groupId]);
+    $lastSession = $stmtLS->fetch();
+} else {
+    $lastSession = $pdo->query('SELECT date, location FROM sessions ORDER BY date DESC LIMIT 1')->fetch();
+}
 
 // ── PIÙ VITTORIE ─────────────────────────────
 $qMostWins = $pdo->prepare("

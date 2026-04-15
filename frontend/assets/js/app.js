@@ -17,8 +17,8 @@ async function initGroupSelector() {
   if (!bar) return;
   if (typeof isSuperAdmin !== 'function' || !isSuperAdmin()) return;
 
+  _groupSelectorReady = true; // blocca invocazioni successive (anche concorrenti)
   bar.style.display = 'flex';
-  _groupSelectorReady = true; // blocca invocazioni successive
 
   try {
     const res = await authFetch(`${API}/groups.php`);
