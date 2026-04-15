@@ -230,6 +230,46 @@ async function initPageGroupSelector(onchangeAttr) {
   } catch(e) {}
 }
 
+// ── CODICE INVITO GRUPPO ─────────────────────
+// Disponibile su tutte le pagine (chiamato da DOMContentLoaded e da auth.js)
+
+async function loadInviteCode() {
+  const bar = document.getElementById('inviteCodeBar');
+  if (!bar) return;
+
+  const payload = typeof getJWTPayload === 'function' ? getJWTPayload() : null;
+  if (!payload) { bar.style.display = 'none'; return; }
+
+  // Mostra solo a group_admin (non super_admin che ha il suo pannello)
+  if (payload.user_type !== 'group_admin') { bar.style.display = 'none'; return; }
+
+  try {
+    const res  = await authFetch('/api/groups.php');
+    const data = await res.json();
+    const groups = data.groups || [];
+    const group  = groups.find(g => String(g.id) === String(payload.group_id)) || groups[0];
+
+    if (!group || !group.invite_code) { bar.style.display = 'none'; return; }
+
+    document.getElementById('inviteCodeValue').textContent = group.invite_code;
+    const link = window.location.origin + '/frontend/pages/player-register.html?code=' + group.invite_code;
+    document.getElementById('inviteCodeLink').href        = link;
+    document.getElementById('inviteCodeLink').textContent = link;
+    bar.style.display = 'flex';
+  } catch(e) {
+    bar.style.display = 'none';
+  }
+}
+
+function copyInviteCode() {
+  const code = document.getElementById('inviteCodeValue').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    if (typeof showToast === 'function') showToast('Codice copiato: ' + code);
+  }).catch(() => {
+    prompt('Copia il codice invito:', code);
+  });
+}
+
 // ── EXPORT DATI (solo admin) ──────────────────
 
 async function exportData() {

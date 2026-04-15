@@ -16,6 +16,13 @@ async function initGroupSelector() {
   if (typeof isSuperAdmin !== 'function' || !isSuperAdmin()) return;
   bar.style.display = 'flex';
 
+  // Ripristina gruppo salvato PRIMA dell'async fetch,
+  // così groupParam() è già corretto quando loadStats/Leaderboard/etc. girano
+  const saved = localStorage.getItem('sz_selected_group');
+  if (saved && saved !== 'all') {
+    currentGroupId = parseInt(saved);
+  }
+
   try {
     const res    = await authFetch(`${API}/groups.php`);
     const data   = await res.json();
@@ -27,6 +34,8 @@ async function initGroupSelector() {
       opt.textContent = g.name;
       sel.appendChild(opt);
     });
+    // Ripristina valore nel <select> dopo aver caricato le opzioni
+    if (saved && saved !== 'all') sel.value = saved;
   } catch(e) {}
 }
 
@@ -706,7 +715,7 @@ let allPlayers = [];
 async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
   try {
-    allPlayers = await authFetch(`${API}/players.php`).then(r => r.json());
+    allPlayers = await authFetch(`${API}/players.php${groupParam()}`).then(r => r.json());
   } catch (e) {
     allPlayers = [];
   }
@@ -1283,12 +1292,13 @@ function useSuggestedTeams() {
 
 // ── INIT ─────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-  initGroupSelector();
+document.addEventListener('DOMContentLoaded', async () => {
+  await initGroupSelector();
   loadStats();
   loadLeaderboard();
   loadSessions();
   loadHof();
+  loadInviteCode();
 
   const params = new URLSearchParams(window.location.search);
 
@@ -1306,42 +1316,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 400);
   }
 });
-
-// ── CODICE INVITO GRUPPO ─────────────────────
-// Chiamato da auth.js dopo login (via applyAuthUI / updateHamburgerSections)
-async function loadInviteCode() {
-  const bar = document.getElementById('inviteCodeBar');
-  if (!bar) return;
-
-  const payload = typeof getJWTPayload === 'function' ? getJWTPayload() : null;
-  if (!payload) { bar.style.display = 'none'; return; }
-
-  // Mostra solo a group_admin (non super_admin che ha il suo pannello)
-  if (payload.user_type !== 'group_admin') { bar.style.display = 'none'; return; }
-
-  try {
-    const res  = await authFetch(`${API}/groups.php`);
-    const data = await res.json();
-    const groups = data.groups || [];
-    const group  = groups.find(g => String(g.id) === String(payload.group_id)) || groups[0];
-
-    if (!group || !group.invite_code) { bar.style.display = 'none'; return; }
-
-    document.getElementById('inviteCodeValue').textContent = group.invite_code;
-    const link = window.location.origin + '/frontend/pages/player-register.html?code=' + group.invite_code;
-    document.getElementById('inviteCodeLink').href        = link;
-    document.getElementById('inviteCodeLink').textContent = link;
-    bar.style.display = 'flex';
-  } catch(e) {
-    bar.style.display = 'none';
-  }
-}
-
-function copyInviteCode() {
-  const code = document.getElementById('inviteCodeValue').textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    if (typeof showToast === 'function') showToast('Codice copiato: ' + code);
-  }).catch(() => {
-    prompt('Copia il codice invito:', code);
-  });
-}

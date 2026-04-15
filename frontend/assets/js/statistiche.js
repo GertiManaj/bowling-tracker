@@ -732,6 +732,7 @@ function renderChemistry() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initPageGroupSelector('onStatsGroupChange');
+  loadInviteCode();
   loadStats();
 });
 function setRankMetricById(metric) {

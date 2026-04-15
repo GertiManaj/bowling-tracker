@@ -26,6 +26,14 @@
   <div id="app-header" data-active="sessioni"></div>
   <script src="../assets/js/header.js"></script>
 
+  <!-- ══ CODICE INVITO GRUPPO (solo group_admin) ══ -->
+  <div id="inviteCodeBar" class="admin-only" style="display:none;background:rgba(232,255,0,0.04);border-bottom:1px solid rgba(232,255,0,0.12);padding:0.6rem 1rem;align-items:center;gap:1rem;flex-wrap:wrap">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted)">🔗 Codice invito:</span>
+    <span id="inviteCodeValue" style="font-family:'Share Tech Mono',monospace;font-size:1.05rem;color:var(--neon);letter-spacing:0.2em;font-weight:700">—</span>
+    <button onclick="copyInviteCode()" style="background:rgba(232,255,0,0.1);border:1px solid rgba(232,255,0,0.3);border-radius:4px;padding:0.25rem 0.6rem;font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--neon);cursor:pointer;letter-spacing:0.1em">📋 Copia</button>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted)">Link: <a id="inviteCodeLink" href="#" style="color:var(--neon);text-decoration:none" target="_blank">—</a></span>
+  </div>
+
   <!-- ══ GROUP SELECTOR (solo super_admin) ══ -->
   <div class="group-selector-bar" id="groupSelectorBar" style="display:none">
     <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase">Visualizza gruppo:</div>

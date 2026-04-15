@@ -293,5 +293,6 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initPageGroupSelector('onGiocatoriGroupChange');
+  loadInviteCode();
   loadPlayers();
 });

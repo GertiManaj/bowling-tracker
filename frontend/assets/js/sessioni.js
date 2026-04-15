@@ -520,6 +520,7 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initSessionsGroupSelector();
+  loadInviteCode();
   loadAll();
 });
 // openAddModal usa openModal da modal-nuova-partita.js
