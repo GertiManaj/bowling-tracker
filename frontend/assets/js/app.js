@@ -34,11 +34,12 @@ async function initGroupSelector() {
       sel.appendChild(opt);
     });
 
-    // DEFAULT: SEMPRE primo gruppo (Strike Zone Original)
-    if (groups.length > 0) {
-      currentGroupId = groups[0].id;
-      sel.value = groups[0].id;
-      localStorage.setItem('sz_selected_group', groups[0].id);
+    // DEFAULT: gruppo id=1 (Strike Zone Original), fallback al primo
+    const defaultGroup = groups.find(g => g.id === 1) || groups[0];
+    if (defaultGroup) {
+      currentGroupId = defaultGroup.id;
+      sel.value = defaultGroup.id;
+      localStorage.setItem('sz_selected_group', defaultGroup.id);
     }
   } catch (e) { }
 }

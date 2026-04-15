@@ -55,7 +55,7 @@ if ($method === 'GET') {
             $sql .= " WHERE g.id = ?";
             $params[] = getGroupId($payload);
         } else {
-            $sql .= " ORDER BY g.created_at DESC";
+            $sql .= " ORDER BY g.id ASC";
         }
 
         $stmt = $pdo->prepare($sql);
