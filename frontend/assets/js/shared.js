@@ -219,6 +219,8 @@ async function initPageGroupSelector(onchangeAttr) {
   try {
     const res  = await authFetch('/api/groups.php');
     const data = await res.json();
+    // Pulisci opzioni esistenti (evita duplicati se chiamata più volte)
+    sel.innerHTML = '<option value="all">Tutti i gruppi</option>';
     (data.groups || []).forEach(function(g) {
       const opt = document.createElement('option');
       opt.value = g.id;

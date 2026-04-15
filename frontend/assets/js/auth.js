@@ -111,6 +111,9 @@ function applyAuthUI() {
   // Hooks opzionali per pagine specifiche
   if (typeof updateHamburgerSections === 'function') updateHamburgerSections();
   if (typeof loadInviteCode === 'function' && loggedIn) loadInviteCode();
+  // Re-init group selector dopo login (DOMContentLoaded gira prima che il token sia pronto)
+  if (typeof initGroupSelector === 'function' && loggedIn) initGroupSelector();
+  if (typeof initPageGroupSelector === 'function' && loggedIn) initPageGroupSelector();
 }
 
 // ══════════════════════════════════════════

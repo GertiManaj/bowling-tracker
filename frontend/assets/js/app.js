@@ -38,6 +38,8 @@ async function initGroupSelector() {
     const groups = data.groups || [];
     console.log('[GS] gruppi caricati:', groups.length);
     const sel = document.getElementById('groupSelector');
+    // Pulisci opzioni esistenti (evita duplicati se chiamata più volte)
+    sel.innerHTML = '<option value="all">Tutti i gruppi</option>';
     groups.forEach(function(g) {
       const opt = document.createElement('option');
       opt.value = g.id;
