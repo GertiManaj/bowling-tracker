@@ -28,9 +28,15 @@ function showToast(msg, type = 'success') {
 
 // ── CARICA GIOCATORI ─────────────────────────
 
+function onGiocatoriGroupChange(value) {
+  localStorage.setItem('sz_selected_group', value);
+  loadPlayers();
+}
+
 async function loadPlayers() {
   try {
-    allPlayers = await authFetch(`${API}/players.php`).then(r => r.json());
+    // super_admin: passa group_id selezionato; group_admin: filtro dal JWT
+    allPlayers = await authFetch(`${API}/players.php${getSuperAdminGroupParam()}`).then(r => r.json());
     updateHeroBar();
     renderPlayers();
   } catch (e) {
@@ -285,4 +291,7 @@ document.addEventListener('keydown', e => {
 
 // ── INIT ─────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', loadPlayers);
+document.addEventListener('DOMContentLoaded', async () => {
+  await initPageGroupSelector('onGiocatoriGroupChange');
+  loadPlayers();
+});

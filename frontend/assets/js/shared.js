@@ -193,6 +193,43 @@ function hasPermission(permission) {
   return p.permissions && p.permissions[permission] === true;
 }
 
+// ── GROUP ISOLATION HELPERS ──────────────────
+// Usati da tutte le pagine per costruire ?group_id=X
+
+/** Ritorna '?group_id=X' per super_admin con gruppo selezionato, '' altrimenti */
+function getSuperAdminGroupParam() {
+  if (!isSuperAdmin()) return '';
+  const sel = localStorage.getItem('sz_selected_group');
+  return (sel && sel !== 'all') ? `?group_id=${parseInt(sel)}` : '';
+}
+
+/**
+ * Mostra il group selector solo a super_admin, carica la lista gruppi
+ * e ripristina la selezione precedente da localStorage.
+ * @param {string} onchangeAttr  nome della funzione onchange (es. 'onStatsGroupChange')
+ */
+async function initPageGroupSelector(onchangeAttr) {
+  if (!isSuperAdmin()) return;
+  const bar = document.getElementById('groupSelectorBar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  const sel = document.getElementById('groupSelector');
+  if (!sel) return;
+  if (onchangeAttr) sel.setAttribute('onchange', onchangeAttr + '(this.value)');
+  try {
+    const res  = await authFetch('/api/groups.php');
+    const data = await res.json();
+    (data.groups || []).forEach(function(g) {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      sel.appendChild(opt);
+    });
+    const saved = localStorage.getItem('sz_selected_group');
+    if (saved && saved !== 'all') sel.value = saved;
+  } catch(e) {}
+}
+
 // ── EXPORT DATI (solo admin) ──────────────────
 
 async function exportData() {

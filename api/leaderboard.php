@@ -247,11 +247,18 @@ foreach ($players as &$player) {
 }
 
 // ── CALCOLO PAGAMENTI ──
-$payGroupFilter = $groupId !== null ? "AND group_id = $groupId" : '';
-$qSessWithCost = $pdo->query("
-    SELECT id, cost_per_game, COALESCE(mode, 'teams') AS mode FROM sessions
-    WHERE cost_per_game IS NOT NULL AND cost_per_game > 0 $payGroupFilter
-");
+if ($groupId !== null) {
+    $qSessWithCost = $pdo->prepare("
+        SELECT id, cost_per_game, COALESCE(mode, 'teams') AS mode FROM sessions
+        WHERE cost_per_game IS NOT NULL AND cost_per_game > 0 AND group_id = ?
+    ");
+    $qSessWithCost->execute([$groupId]);
+} else {
+    $qSessWithCost = $pdo->query("
+        SELECT id, cost_per_game, COALESCE(mode, 'teams') AS mode FROM sessions
+        WHERE cost_per_game IS NOT NULL AND cost_per_game > 0
+    ");
+}
 $sessWithCost = $qSessWithCost->fetchAll();
 
 $paymentMap = [];

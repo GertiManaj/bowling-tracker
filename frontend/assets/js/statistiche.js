@@ -273,15 +273,23 @@ function applyCustomPeriod() {
 
 // ── CARICA DATI ──────────────────────────────
 
+function onStatsGroupChange(value) {
+  localStorage.setItem('sz_selected_group', value);
+  loadStats();
+}
+
 async function loadStats() {
   try {
     const params = new URLSearchParams();
     if (currentFrom) params.set('from', currentFrom);
     if (currentTo)   params.set('to',   currentTo);
+    // super_admin: passa group_id selezionato; group_admin: filtro dal JWT
+    const gParam = getSuperAdminGroupParam();
+    if (gParam) params.set('group_id', gParam.replace('?group_id=', ''));
     const paramStr = params.toString();
     const url = '/api/stats.php' + (paramStr ? '?' + paramStr : '');
 
-    statsData = await fetch(url).then(r => r.json());
+    statsData = await authFetch(url).then(r => r.json());
 
     updateHeroBar();
     renderRanking();
@@ -722,7 +730,10 @@ function renderChemistry() {
 
 // ── INIT ─────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', loadStats);
+document.addEventListener('DOMContentLoaded', async () => {
+  await initPageGroupSelector('onStatsGroupChange');
+  loadStats();
+});
 function setRankMetricById(metric) {
   currentRankMetric = metric;
   document.querySelectorAll('.rank-metric').forEach(b => {
