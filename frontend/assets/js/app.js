@@ -10,23 +10,33 @@ let currentGroupId = 'all';
 
 async function initGroupSelector() {
   const bar = document.getElementById('groupSelectorBar');
+  console.log('[GS] bar element:', bar ? 'trovato' : 'NULL');
   if (!bar) return;
 
-  // Mostra solo a super_admin
-  if (typeof isSuperAdmin !== 'function' || !isSuperAdmin()) return;
+  const payload = typeof getJWTPayload === 'function' ? getJWTPayload() : null;
+  console.log('[GS] JWT payload:', payload ? JSON.stringify({user_type: payload.user_type, group_id: payload.group_id}) : 'NULL');
+
+  const superAdmin = typeof isSuperAdmin === 'function' && isSuperAdmin();
+  console.log('[GS] isSuperAdmin:', superAdmin);
+
+  if (!superAdmin) {
+    console.log('[GS] non super_admin → selector nascosto');
+    return;
+  }
+
   bar.style.display = 'flex';
 
-  // Ripristina gruppo salvato PRIMA dell'async fetch,
-  // così groupParam() è già corretto quando loadStats/Leaderboard/etc. girano
   const saved = localStorage.getItem('sz_selected_group');
   if (saved && saved !== 'all') {
     currentGroupId = parseInt(saved);
   }
+  console.log('[GS] currentGroupId dopo restore:', currentGroupId);
 
   try {
     const res    = await authFetch(`${API}/groups.php`);
     const data   = await res.json();
     const groups = data.groups || [];
+    console.log('[GS] gruppi caricati:', groups.length);
     const sel = document.getElementById('groupSelector');
     groups.forEach(function(g) {
       const opt = document.createElement('option');
@@ -34,9 +44,10 @@ async function initGroupSelector() {
       opt.textContent = g.name;
       sel.appendChild(opt);
     });
-    // Ripristina valore nel <select> dopo aver caricato le opzioni
     if (saved && saved !== 'all') sel.value = saved;
-  } catch(e) {}
+  } catch(e) {
+    console.error('[GS] errore fetch gruppi:', e);
+  }
 }
 
 function onGroupChange(value) {
