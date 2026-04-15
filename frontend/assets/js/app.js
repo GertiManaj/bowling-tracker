@@ -91,12 +91,15 @@ async function loadStats() {
 
     document.getElementById('stat-sessioni').textContent = data.totale_sessioni ?? '—';
     document.getElementById('stat-sessioni-sub').textContent = "dall'inizio";
-    document.getElementById('stat-record').textContent = data.record_assoluto ?? '—';
     document.getElementById('stat-media').textContent = data.media_gruppo ?? '—';
 
-    if (data.record_holder) {
+    if (data.record_assoluto && data.record_assoluto > 0 && data.record_holder) {
+      document.getElementById('stat-record').textContent = data.record_assoluto;
       document.getElementById('stat-record-sub').textContent =
         `${data.record_holder.emoji} ${data.record_holder.name} · ${formatDate(data.record_holder.date)}`;
+    } else {
+      document.getElementById('stat-record').textContent = '—';
+      document.getElementById('stat-record-sub').textContent = 'nessun record';
     }
 
     if (data.ultima_sessione) {
@@ -1043,7 +1046,11 @@ function clearSuggestSelection() {
 
 function buildSuggestPlayers() {
   const container = document.getElementById('suggestPlayers');
-  if (!container || !cachedPlayers.length) return;
+  if (!container) return;
+  if (!cachedPlayers.length) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:0.75rem;padding:0.5rem">Nessun giocatore per questo gruppo</div>';
+    return;
+  }
 
   container.innerHTML = cachedPlayers.map(p => {
     const isSelected = suggestSelected.has(p.id);
