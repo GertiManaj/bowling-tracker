@@ -49,6 +49,7 @@ function onGroupChange(value) {
   localStorage.setItem('sz_selected_group', value);
 
   console.log('[onGroupChange] Nuovo gruppo:', currentGroupId);
+  console.log('[onGroupChange] groupParam():', groupParam());
 
   // Ricarica TUTTI i dati
   loadStats();
@@ -84,7 +85,9 @@ function showToast(msg, type = 'success') {
 
 async function loadStats() {
   try {
-    const data = await authFetch(`${API}/stats.php${groupParam()}`).then(r => r.json());
+    const gp = groupParam();
+    console.log('[loadStats] groupParam:', gp, '| currentGroupId:', currentGroupId);
+    const data = await authFetch(`${API}/stats.php${gp}`).then(r => r.json());
 
     document.getElementById('stat-sessioni').textContent = data.totale_sessioni ?? '—';
     document.getElementById('stat-sessioni-sub').textContent = "dall'inizio";
