@@ -10,34 +10,17 @@ let currentGroupId = 'all';
 
 async function initGroupSelector() {
   const bar = document.getElementById('groupSelectorBar');
-  console.log('[GS] bar element:', bar ? 'trovato' : 'NULL');
   if (!bar) return;
-
-  const payload = typeof getJWTPayload === 'function' ? getJWTPayload() : null;
-  console.log('[GS] JWT payload:', payload ? JSON.stringify({user_type: payload.user_type, group_id: payload.group_id}) : 'NULL');
-
-  const superAdmin = typeof isSuperAdmin === 'function' && isSuperAdmin();
-  console.log('[GS] isSuperAdmin:', superAdmin);
-
-  if (!superAdmin) {
-    console.log('[GS] non super_admin → selector nascosto');
-    return;
-  }
+  if (typeof isSuperAdmin !== 'function' || !isSuperAdmin()) return;
 
   bar.style.display = 'flex';
-
-  const saved = localStorage.getItem('sz_selected_group');
-  if (saved && saved !== 'all') {
-    currentGroupId = parseInt(saved);
-  }
-  console.log('[GS] currentGroupId dopo restore:', currentGroupId);
 
   try {
     const res    = await authFetch(`${API}/groups.php`);
     const data   = await res.json();
     const groups = data.groups || [];
-    console.log('[GS] gruppi caricati:', groups.length);
-    const sel = document.getElementById('groupSelector');
+    const sel    = document.getElementById('groupSelector');
+
     // Pulisci opzioni esistenti (evita duplicati se chiamata più volte)
     sel.innerHTML = '<option value="all">Tutti i gruppi</option>';
     groups.forEach(function(g) {
@@ -46,10 +29,21 @@ async function initGroupSelector() {
       opt.textContent = g.name;
       sel.appendChild(opt);
     });
-    if (saved && saved !== 'all') sel.value = saved;
-  } catch(e) {
-    console.error('[GS] errore fetch gruppi:', e);
-  }
+
+    const saved = localStorage.getItem('sz_selected_group');
+    const savedValid = saved && saved !== 'all' && groups.find(function(g) { return String(g.id) === String(saved); });
+
+    if (savedValid) {
+      // Ripristina gruppo salvato (valido)
+      currentGroupId = parseInt(saved);
+      sel.value = saved;
+    } else if (groups.length > 0) {
+      // Nessun gruppo salvato o non più valido → primo gruppo (id più basso = Strike Zone Original)
+      currentGroupId = groups[0].id;
+      sel.value = groups[0].id;
+      localStorage.setItem('sz_selected_group', groups[0].id);
+    }
+  } catch(e) {}
 }
 
 function onGroupChange(value) {
