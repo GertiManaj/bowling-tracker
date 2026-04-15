@@ -8,6 +8,7 @@
 // ============================================
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/jwt_protection.php';
+require_once __DIR__ . '/mailer.php';
 
 $method  = $_SERVER['REQUEST_METHOD'];
 $payload = null;
@@ -101,11 +102,24 @@ if ($method === 'POST') {
         exit;
     }
 
+    $playerEmail = trim($data['email'] ?? '') ?: null;
     $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id, email) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, trim($data['email'] ?? '') ?: null]);
+    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, $playerEmail]);
+    $newId = $pdo->lastInsertId();
+
+    // Invia email di benvenuto se email valida
+    $emailSent = false;
+    if ($playerEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL)) {
+        $gStmt = $pdo->prepare('SELECT name FROM `groups` WHERE id = ?');
+        $gStmt->execute([$groupId]);
+        $group = $gStmt->fetch();
+        if ($group) {
+            $emailSent = sendWelcomePlayer($playerEmail, trim($data['name']), $group['name']);
+        }
+    }
 
     http_response_code(201);
-    echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+    echo json_encode(['success' => true, 'id' => $newId, 'email_sent' => $emailSent]);
     exit;
 }
 
