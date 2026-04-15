@@ -112,8 +112,27 @@ function applyAuthUI() {
   if (typeof updateHamburgerSections === 'function') updateHamburgerSections();
   if (typeof loadInviteCode === 'function' && loggedIn) loadInviteCode();
   // Re-init group selector dopo login (DOMContentLoaded gira prima che il token sia pronto)
-  if (typeof initGroupSelector === 'function' && loggedIn) initGroupSelector();
-  if (typeof initPageGroupSelector === 'function' && loggedIn) initPageGroupSelector();
+  // Poi ricarica i dati con il gruppo corretto
+  if (loggedIn) {
+    if (typeof initGroupSelector === 'function') {
+      initGroupSelector().then(function() {
+        // Dashboard
+        if (typeof loadStats       === 'function') loadStats();
+        if (typeof loadLeaderboard === 'function') loadLeaderboard();
+        if (typeof loadSessions    === 'function') loadSessions();
+        if (typeof loadHof         === 'function') loadHof();
+      });
+    } else if (typeof initPageGroupSelector === 'function') {
+      initPageGroupSelector().then(function() {
+        // Sessioni
+        if (typeof loadAll     === 'function') loadAll();
+        // Giocatori
+        if (typeof loadPlayers === 'function') loadPlayers();
+        // Statistiche
+        if (typeof loadStats   === 'function') loadStats();
+      });
+    }
+  }
 }
 
 // ══════════════════════════════════════════
