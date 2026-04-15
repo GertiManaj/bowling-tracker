@@ -103,23 +103,50 @@ if ($method === 'POST') {
     }
 
     $playerEmail = trim($data['email'] ?? '') ?: null;
+    $playerName  = trim($data['name']);
     $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id, email) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, $playerEmail]);
+    $stmt->execute([$playerName, trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, $playerEmail]);
     $newId = $pdo->lastInsertId();
 
-    // Invia email di benvenuto se email valida
-    $emailSent = false;
+    // Se email valida: crea account player_auth + invia credenziali temporanee
+    $accountCreated = false;
+    $emailSent      = false;
+
     if ($playerEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL)) {
+        // Fetch nome gruppo
         $gStmt = $pdo->prepare('SELECT name FROM `groups` WHERE id = ?');
         $gStmt->execute([$groupId]);
         $group = $gStmt->fetch();
+
         if ($group) {
-            $emailSent = sendWelcomePlayer($playerEmail, trim($data['name']), $group['name']);
+            // Genera password temporanea
+            $chars    = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%';
+            $tempPass = '';
+            for ($i = 0; $i < 12; $i++) {
+                $tempPass .= $chars[random_int(0, strlen($chars) - 1)];
+            }
+
+            try {
+                $pdo->prepare("
+                    INSERT INTO player_auth (player_id, email, password_hash, must_change_password)
+                    VALUES (?, ?, ?, 1)
+                ")->execute([$newId, $playerEmail, password_hash($tempPass, PASSWORD_DEFAULT)]);
+                $accountCreated = true;
+
+                // Invia email con credenziali (template con avviso cambio obbligatorio)
+                $emailSent = sendPlayerActivation($playerEmail, $playerName, $group['name'], $tempPass);
+                error_log($emailSent
+                    ? "[players] ✅ Email attivazione inviata a $playerEmail"
+                    : "[players] ❌ Email attivazione fallita per $playerEmail");
+            } catch (\Throwable $ex) {
+                // Email già usata in player_auth: non blocca la creazione del giocatore
+                error_log("[players] player_auth fallita per $playerEmail: " . $ex->getMessage());
+            }
         }
     }
 
     http_response_code(201);
-    echo json_encode(['success' => true, 'id' => $newId, 'email_sent' => $emailSent]);
+    echo json_encode(['success' => true, 'id' => $newId, 'account_created' => $accountCreated, 'email_sent' => $emailSent]);
     exit;
 }
 
