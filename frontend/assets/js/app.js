@@ -535,7 +535,12 @@ async function loadSessions() {
     // Sidebar: ultima sessione
     cachedSessions = sessions;
     window.cachedSessions = cachedSessions;
-    if (sessions.length > 0) renderLastSession(sessions[0]);
+    if (sessions.length > 0) {
+      renderLastSession(sessions[0]);
+    } else {
+      document.getElementById('last-session-card').innerHTML =
+        '<div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:\'Share Tech Mono\',monospace;font-size:0.75rem">Nessuna sessione per questo gruppo</div>';
+    }
     renderCalendar();
     buildSuggestPlayers();
 
