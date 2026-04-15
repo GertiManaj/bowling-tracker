@@ -1265,7 +1265,7 @@ function renderSuggestResult(data1, data2, data3) {
       <div style="background:var(--surface2);padding:0.35rem 0.6rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
         <div style="display:flex;flex-direction:column;gap:0.1rem">
           <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted);letter-spacing:0.1em">${label}</span>
-          ${data.method ? `<span style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:var(--neon3);letter-spacing:0.08em">METODO: ${data.method}</span>` : ''}
+          ${data.method ? `<span style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:var(--neon3);letter-spacing:0.08em;display:inline-flex;align-items:center;gap:0.3rem">METODO: ${data.method}<button onclick="event.stopPropagation();showInfoMetodo('${data.method}')" style="background:none;border:none;cursor:pointer;color:var(--neon2);font-size:0.75rem;padding:0;line-height:1;opacity:0.8" title="Come funziona?">ℹ️</button></span>` : ''}
         </div>
         <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:${data.diff < 20 ? 'var(--neon)' : 'var(--neon4)'}">Δ ${data.diff}</span>
       </div>
@@ -1321,34 +1321,47 @@ function useSuggestedTeams() {
   });
 }
 
-// ── INFO SUGGERITORE ─────────────────────────
+// ── INFO METODO SUGGERITORE ───────────────────
 
-function showInfoSquadre() {
+function showInfoMetodo(methodName) {
+  const metodi = {
+    'CLUSTER TRIPLO': {
+      color: 'var(--neon3)',
+      descrizione: 'Divide i giocatori in 3 fasce (forti, medi, deboli) e le distribuisce in modo alternato tra i team.',
+      punti: ['📊 Analizza le medie storiche di ogni giocatore', '🎯 Crea 3 cluster: top, medi, deboli', '⚖️ Distribuisce un giocatore per fascia in ogni team', '✅ Massimo bilanciamento per gruppi eterogenei']
+    },
+    'MINI-MAX': {
+      color: 'var(--neon2)',
+      descrizione: 'Prova tutte le combinazioni possibili e sceglie quella che minimizza la differenza tra i team.',
+      punti: ['🔢 Testa ogni possibile divisione del gruppo', '📉 Calcola il delta tra medie dei team', '⚡ Sceglie la combinazione con Δ minimo', '⚠️ Per gruppi >10 usa Greedy (ottimizzazione veloce)']
+    },
+    'GREEDY': {
+      color: 'var(--neon2)',
+      descrizione: 'Versione veloce del Mini-Max per gruppi grandi: assegna ogni giocatore al team con media più bassa.',
+      punti: ['⚡ Algoritmo greedy — decisione locale ottima', '🔢 Ogni giocatore va nel team momentaneamente più debole', '🚀 Ottimizzato per gruppi numerosi (>10 giocatori)', '📊 Buon bilanciamento senza calcoli esponenziali']
+    },
+    'FORMA RECENTE': {
+      color: 'var(--neon)',
+      descrizione: 'Usa le ultime partite invece della media storica completa, premiando chi è in forma.',
+      punti: ['📅 Considera solo le ultime partite giocate', '🔥 Pesa V/P recenti con bonus/malus sul punteggio', '⚡ Chi è in forma conta di più nell\'algoritmo', '🎯 Bilanciamento basato sul trend attuale']
+    }
+  };
+
+  const m = metodi[methodName];
+  if (!m) return;
+
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;padding:1rem';
-
   overlay.innerHTML = `
-    <div style="background:var(--bg-card);border:1px solid var(--neon2);border-radius:12px;padding:1.8rem;max-width:480px;width:100%;color:var(--text)">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700;color:var(--neon2);letter-spacing:0.05em;margin-bottom:1rem">
-        🎯 Come funziona il Suggeritore
+    <div style="background:var(--bg-card);border:1px solid ${m.color};border-radius:12px;padding:1.8rem;max-width:420px;width:100%;color:var(--text)">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:${m.color};letter-spacing:0.15em;margin-bottom:0.3rem">METODO</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:${m.color};letter-spacing:0.05em;margin-bottom:0.8rem">${methodName}</div>
+      <p style="font-size:0.83rem;line-height:1.6;color:var(--text-muted);margin-bottom:1rem">${m.descrizione}</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.3rem;font-size:0.8rem">
+        ${m.punti.map(p => `<div>${p}</div>`).join('')}
       </div>
-      <p style="font-size:0.85rem;line-height:1.6;color:var(--text-muted);margin-bottom:1rem">
-        Seleziona i giocatori presenti stasera, poi clicca <strong style="color:var(--text)">Suggerisci squadre</strong>. L'algoritmo crea team bilanciati in base allo storico.
-      </p>
-      <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.2rem;font-size:0.82rem">
-        <div>⚖️ <strong>Bilanciamento</strong> — distribuisce i giocatori per equilibrare le medie dei team</div>
-        <div>📊 <strong>Storico</strong> — usa le performance passate come peso per il pareggio</div>
-        <div>🎲 <strong>Casualità</strong> — aggiunge variabilità per non avere sempre le stesse squadre</div>
-        <div>🔄 <strong>Rigenerabile</strong> — clicca più volte per ottenere combinazioni diverse</div>
-      </div>
-      <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1.2rem">
-        💡 I giocatori senza partite registrate vengono distribuiti casualmente.
-      </p>
-      <button onclick="this.closest('[style*=inset]').remove()" style="width:100%;padding:0.65rem;background:var(--neon2);color:#000;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.05em;cursor:pointer">
-        OK 👍
-      </button>
+      <button onclick="this.closest('[style*=inset]').remove()" style="width:100%;padding:0.65rem;background:${m.color};color:#000;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.05em;cursor:pointer">OK 👍</button>
     </div>`;
-
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
