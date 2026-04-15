@@ -9,6 +9,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/jwt_protection.php';
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/helpers.php';
 
 $method  = $_SERVER['REQUEST_METHOD'];
 $payload = null;
@@ -103,6 +104,13 @@ if ($method === 'POST') {
     }
 
     $playerEmail = trim($data['email'] ?? '') ?: null;
+
+    if ($playerEmail !== null && !isValidEmail($playerEmail)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Email non valida (es: nome@dominio.com)']);
+        exit;
+    }
+
     $playerName  = trim($data['name']);
     $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id, email) VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$playerName, trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, $playerEmail]);
@@ -197,6 +205,12 @@ if ($method === 'PUT') {
     }
 
     $newEmail = trim($data['email'] ?? '') ?: null;
+
+    if ($newEmail !== null && !isValidEmail($newEmail)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Email non valida (es: nome@dominio.com)']);
+        exit;
+    }
 
     $stmt = $pdo->prepare('UPDATE players SET name = ?, nickname = ?, emoji = ?, email = ? WHERE id = ?');
     $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $newEmail, $id]);

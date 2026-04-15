@@ -83,6 +83,13 @@ async function savePlayer() {
     return;
   }
 
+  var emailInput = document.getElementById('playerEmail');
+  if (email && !validateEmailInput(emailInput)) {
+    if (typeof showToast === 'function') showToast('Email non valida (es: nome@dominio.com)', 'error');
+    emailInput.focus();
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Salvataggio...';
 
@@ -118,6 +125,23 @@ async function savePlayer() {
   btn.disabled = false;
   btn.textContent = _gEditingId ? 'Aggiorna' : 'Salva';
 }
+
+// Validazione email in tempo reale
+document.addEventListener('DOMContentLoaded', function () {
+  var emailInput = document.getElementById('playerEmail');
+  if (!emailInput) return;
+
+  emailInput.addEventListener('blur', function () {
+    validateEmailInput(this);
+  });
+
+  emailInput.addEventListener('input', function () {
+    // Rimuovi il bordo rosso mentre l'utente sta correggendo
+    this.style.borderColor = '';
+    var err = this.nextElementSibling;
+    if (err && err.classList.contains('email-error')) err.remove();
+  });
+});
 
 // Enter per salvare
 document.addEventListener('keydown', function (e) {

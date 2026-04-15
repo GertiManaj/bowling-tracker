@@ -153,6 +153,51 @@ if (typeof showToast === 'undefined') {
   };
 }
 
+// ── VALIDAZIONE EMAIL ────────────────────────
+
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/**
+ * Valida il campo email e mostra/nasconde l'errore inline.
+ * Ritorna true se l'email è assente (campo opzionale) o valida.
+ */
+function validateEmailInput(inputEl, showError) {
+  if (showError === undefined) showError = true;
+  var email = inputEl.value.trim();
+
+  // Campo vuoto = opzionale, nessun errore
+  if (!email) {
+    inputEl.style.borderColor = '';
+    var existing = inputEl.nextElementSibling;
+    if (existing && existing.classList.contains('email-error')) existing.remove();
+    return true;
+  }
+
+  if (!isValidEmail(email)) {
+    if (showError) {
+      inputEl.style.borderColor = '#ff4444';
+      var errEl = inputEl.nextElementSibling;
+      if (!errEl || !errEl.classList.contains('email-error')) {
+        errEl = document.createElement('div');
+        errEl.className = 'email-error';
+        errEl.style.cssText = 'color:#ff4444;font-size:0.78rem;margin-top:0.3rem';
+        inputEl.parentNode.insertBefore(errEl, inputEl.nextSibling);
+      }
+      errEl.textContent = '❌ Email non valida (es: nome@dominio.com)';
+    }
+    return false;
+  }
+
+  // Valida — pulisci errore
+  inputEl.style.borderColor = '';
+  var old = inputEl.nextElementSibling;
+  if (old && old.classList.contains('email-error')) old.remove();
+  return true;
+}
+
 // ── SERVICE WORKER ───────────────────────────
 
 if ('serviceWorker' in navigator) {

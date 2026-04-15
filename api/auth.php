@@ -24,6 +24,7 @@ $expiresIn = 24 * 60 * 60; // 24 ore
 // Database connection
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/helpers.php';
 
 // ══════════════════════════════════════════
 // JWT HELPERS
@@ -262,6 +263,12 @@ if ($_GET['action'] === 'request-otp' && $_SERVER['REQUEST_METHOD'] === 'POST') 
     if (empty($email) || empty($password)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Email e password richiesti']);
+        exit;
+    }
+
+    if (!isValidEmail($email)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Email non valida (es: nome@dominio.com)']);
         exit;
     }
 
