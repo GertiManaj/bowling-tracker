@@ -104,6 +104,9 @@ async function loadStats() {
       document.getElementById('stat-ultima').textContent =
         d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).toUpperCase();
       document.getElementById('stat-ultima-sub').textContent = data.ultima_sessione.location;
+    } else {
+      document.getElementById('stat-ultima').textContent = '—';
+      document.getElementById('stat-ultima-sub').textContent = 'nessuna sessione';
     }
   } catch (e) {
     console.error('Errore stats:', e);

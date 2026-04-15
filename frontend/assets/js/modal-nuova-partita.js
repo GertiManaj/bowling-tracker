@@ -14,7 +14,8 @@ if (typeof allPlayers === 'undefined') window.allPlayers = [];
 async function openModal() {
   if (!window.isLoggedIn) { openLoginModal(); return; }
   try {
-    allPlayers = await authFetch(`${API}/players.php`).then(r => r.json());
+    const gpParam = (typeof groupParam === 'function') ? groupParam() : '';
+    allPlayers = await authFetch(`${API}/players.php${gpParam}`).then(r => r.json());
   } catch (e) {
     allPlayers = [];
   }
