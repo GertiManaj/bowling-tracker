@@ -7,13 +7,18 @@ const API = '/api'; // percorso assoluto
 
 // ── GROUP FILTER (super_admin) ───────────────
 let currentGroupId = 'all';
+let _groupSelectorReady = false; // evita doppia inizializzazione
 
 async function initGroupSelector() {
+  // Già inizializzato (es. checkAuth async chiama applyAuthUI dopo DOMContentLoaded)
+  if (_groupSelectorReady) return;
+
   const bar = document.getElementById('groupSelectorBar');
   if (!bar) return;
   if (typeof isSuperAdmin !== 'function' || !isSuperAdmin()) return;
 
   bar.style.display = 'flex';
+  _groupSelectorReady = true; // blocca invocazioni successive
 
   try {
     const res    = await authFetch(`${API}/groups.php`);
@@ -21,7 +26,6 @@ async function initGroupSelector() {
     const groups = data.groups || [];
     const sel    = document.getElementById('groupSelector');
 
-    // Pulisci opzioni esistenti (evita duplicati se chiamata più volte)
     sel.innerHTML = '<option value="all">Tutti i gruppi</option>';
     groups.forEach(function(g) {
       const opt = document.createElement('option');
@@ -34,11 +38,10 @@ async function initGroupSelector() {
     const savedValid = saved && saved !== 'all' && groups.find(function(g) { return String(g.id) === String(saved); });
 
     if (savedValid) {
-      // Ripristina gruppo salvato (valido)
       currentGroupId = parseInt(saved);
       sel.value = saved;
     } else if (groups.length > 0) {
-      // Nessun gruppo salvato o non più valido → primo gruppo (id più basso = Strike Zone Original)
+      // Nessun gruppo valido salvato → primo gruppo (id più basso = Strike Zone Original)
       currentGroupId = groups[0].id;
       sel.value = groups[0].id;
       localStorage.setItem('sz_selected_group', groups[0].id);
