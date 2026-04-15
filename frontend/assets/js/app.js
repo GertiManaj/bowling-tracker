@@ -1321,6 +1321,38 @@ function useSuggestedTeams() {
   });
 }
 
+// ── INFO SUGGERITORE ─────────────────────────
+
+function showInfoSquadre() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;padding:1rem';
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--neon2);border-radius:12px;padding:1.8rem;max-width:480px;width:100%;color:var(--text)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700;color:var(--neon2);letter-spacing:0.05em;margin-bottom:1rem">
+        🎯 Come funziona il Suggeritore
+      </div>
+      <p style="font-size:0.85rem;line-height:1.6;color:var(--text-muted);margin-bottom:1rem">
+        Seleziona i giocatori presenti stasera, poi clicca <strong style="color:var(--text)">Suggerisci squadre</strong>. L'algoritmo crea team bilanciati in base allo storico.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.2rem;font-size:0.82rem">
+        <div>⚖️ <strong>Bilanciamento</strong> — distribuisce i giocatori per equilibrare le medie dei team</div>
+        <div>📊 <strong>Storico</strong> — usa le performance passate come peso per il pareggio</div>
+        <div>🎲 <strong>Casualità</strong> — aggiunge variabilità per non avere sempre le stesse squadre</div>
+        <div>🔄 <strong>Rigenerabile</strong> — clicca più volte per ottenere combinazioni diverse</div>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1.2rem">
+        💡 I giocatori senza partite registrate vengono distribuiti casualmente.
+      </p>
+      <button onclick="this.closest('[style*=inset]').remove()" style="width:100%;padding:0.65rem;background:var(--neon2);color:#000;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.05em;cursor:pointer">
+        OK 👍
+      </button>
+    </div>`;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 // ── INIT ─────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
