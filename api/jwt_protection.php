@@ -66,6 +66,34 @@ function requireAuth($protectedMethods = ['POST', 'PUT', 'DELETE']) {
     return $payload;
 }
 
+/**
+ * Prova a verificare il JWT dalla header Authorization senza bloccare il flusso.
+ * Verifica firma HMAC + scadenza. Ritorna il payload o null se non valido.
+ */
+function tryParseJWT(): ?array {
+    $ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if (!preg_match('/Bearer\s+(.+)$/i', $ah, $m)) return null;
+
+    $parts = explode('.', $m[1]);
+    if (count($parts) !== 3) return null;
+
+    [$headerB64, $payloadB64, $signatureB64] = $parts;
+
+    $secret    = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
+    $signature = base64_decode(strtr($signatureB64, '-_', '+/'));
+    $expected  = hash_hmac('sha256', "$headerB64.$payloadB64", $secret, true);
+    if (!hash_equals($signature, $expected)) return null;
+
+    $pd = json_decode(base64_decode(strtr($payloadB64, '-_', '+/')), true);
+    if (!$pd || !isset($pd['exp']) || $pd['exp'] < time()) return null;
+
+    if (!isset($pd['user_type'])) {
+        $pd['user_type'] = isset($pd['admin_id']) ? 'super_admin' : null;
+    }
+
+    return $pd;
+}
+
 // ── HELPERS RUOLI ─────────────────────────────
 
 /** true se il payload appartiene a un super_admin */

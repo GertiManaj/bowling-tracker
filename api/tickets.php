@@ -16,15 +16,8 @@ $payload = null;
 if ($method === 'PUT') {
     $payload = requireAuth(['PUT']);
 } else {
-    // JWT opzionale (per stats admin in GET)
-    $ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
-        $parts = explode('.', $m[1]);
-        if (count($parts) === 3) {
-            $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-            if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
-        }
-    }
+    // JWT opzionale con verifica firma completa (per stats admin in GET)
+    $payload = tryParseJWT();
 }
 
 $pdo = getPDO();
@@ -175,7 +168,10 @@ if ($method === 'POST') {
         $file    = $_FILES['attachment'];
         $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-        if (!in_array($file['type'], $allowed)) {
+        // Verifica MIME reale dal contenuto del file (non dal client-supplied type)
+        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+        $realMime = $finfo->file($file['tmp_name']);
+        if (!in_array($realMime, $allowed)) {
             http_response_code(400);
             echo json_encode(['error' => 'Tipo file non permesso. Solo immagini (JPEG, PNG, GIF, WebP).']);
             exit;

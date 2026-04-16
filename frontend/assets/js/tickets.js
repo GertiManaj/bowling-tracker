@@ -348,7 +348,7 @@ function renderAdminTickets(tickets) {
             ${t.user_email ? `<span style="font-size:0.72rem;color:var(--text-muted)">(${escHtml(t.user_email)})</span>` : ''}
           </div>
           <div style="display:flex;align-items:center;gap:0.5rem">
-            ${t.attachment_url ? `<a href="${t.attachment_url}" target="_blank" style="font-size:0.75rem;color:var(--neon2)">📎</a>` : ''}
+            ${t.attachment_url ? `<a href="${escHtml(t.attachment_url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem;color:var(--neon2)">📎</a>` : ''}
             <span style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-muted)">${date}</span>
             <button onclick="openReplyModal(${t.id})" class="btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.7rem">✏️ Gestisci</button>
           </div>

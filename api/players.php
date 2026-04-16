@@ -18,15 +18,8 @@ if ($method !== 'GET') {
     // POST/PUT/DELETE: JWT obbligatorio
     $payload = requireAuth(['POST', 'PUT', 'DELETE']);
 } else {
-    // GET pubblico: leggi JWT opzionale per group filter
-    $ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
-        $parts = explode('.', $m[1]);
-        if (count($parts) === 3) {
-            $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-            if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
-        }
-    }
+    // GET pubblico: JWT opzionale con verifica firma completa (per group filter)
+    $payload = tryParseJWT();
 }
 
 // Determina filtro gruppo
