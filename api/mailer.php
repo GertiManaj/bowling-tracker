@@ -24,8 +24,8 @@ function sendEmail(string $to, string $subject, string $html): bool {
         return false;
     }
 
-    $fromEmail = getenv('EMAIL_FROM')      ?: 'noreply@resend.dev';
-    $fromName  = getenv('EMAIL_FROM_NAME') ?: 'Strike Zone';
+    $fromEmail = getenv('EMAIL_FROM')      ?: 'support@strikezone.xyz';
+    $fromName  = getenv('EMAIL_FROM_NAME') ?: 'Strike Zone Support';
 
     $ch = curl_init('https://api.resend.com/emails');
     if (!$ch) {
@@ -36,10 +36,11 @@ function sendEmail(string $to, string $subject, string $html): bool {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode([
-            'from'    => "$fromName <$fromEmail>",
-            'to'      => [$to],
-            'subject' => $subject,
-            'html'    => $html,
+            'from'     => "$fromName <$fromEmail>",
+            'to'       => [$to],
+            'subject'  => $subject,
+            'html'     => $html,
+            'reply_to' => ['manajgerti2002@gmail.com'],
         ]),
         CURLOPT_HTTPHEADER => [
             'Authorization: Bearer ' . $apiKey,
@@ -225,8 +226,7 @@ function sendEmailChangeNotification(string $email, string $playerName, string $
 
 // ── 5. Notifica admin: nuovo ticket ──────────
 function notifyAdminNewTicket(string $ticketNumber, string $title, string $category, string $userName, string $userEmail): bool {
-    $adminEmail = getenv('ADMIN_EMAIL');
-    if (!$adminEmail) return false;
+    $adminEmail = getenv('ADMIN_EMAIL') ?: 'manajgerti2002@gmail.com';
 
     $appUrl    = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
     $ticketUrl = $appUrl . '/frontend/pages/tickets.html';
