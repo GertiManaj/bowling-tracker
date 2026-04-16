@@ -214,13 +214,15 @@ if ($method === 'POST') {
     ]);
     $newId = $pdo->lastInsertId();
 
-    notifyAdminNewTicket(
-        $ticketNumber,
-        $title ?: mb_strimwidth($desc, 0, 60, '…'),
-        $category,
-        $name ?: 'Anonimo',
-        $email
-    );
+    $displayTitle = $title ?: mb_strimwidth($desc, 0, 60, '…');
+
+    // Conferma creazione a utente (se ha fornito email)
+    if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        notifyUserTicketCreated($email, $ticketNumber, $displayTitle);
+    }
+
+    // Notifica admin
+    notifyAdminNewTicket($ticketNumber, $displayTitle, $category, $name ?: 'Anonimo', $email, $desc);
 
     http_response_code(201);
     echo json_encode(['success' => true, 'id' => $newId, 'ticket_number' => $ticketNumber]);

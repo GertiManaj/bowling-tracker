@@ -46,8 +46,65 @@ function initTicketsPage() {
   if (window.isLoggedIn) {
     document.getElementById('adminView').style.display = 'block';
     loadTicketStats();
-    loadAllTickets();
+    loadAllTickets().then(function () {
+      _handleTicketUrlParam();
+    });
     loadTemplatesForModal();
+  } else {
+    // Utente non loggato: mostra ticket dalla ricerca se param presente
+    _handleTicketUrlParam();
+  }
+}
+
+function _handleTicketUrlParam() {
+  var num = new URLSearchParams(window.location.search).get('ticket');
+  if (!num) return;
+
+  if (window.isLoggedIn) {
+    // Scroll alla card admin
+    setTimeout(function () { _scrollToTicketCard(num); }, 200);
+  } else {
+    // Popola il campo di ricerca e cerca automaticamente
+    var inp = document.getElementById('searchTicketId');
+    if (inp) {
+      inp.value = num;
+      searchTicket();
+    }
+  }
+}
+
+function _scrollToTicketCard(ticketNumber) {
+  var card = document.querySelector('[data-ticket="' + ticketNumber + '"]');
+  if (!card) return;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Highlight animato
+  var origBorder = card.style.border;
+  var origShadow = card.style.boxShadow;
+  card.style.transition = 'border 0.2s, box-shadow 0.2s';
+  card.style.border      = '2px solid #ffd700';
+  card.style.boxShadow   = '0 0 18px rgba(255,215,0,0.45)';
+
+  var count    = 0;
+  var interval = setInterval(function () {
+    card.style.borderColor = count % 2 === 0 ? '#ffd700' : '#00ff88';
+    count++;
+    if (count > 4) {
+      clearInterval(interval);
+      card.style.border    = '2px solid #00ff88';
+      card.style.boxShadow = '0 0 12px rgba(0,255,136,0.3)';
+    }
+  }, 280);
+
+  // Admin: apre automaticamente il modal
+  if (window.isLoggedIn) {
+    setTimeout(function () {
+      var t = allTickets.find(function (x) {
+        return String(x.ticket_number) === String(ticketNumber) || String(x.id) === String(ticketNumber);
+      });
+      if (t) openReplyModal(t.id);
+    }, 900);
   }
 }
 
@@ -233,6 +290,7 @@ async function loadAllTickets() {
     var el = document.getElementById('adminTicketsList');
     if (el) el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--neon2)">Errore nel caricamento</div>';
   }
+  return allTickets;
 }
 
 // ── FILTRI ────────────────────────────────────
@@ -279,7 +337,7 @@ function renderAdminTickets(tickets) {
       </div>` : '';
 
     return `
-      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${sc};border-radius:8px;padding:0.9rem 1.1rem;margin-bottom:0.5rem">
+      <div data-ticket="${t.ticket_number || t.id}" style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${sc};border-radius:8px;padding:0.9rem 1.1rem;margin-bottom:0.5rem">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.6rem;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
             <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--text-muted)">#${t.ticket_number || t.id}</span>

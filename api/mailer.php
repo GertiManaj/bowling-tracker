@@ -224,56 +224,155 @@ function sendEmailChangeNotification(string $email, string $playerName, string $
     return sendEmail($email, $subject, mailWrap($body));
 }
 
-// ── 5. Notifica admin: nuovo ticket ──────────
-function notifyAdminNewTicket(string $ticketNumber, string $title, string $category, string $userName, string $userEmail): bool {
-    $adminEmail = getenv('ADMIN_EMAIL') ?: 'manajgerti2002@gmail.com';
+// ── 5. Conferma creazione ticket (a utente) ───
+function notifyUserTicketCreated(string $userEmail, string $ticketNumber, string $title): bool {
+    if (!filter_var($userEmail, FILTER_VALIDATE_EMAIL)) return false;
 
     $appUrl    = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
-    $ticketUrl = $appUrl . '/frontend/pages/tickets.html';
+    $ticketUrl = $appUrl . '/frontend/pages/tickets.html?ticket=' . urlencode($ticketNumber);
+    $eTitle    = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
 
-    $catEmoji = ['bug' => '🐛', 'suggerimento' => '💡', 'domanda' => '❓',
-                 'funzionalita' => '⚙️', 'feature' => '✨', 'altro' => '💬'];
-    $emoji   = $catEmoji[$category] ?? '💬';
-    $eTitle  = htmlspecialchars($title,     ENT_QUOTES, 'UTF-8');
-    $eCat    = htmlspecialchars($category,  ENT_QUOTES, 'UTF-8');
-    $eUser   = htmlspecialchars($userName,  ENT_QUOTES, 'UTF-8');
-    $eEmail  = htmlspecialchars($userEmail ?: '—', ENT_QUOTES, 'UTF-8');
+    $html = "<!DOCTYPE html><html><head><meta charset='utf-8'></head>
+<body style='margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif'>
+<div style='max-width:600px;margin:0 auto;background:#fff'>
 
-    $body = "
-<p>È arrivato un nuovo ticket da gestire.</p>
-<div class='info-box' style='border-color:#e8ff00'>
-  <strong style='color:#e8ff00'>🎫 Ticket #$ticketNumber</strong><br>
-  <div style='margin-top:0.5rem'><strong>Titolo:</strong> $eTitle</div>
-  <div><strong>Categoria:</strong> $emoji $eCat</div>
-  <div><strong>Da:</strong> $eUser</div>
-  <div><strong>Email:</strong> $eEmail</div>
+  <div style='background:linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 100%);padding:2rem;text-align:center'>
+    <h1 style='color:#ffd700;margin:0;font-size:2rem'>🎳 STRIKE ZONE</h1>
+    <p style='color:#999;margin:0.5rem 0 0;font-size:0.9rem'>Support Team</p>
+  </div>
+
+  <div style='padding:2rem'>
+    <div style='text-align:center;margin-bottom:1.5rem'>
+      <span style='background:#00ff88;color:#000;padding:0.5rem 1.5rem;border-radius:20px;font-size:0.85rem;font-weight:700'>TICKET #$ticketNumber RICEVUTO</span>
+    </div>
+    <h2 style='color:#00ff88;margin:0 0 1.5rem'>✅ Ticket ricevuto!</h2>
+    <p style='color:#666;line-height:1.7'>Il tuo ticket è stato ricevuto correttamente. Il team lo esaminerà al più presto e riceverai un'email appena ci sarà una risposta.</p>
+    <div style='background:#f5f5f5;border-left:4px solid #00ff88;padding:1.25rem;margin:1.5rem 0'>
+      <p style='margin:0 0 0.4rem;color:#888;font-size:0.82rem;font-weight:600'>OGGETTO:</p>
+      <p style='margin:0;color:#333;font-size:1rem'>$eTitle</p>
+    </div>
+    <div style='text-align:center;margin:2rem 0'>
+      <a href='$ticketUrl' style='display:inline-block;background:#00ff88;color:#000;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:700;font-size:1rem;box-shadow:0 4px 12px rgba(0,255,136,0.25)'>📋 Visualizza Ticket</a>
+    </div>
+    <div style='background:#fff9e6;border:2px solid #ffd700;border-radius:8px;padding:1.25rem;margin:2rem 0'>
+      <p style='margin:0 0 0.5rem;color:#333;font-weight:600'>⚠️ IMPORTANTE</p>
+      <p style='margin:0;color:#666;line-height:1.6;font-size:0.9rem'><strong>Non rispondere a questa email.</strong><br>Per aggiornamenti usa il link sopra per accedere al sistema ticket di Strike Zone.</p>
+    </div>
+  </div>
+
+  <div style='background:#f5f5f5;padding:1.5rem;border-top:1px solid #e0e0e0;text-align:center'>
+    <p style='margin:0 0 0.4rem;color:#666;font-size:0.9rem'>Strike Zone Support</p>
+    <p style='margin:0;font-size:0.85rem'><a href='https://strikezone.xyz' style='color:#00ff88;text-decoration:none'>strikezone.xyz</a></p>
+    <p style='margin:0.8rem 0 0;color:#aaa;font-size:0.75rem'>Ticket ID: #$ticketNumber</p>
+  </div>
+
 </div>
-<a href='$ticketUrl' class='btn'>🎫 Gestisci Ticket</a>";
+</body></html>";
 
-    return sendEmail($adminEmail, "🎫 Nuovo Ticket #$ticketNumber — Strike Zone", mailWrap($body));
+    return sendEmail($userEmail, "✅ Ticket #$ticketNumber ricevuto — Strike Zone", $html);
 }
 
-// ── 6. Notifica utente: risposta al ticket ────
+// ── 6. Notifica admin: nuovo ticket ──────────
+function notifyAdminNewTicket(string $ticketNumber, string $title, string $category, string $userName, string $userEmail, string $description = ''): bool {
+    $adminEmail = getenv('ADMIN_EMAIL') ?: 'manajgerti2002@gmail.com';
+    $appUrl     = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
+    $ticketUrl  = $appUrl . '/frontend/pages/tickets.html?ticket=' . urlencode($ticketNumber);
+
+    $catEmoji   = ['bug' => '🐛', 'suggerimento' => '💡', 'domanda' => '❓',
+                   'funzionalita' => '⚙️', 'feature' => '✨', 'altro' => '💬'];
+    $emoji      = $catEmoji[$category] ?? '💬';
+    $eTitle     = htmlspecialchars($title,    ENT_QUOTES, 'UTF-8');
+    $eCat       = htmlspecialchars(ucfirst($category), ENT_QUOTES, 'UTF-8');
+    $eUser      = htmlspecialchars($userName, ENT_QUOTES, 'UTF-8');
+    $eEmail     = $userEmail ? htmlspecialchars($userEmail, ENT_QUOTES, 'UTF-8') : '';
+    $descPrev   = $description ? htmlspecialchars(mb_strimwidth($description, 0, 150, '…'), ENT_QUOTES, 'UTF-8') : '';
+
+    $html = "<!DOCTYPE html><html><head><meta charset='utf-8'></head>
+<body style='font-family:-apple-system,Arial,sans-serif;color:#333;background:#f5f5f5;padding:1rem'>
+<div style='max-width:600px;margin:0 auto'>
+
+  <div style='background:#1a1a1a;padding:1.5rem;border-radius:8px 8px 0 0'>
+    <h2 style='color:#ffd700;margin:0;font-size:1.4rem'>$emoji Nuovo Ticket #$ticketNumber</h2>
+  </div>
+
+  <div style='background:#fff;padding:2rem;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px'>
+    <h3 style='margin:0 0 1.5rem;color:#333'>$eTitle</h3>
+    <table style='width:100%;border-collapse:collapse'>
+      <tr><td style='padding:0.6rem 0;border-bottom:1px solid #f0f0f0;color:#888'><strong>Categoria</strong></td>
+          <td style='padding:0.6rem 0;border-bottom:1px solid #f0f0f0;text-align:right'>$emoji $eCat</td></tr>
+      <tr><td style='padding:0.6rem 0;color:#888'><strong>Da</strong></td>
+          <td style='padding:0.6rem 0;text-align:right'>$eUser" . ($eEmail ? "<br><small style='color:#888'>$eEmail</small>" : '') . "</td></tr>
+    </table>
+    " . ($descPrev ? "<div style='background:#f9f9f9;padding:1.25rem;margin:1.5rem 0;border-radius:6px;font-size:0.9rem;color:#555;white-space:pre-wrap'>$descPrev</div>" : '') . "
+    <div style='text-align:center;margin:2rem 0'>
+      <a href='$ticketUrl' style='display:inline-block;background:#00ff88;color:#000;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600'>Apri Ticket →</a>
+    </div>
+    <p style='text-align:center;color:#aaa;font-size:0.75rem;margin:0'>Ticket ID: #$ticketNumber</p>
+  </div>
+
+</div>
+</body></html>";
+
+    return sendEmail($adminEmail, "[Strike Zone] $emoji Ticket #$ticketNumber — $title", $html);
+}
+
+// ── 7. Risposta admin → utente ────────────────
 function notifyUserTicketReply(string $userEmail, string $ticketNumber, string $title, string $reply): bool {
+    if (!filter_var($userEmail, FILTER_VALIDATE_EMAIL)) return false;
+
     $appUrl    = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
-    $ticketUrl = $appUrl . '/frontend/pages/tickets.html';
+    $ticketUrl = $appUrl . '/frontend/pages/tickets.html?ticket=' . urlencode($ticketNumber);
+    $eTitle    = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    $eReply    = nl2br(htmlspecialchars($reply, ENT_QUOTES, 'UTF-8'));
+    $date      = date('d/m/Y H:i');
 
-    $eTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $eReply = nl2br(htmlspecialchars($reply, ENT_QUOTES, 'UTF-8'));
+    $html = "<!DOCTYPE html><html><head><meta charset='utf-8'></head>
+<body style='margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif'>
+<div style='max-width:600px;margin:0 auto;background:#fff'>
 
-    $body = "
-<p>Il tuo ticket ha ricevuto una risposta!</p>
-<div class='info-box' style='border-color:#e8ff00'>
-  <strong style='color:#e8ff00'>🎫 Ticket #$ticketNumber</strong><br>
-  <div style='margin-top:0.4rem;color:#9090b0'>$eTitle</div>
+  <div style='background:linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 100%);padding:2rem;text-align:center'>
+    <h1 style='color:#ffd700;margin:0;font-size:2rem'>🎳 STRIKE ZONE</h1>
+    <p style='color:#999;margin:0.5rem 0 0;font-size:0.9rem'>Support Team</p>
+  </div>
+
+  <div style='padding:2rem'>
+    <div style='text-align:center;margin-bottom:1.5rem'>
+      <span style='background:#00ff88;color:#000;padding:0.5rem 1.5rem;border-radius:20px;font-size:0.85rem;font-weight:700'>TICKET #$ticketNumber</span>
+    </div>
+    <h2 style='color:#00ff88;margin:0 0 1.5rem'>💬 Nuova risposta dal team</h2>
+    <div style='background:#f5f5f5;border-left:4px solid #00ff88;padding:1.25rem;margin:1.5rem 0'>
+      <p style='margin:0 0 0.4rem;color:#888;font-size:0.82rem;font-weight:600'>OGGETTO:</p>
+      <p style='margin:0;color:#333'>$eTitle</p>
+    </div>
+    <div style='background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1.5rem;margin:2rem 0'>
+      <div style='display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #e0e0e0'>
+        <div style='width:36px;height:36px;background:#00ff88;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0'>👤</div>
+        <div>
+          <div style='font-weight:600;color:#333;font-size:0.9rem'>Strike Zone Support</div>
+          <div style='color:#888;font-size:0.78rem'>$date</div>
+        </div>
+      </div>
+      <div style='color:#333;line-height:1.7;white-space:pre-wrap'>$eReply</div>
+    </div>
+    <div style='text-align:center;margin:2.5rem 0'>
+      <a href='$ticketUrl' style='display:inline-block;background:#00ff88;color:#000;padding:16px 40px;text-decoration:none;border-radius:8px;font-weight:700;font-size:1rem;box-shadow:0 4px 12px rgba(0,255,136,0.3)'>📋 Visualizza e rispondi al ticket</a>
+    </div>
+    <div style='background:#fff9e6;border:2px solid #ffd700;border-radius:8px;padding:1.5rem;margin:2rem 0'>
+      <p style='margin:0 0 0.6rem;color:#333;font-weight:600'>⚠️ IMPORTANTE</p>
+      <p style='margin:0;color:#666;line-height:1.6;font-size:0.92rem'><strong>Non rispondere direttamente a questa email.</strong><br>Per continuare la conversazione clicca il pulsante sopra e usa il sistema ticket integrato in Strike Zone.</p>
+    </div>
+  </div>
+
+  <div style='background:#f5f5f5;padding:2rem;border-top:1px solid #e0e0e0;text-align:center'>
+    <p style='margin:0 0 0.4rem;color:#666;font-size:0.9rem;font-weight:600'>Strike Zone Support</p>
+    <p style='margin:0;font-size:0.85rem'><a href='https://strikezone.xyz' style='color:#00ff88;text-decoration:none'>strikezone.xyz</a></p>
+    <p style='margin:0.8rem 0 0;color:#aaa;font-size:0.75rem'>Ticket ID: #$ticketNumber</p>
+  </div>
+
 </div>
-<div class='info-box' style='border-color:#00e5ff;margin-top:1rem'>
-  <strong style='color:#00e5ff'>💬 Risposta Admin:</strong><br>
-  <div style='margin-top:0.6rem;line-height:1.7'>$eReply</div>
-</div>
-<a href='$ticketUrl' class='btn' style='margin-top:1.5rem'>🎫 Vai ai Ticket</a>";
+</body></html>";
 
-    return sendEmail($userEmail, "✅ Risposta al tuo Ticket #$ticketNumber — Strike Zone", mailWrap($body));
+    return sendEmail($userEmail, "💬 Risposta al Ticket #$ticketNumber — Strike Zone", $html);
 }
 
 // ── 7. Notifica admin: nuovo giocatore ────────
