@@ -331,6 +331,13 @@ async function savePlayer(createAnother) {
         if (typeof showToast === 'function')
           showToast(wasEditing ? name + ' aggiornato!' : name + ' aggiunto al gruppo!');
       }
+    } else if (data.code === 'EMAIL_ACCOUNT_EXISTS') {
+      var emailInput = document.getElementById('playerEmail');
+      if (emailInput) emailInput.style.borderColor = '#ff4444';
+      var w = document.getElementById('emailDuplicateWarning');
+      if (w) { w.innerHTML = '❌ Email già associata a un account esistente'; w.style.color = '#ff4444'; }
+      if (typeof showToast === 'function')
+        showToast('Email già usata da un account esistente — disattiva "Invia email" per salvare solo l\'indirizzo', 'error');
     } else {
       if (typeof showToast === 'function') showToast(data.error || 'Errore nel salvataggio', 'error');
     }

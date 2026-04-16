@@ -164,6 +164,22 @@ if ($method === 'POST') {
         exit;
     }
 
+    $sendEmail = isset($data['send_email']) ? (bool)$data['send_email'] : true;
+
+    // SECURITY: se richiesta creazione account, verifica che email non abbia già un account attivo
+    if ($playerEmail && $sendEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL)) {
+        $authCheck = $pdo->prepare('SELECT player_id FROM player_auth WHERE email = ?');
+        $authCheck->execute([$playerEmail]);
+        if ($authCheck->fetch()) {
+            http_response_code(409);
+            echo json_encode([
+                'error' => 'Email già associata a un account esistente',
+                'code'  => 'EMAIL_ACCOUNT_EXISTS'
+            ]);
+            exit;
+        }
+    }
+
     $playerName  = trim($data['name']);
     $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id, email) VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$playerName, trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, $playerEmail]);
@@ -172,7 +188,6 @@ if ($method === 'POST') {
     // Se email valida: crea account player_auth + invia credenziali temporanee
     $accountCreated = false;
     $emailSent      = false;
-    $sendEmail      = isset($data['send_email']) ? (bool)$data['send_email'] : true;
 
     if ($playerEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL) && $sendEmail) {
         try {
@@ -264,6 +279,20 @@ if ($method === 'PUT') {
         http_response_code(400);
         echo json_encode(['error' => 'Email non valida (es: nome@dominio.com)']);
         exit;
+    }
+
+    // SECURITY: se email cambiata, verifica che la nuova non abbia già un account attivo su altro player
+    if ($newEmail && $newEmail !== $playerRow['old_email'] && filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+        $authCheck = $pdo->prepare('SELECT player_id FROM player_auth WHERE email = ? AND player_id != ?');
+        $authCheck->execute([$newEmail, $id]);
+        if ($authCheck->fetch()) {
+            http_response_code(409);
+            echo json_encode([
+                'error' => 'Email già associata a un altro account',
+                'code'  => 'EMAIL_ACCOUNT_EXISTS'
+            ]);
+            exit;
+        }
     }
 
     $stmt = $pdo->prepare('UPDATE players SET name = ?, nickname = ?, emoji = ?, email = ? WHERE id = ?');
