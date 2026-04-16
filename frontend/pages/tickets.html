@@ -40,11 +40,13 @@
         </p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
           <div class="form-group">
-            <label class="form-label">Tipo</label>
-            <select class="form-input" id="newType">
+            <label class="form-label">Categoria</label>
+            <select class="form-input" id="newCategory">
               <option value="bug">🐛 Bug — qualcosa non funziona</option>
-              <option value="feature">✨ Nuova funzionalità</option>
-              <option value="correction">✏️ Correzione dati</option>
+              <option value="suggerimento">💡 Suggerimento</option>
+              <option value="domanda">❓ Domanda</option>
+              <option value="funzionalita">⚙️ Nuova Funzionalità</option>
+              <option value="altro">💬 Altro</option>
             </select>
           </div>
           <div class="form-group">
@@ -53,9 +55,26 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">Titolo *</label>
+          <input type="text" class="form-input" id="newTitle" placeholder="Breve descrizione del problema" maxlength="200" />
+        </div>
+        <div class="form-group">
           <label class="form-label">Descrizione *</label>
           <textarea class="form-input" id="newDesc" rows="4"
             placeholder="Descrivi il problema o la richiesta in dettaglio..." style="resize:vertical"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+          <div class="form-group">
+            <label class="form-label">Email (per ricevere risposta)</label>
+            <input type="email" class="form-input" id="newEmail" placeholder="mario@example.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">📎 Allegato (opzionale, max 5 MB)</label>
+            <input type="file" id="newAttachment" accept="image/*" style="display:none" onchange="handleAttachmentPreview(this)">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('newAttachment').click()"
+              style="width:100%;font-size:0.8rem">📎 Carica screenshot</button>
+            <div id="attachmentPreview" style="margin-top:0.3rem;font-size:0.75rem;color:var(--text-muted)"></div>
+          </div>
         </div>
         <div style="display:flex;justify-content:flex-end">
           <button class="btn-primary" id="btnSubmitTicket" onclick="submitNewTicket()" style="min-width:140px">🎫
@@ -103,19 +122,40 @@
 
     <!-- ══ VISTA ADMIN ══ -->
     <div id="adminView" style="display:none">
-      <div
-        style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
-        <div class="section-title" style="margin:0">
-          <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
-          🎫 Gestione Ticket
-        </div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap" id="filterBtns">
-          <button class="period-btn active" onclick="filterTickets('all',this)">Tutti</button>
-          <button class="period-btn" onclick="filterTickets('open',this)">🔴 Aperti</button>
-          <button class="period-btn" onclick="filterTickets('in_progress',this)">🟡 In lavorazione</button>
-          <button class="period-btn" onclick="filterTickets('resolved',this)">🟢 Risolti</button>
-          <button class="period-btn" onclick="filterTickets('rejected',this)">⚫ Rifiutati</button>
-        </div>
+      <div class="section-title" style="margin-bottom:1rem">
+        <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+        📊 Dashboard Ticket
+      </div>
+      <div id="ticketDashboard" style="margin-bottom:1.5rem"></div>
+
+      <div class="section-title" style="margin-bottom:0.8rem">
+        <span class="accent" style="background:var(--neon2);box-shadow:0 0 8px var(--neon2)"></span>
+        🎫 Gestione Ticket
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem" id="ticketFilters">
+        <select class="form-input" id="filterStatus" onchange="applyTicketFilters()" style="flex:1;min-width:140px;padding:0.4rem 0.6rem;font-size:0.82rem">
+          <option value="all">Tutti gli stati</option>
+          <option value="nuovo">🟡 Nuovo</option>
+          <option value="in_lavorazione">🔵 In Lavorazione</option>
+          <option value="risolto">🟢 Risolto</option>
+          <option value="chiuso">⚪ Chiuso</option>
+        </select>
+        <select class="form-input" id="filterCategory" onchange="applyTicketFilters()" style="flex:1;min-width:140px;padding:0.4rem 0.6rem;font-size:0.82rem">
+          <option value="all">Tutte le categorie</option>
+          <option value="bug">🐛 Bug</option>
+          <option value="suggerimento">💡 Suggerimento</option>
+          <option value="domanda">❓ Domanda</option>
+          <option value="funzionalita">⚙️ Funzionalità</option>
+          <option value="altro">💬 Altro</option>
+        </select>
+        <select class="form-input" id="filterPriority" onchange="applyTicketFilters()" style="flex:1;min-width:130px;padding:0.4rem 0.6rem;font-size:0.82rem">
+          <option value="all">Tutte le priorità</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="media">🟡 Media</option>
+          <option value="bassa">🟢 Bassa</option>
+        </select>
+        <input type="search" class="form-input" id="filterSearch" placeholder="🔍 Cerca..."
+          oninput="applyTicketFilters()" style="flex:2;min-width:160px;padding:0.4rem 0.6rem;font-size:0.82rem">
       </div>
       <div id="adminTicketsList"></div>
     </div>
@@ -133,18 +173,34 @@
         <div id="replyTicketInfo"
           style="background:var(--surface2);border-radius:6px;padding:0.8rem;margin-bottom:1rem;font-size:0.85rem;line-height:1.5">
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+          <div class="form-group">
+            <label class="form-label">Stato</label>
+            <select class="form-input" id="replyStatus">
+              <option value="nuovo">🟡 Nuovo</option>
+              <option value="in_lavorazione">🔵 In Lavorazione</option>
+              <option value="risolto">🟢 Risolto</option>
+              <option value="chiuso">⚪ Chiuso</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priorità</label>
+            <select class="form-input" id="replyPriority">
+              <option value="bassa">🟢 Bassa</option>
+              <option value="media">🟡 Media</option>
+              <option value="alta">🔴 Alta</option>
+            </select>
+          </div>
+        </div>
         <div class="form-group">
-          <label class="form-label">Stato</label>
-          <select class="form-input" id="replyStatus">
-            <option value="open">🔴 Aperto</option>
-            <option value="in_progress">🟡 In lavorazione</option>
-            <option value="resolved">🟢 Risolto</option>
-            <option value="rejected">⚫ Rifiutato</option>
+          <label class="form-label">📝 Template risposta rapida</label>
+          <select class="form-input" id="replyTemplate" onchange="applyReplyTemplate()">
+            <option value="">— Seleziona template —</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Risposta</label>
-          <textarea class="form-input" id="replyText" rows="3" placeholder="Scrivi una risposta..."
+          <textarea class="form-input" id="replyText" rows="4" placeholder="Scrivi una risposta..."
             style="resize:vertical"></textarea>
         </div>
       </div>

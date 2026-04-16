@@ -223,7 +223,60 @@ function sendEmailChangeNotification(string $email, string $playerName, string $
     return sendEmail($email, $subject, mailWrap($body));
 }
 
-// ── 5. Notifica admin: nuovo giocatore ────────
+// ── 5. Notifica admin: nuovo ticket ──────────
+function notifyAdminNewTicket(string $ticketNumber, string $title, string $category, string $userName, string $userEmail): bool {
+    $adminEmail = getenv('ADMIN_EMAIL');
+    if (!$adminEmail) return false;
+
+    $appUrl    = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
+    $ticketUrl = $appUrl . '/frontend/pages/tickets.html';
+
+    $catEmoji = ['bug' => '🐛', 'suggerimento' => '💡', 'domanda' => '❓',
+                 'funzionalita' => '⚙️', 'feature' => '✨', 'altro' => '💬'];
+    $emoji   = $catEmoji[$category] ?? '💬';
+    $eTitle  = htmlspecialchars($title,     ENT_QUOTES, 'UTF-8');
+    $eCat    = htmlspecialchars($category,  ENT_QUOTES, 'UTF-8');
+    $eUser   = htmlspecialchars($userName,  ENT_QUOTES, 'UTF-8');
+    $eEmail  = htmlspecialchars($userEmail ?: '—', ENT_QUOTES, 'UTF-8');
+
+    $body = "
+<p>È arrivato un nuovo ticket da gestire.</p>
+<div class='info-box' style='border-color:#e8ff00'>
+  <strong style='color:#e8ff00'>🎫 Ticket #$ticketNumber</strong><br>
+  <div style='margin-top:0.5rem'><strong>Titolo:</strong> $eTitle</div>
+  <div><strong>Categoria:</strong> $emoji $eCat</div>
+  <div><strong>Da:</strong> $eUser</div>
+  <div><strong>Email:</strong> $eEmail</div>
+</div>
+<a href='$ticketUrl' class='btn'>🎫 Gestisci Ticket</a>";
+
+    return sendEmail($adminEmail, "🎫 Nuovo Ticket #$ticketNumber — Strike Zone", mailWrap($body));
+}
+
+// ── 6. Notifica utente: risposta al ticket ────
+function notifyUserTicketReply(string $userEmail, string $ticketNumber, string $title, string $reply): bool {
+    $appUrl    = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
+    $ticketUrl = $appUrl . '/frontend/pages/tickets.html';
+
+    $eTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    $eReply = nl2br(htmlspecialchars($reply, ENT_QUOTES, 'UTF-8'));
+
+    $body = "
+<p>Il tuo ticket ha ricevuto una risposta!</p>
+<div class='info-box' style='border-color:#e8ff00'>
+  <strong style='color:#e8ff00'>🎫 Ticket #$ticketNumber</strong><br>
+  <div style='margin-top:0.4rem;color:#9090b0'>$eTitle</div>
+</div>
+<div class='info-box' style='border-color:#00e5ff;margin-top:1rem'>
+  <strong style='color:#00e5ff'>💬 Risposta Admin:</strong><br>
+  <div style='margin-top:0.6rem;line-height:1.7'>$eReply</div>
+</div>
+<a href='$ticketUrl' class='btn' style='margin-top:1.5rem'>🎫 Vai ai Ticket</a>";
+
+    return sendEmail($userEmail, "✅ Risposta al tuo Ticket #$ticketNumber — Strike Zone", mailWrap($body));
+}
+
+// ── 7. Notifica admin: nuovo giocatore ────────
 function sendNewPlayerNotify(string $adminEmail, string $adminName, string $playerName, string $groupName): bool {
     $appUrl     = rtrim(getenv('APP_URL') ?: 'https://web-production-e43fd.up.railway.app', '/');
     $dashUrl    = $appUrl . '/frontend/pages/index.html';
