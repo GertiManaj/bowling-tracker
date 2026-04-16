@@ -48,6 +48,59 @@ try { $pdo->exec("ALTER TABLE players ADD COLUMN email VARCHAR(255) DEFAULT NULL
 
 // ── GET ──────────────────────────────────────
 if ($method === 'GET') {
+
+    // ── check_email ───────────────────────────
+    if (isset($_GET['check_email'])) {
+        $email     = trim($_GET['check_email']);
+        $excludeId = isset($_GET['exclude_id']) ? intval($_GET['exclude_id']) : 0;
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['exists' => false]);
+            exit;
+        }
+
+        $sql    = 'SELECT p.id, p.name FROM players p WHERE p.email = ? AND p.id != ?';
+        $params = [$email, $excludeId];
+        if ($filterGroupId !== null) { $sql .= ' AND p.group_id = ?'; $params[] = $filterGroupId; }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'exists'      => (bool)$existing,
+            'player_name' => $existing ? htmlspecialchars($existing['name'], ENT_QUOTES, 'UTF-8') : null
+        ]);
+        exit;
+    }
+
+    // ── check_name ────────────────────────────
+    if (isset($_GET['check_name'])) {
+        $name      = trim($_GET['check_name']);
+        $excludeId = isset($_GET['exclude_id']) ? intval($_GET['exclude_id']) : 0;
+
+        if (!$name) {
+            echo json_encode(['exists' => false, 'similar_names' => []]);
+            exit;
+        }
+
+        $sql    = 'SELECT name FROM players WHERE LOWER(name) = LOWER(?) AND id != ?';
+        $params = [$name, $excludeId];
+        if ($filterGroupId !== null) { $sql .= ' AND group_id = ?'; $params[] = $filterGroupId; }
+        $sql .= ' LIMIT 3';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $similar = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        echo json_encode([
+            'exists'       => count($similar) > 0,
+            'similar_names' => $similar
+        ]);
+        exit;
+    }
+
+    // ── Main listing ──────────────────────────
     $sql = '
         SELECT
             p.id, p.name, p.nickname, p.emoji, p.email, p.group_id, p.created_at,
@@ -119,8 +172,9 @@ if ($method === 'POST') {
     // Se email valida: crea account player_auth + invia credenziali temporanee
     $accountCreated = false;
     $emailSent      = false;
+    $sendEmail      = isset($data['send_email']) ? (bool)$data['send_email'] : true;
 
-    if ($playerEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL)) {
+    if ($playerEmail && filter_var($playerEmail, FILTER_VALIDATE_EMAIL) && $sendEmail) {
         try {
             // Fetch nome gruppo
             $gStmt = $pdo->prepare('SELECT name FROM `groups` WHERE id = ?');
