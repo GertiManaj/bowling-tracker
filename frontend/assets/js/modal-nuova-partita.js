@@ -96,7 +96,7 @@ function setFFAMode(active) {
 function addFFARow(selectedId = null, numGames = null) {
   const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${escHtml(p.name)}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}</option>`
   ).join('');
   const gameInputs = Array.from({ length: ng }, (_, i) =>
     `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}" oninput="validateScoreInput(this)"/>`
@@ -137,7 +137,7 @@ function handleOverlayClick(e) {
 function addPlayerRow(team, selectedId = null, numGames = null) {
   const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${escHtml(p.name)}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}</option>`
   ).join('');
 
   const gameInputs = Array.from({ length: ng }, (_, i) =>
@@ -161,7 +161,7 @@ function addPlayerRow(team, selectedId = null, numGames = null) {
 function addSoloRow(selectedId = null, numGames = null) {
   const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${escHtml(p.name)}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}</option>`
   ).join('');
   const gameInputs = Array.from({ length: ng }, (_, i) =>
     `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}"/>`

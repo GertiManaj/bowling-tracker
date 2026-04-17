@@ -50,6 +50,20 @@ if (strlen($adminPass) < 8) {
 try {
     $pdo = getPDO();
 
+    // Rate limiting: max 5 registrazioni per IP in 1 ora
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $stmtRL = $pdo->prepare("
+        SELECT COUNT(*) FROM security_logs
+        WHERE event_type = 'group_self_registered' AND ip_address = ?
+          AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+    ");
+    $stmtRL->execute([$clientIp]);
+    if ((int)$stmtRL->fetchColumn() >= 5) {
+        http_response_code(429);
+        echo json_encode(['error' => 'Troppi tentativi di registrazione. Riprova tra 1 ora.']);
+        exit;
+    }
+
     // Check email già registrata
     $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ?");
     $stmt->execute([$adminEmail]);

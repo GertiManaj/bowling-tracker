@@ -174,8 +174,10 @@ if ($method === 'POST') {
     }
 
     $playerName  = trim($data['name']);
+    $safeEmoji   = strip_tags(trim($data['emoji'] ?? '🎳')) ?: '🎳';
+    if (mb_strlen($safeEmoji) > 10) $safeEmoji = '🎳';
     $stmt = $pdo->prepare('INSERT INTO players (name, nickname, emoji, group_id, email) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute([$playerName, trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $groupId, $playerEmail]);
+    $stmt->execute([$playerName, trim($data['nickname'] ?? ''), $safeEmoji, $groupId, $playerEmail]);
     $newId = $pdo->lastInsertId();
 
     // Se email valida: crea account player_auth + invia credenziali temporanee
@@ -288,8 +290,10 @@ if ($method === 'PUT') {
         }
     }
 
+    $safeEmojiPut = strip_tags(trim($data['emoji'] ?? '🎳')) ?: '🎳';
+    if (mb_strlen($safeEmojiPut) > 10) $safeEmojiPut = '🎳';
     $stmt = $pdo->prepare('UPDATE players SET name = ?, nickname = ?, emoji = ?, email = ? WHERE id = ?');
-    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $data['emoji'] ?? '🎳', $newEmail, $id]);
+    $stmt->execute([trim($data['name']), trim($data['nickname'] ?? ''), $safeEmojiPut, $newEmail, $id]);
 
     // ── Notifiche cambio email ────────────────────
     $oldEmail   = $playerRow['old_email'];

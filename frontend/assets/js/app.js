@@ -566,7 +566,7 @@ function renderLastSession(s) {
 
   const makePlayerRow = (p, isTop, topColor) => `
     <div class="team-player-row">
-      <span>${p.emoji || '🎳'} ${escHtml(p.name)}</span>
+      <span>${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}</span>
       <div style="display:flex;align-items:center;gap:0.5rem">
         ${makeGamesHtml(p.games) ? `<span style="font-family:'Share Tech Mono',monospace">${makeGamesHtml(p.games)}</span>` : ''}
         <span class="team-player-score" style="${isTop ? 'color:' + topColor : ''}">${p.total}</span>
@@ -640,7 +640,7 @@ function renderLastSession(s) {
       mainHtml += `
         <div class="team-block">
           <div class="team-header">
-            <span class="team-name-lbl" style="color:${c}">${t.name}</span>
+            <span class="team-name-lbl" style="color:${c}">${escHtml(t.name)}</span>
             <div style="display:flex;align-items:center;gap:0.5rem">
               <span class="team-tag ${cls}">${tag}</span>
               <span style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:${win ? c : 'var(--text-muted)'}">${t.total}</span>
@@ -709,7 +709,7 @@ async function loadHof() {
       hofRow(
         'Record singolo game',
         '🏆',
-        d.record_holder ? d.record_holder.emoji + ' ' + d.record_holder.name : '—',
+        d.record_holder ? escHtml(d.record_holder.emoji) + ' ' + escHtml(d.record_holder.name) : '—',
         d.record_holder ? formatDate(d.record_holder.date) : '—',
         d.record_assoluto ?? '—',
         'var(--gold)'
@@ -717,7 +717,7 @@ async function loadHof() {
       hofRow(
         'Più vittorie squadra',
         '🥇',
-        d.most_wins ? d.most_wins.emoji + ' ' + d.most_wins.name : '—',
+        d.most_wins ? escHtml(d.most_wins.emoji) + ' ' + escHtml(d.most_wins.name) : '—',
         d.most_wins ? d.most_wins.vittorie + ' sfide vinte' : 'nessun dato',
         d.most_wins?.vittorie ?? '—',
         'var(--neon)'
@@ -725,7 +725,7 @@ async function loadHof() {
       hofRow(
         'Più migliorato',
         '📈',
-        d.most_improved ? d.most_improved.emoji + ' ' + d.most_improved.name : '—',
+        d.most_improved ? escHtml(d.most_improved.emoji) + ' ' + escHtml(d.most_improved.name) : '—',
         d.most_improved ? '+' + d.most_improved.miglioramento + ' pts di media' : 'min. 2 serate',
         d.most_improved ? '+' + d.most_improved.miglioramento : '—',
         'var(--neon2)'
@@ -793,7 +793,7 @@ function handleOverlayClick(e) {
 function addPlayerRow(team, selectedId = null, numGames = null) {
   const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${escHtml(p.name)}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}</option>`
   ).join('');
 
   // Crea input score per ogni game
@@ -817,7 +817,7 @@ function addPlayerRow(team, selectedId = null, numGames = null) {
 function addSoloRow(selectedId = null, numGames = null) {
   const ng = numGames || parseInt(document.getElementById('numGames')?.value) || 1;
   const opts = allPlayers.map(p =>
-    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${p.emoji || '🎳'} ${p.name}</option>`
+    `<option value="${p.id}" ${parseInt(p.id) === parseInt(selectedId) ? 'selected' : ''}>${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}</option>`
   ).join('');
   const gameInputs = Array.from({ length: ng }, (_, i) =>
     `<input type="number" class="form-input score-input" placeholder="G${i + 1}" min="0" max="300" data-game="${i + 1}"/>`

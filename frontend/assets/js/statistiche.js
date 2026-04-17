@@ -106,7 +106,7 @@ function renderRanking() {
     return `
       <div class="podium-slot ${posClass[vi]}" style="--medal-color:${color}">
         <div class="podium-avatar" style="border-color:${color};box-shadow:0 0 20px ${color}44">
-          ${p.emoji || '🎳'}
+          ${escHtml(p.emoji || '🎳')}
           <span class="podium-medal">${medal}</span>
         </div>
         <div class="podium-name" style="color:${color}">${escHtml(p.name)}</div>
@@ -190,7 +190,7 @@ function renderRanking() {
       <div class="rank-table-row" style="animation-delay:${(i*0.05).toFixed(2)}s">
         ${rankEl}
         <div class="rank-table-player">
-          <div class="rank-table-avatar" style="border-color:${pcolor}44;background:${pcolor}12">${p.emoji||'🎳'}</div>
+          <div class="rank-table-avatar" style="border-color:${pcolor}44;background:${pcolor}12">${escHtml(p.emoji||'🎳')}</div>
           <div>
             <div class="rank-table-name">${escHtml(p.name)}</div>
             ${p.nickname ? '<div class="rank-table-nick">' + escHtml(p.nickname.toUpperCase()) + '</div>' : ''}
@@ -348,8 +348,9 @@ function buildTrendControls() {
     return `
       <button class="player-filter-btn${isActive ? ' active' : ''}"
         style="${isActive ? `background:${color};border-color:${color};` : `border-color:${color}44;color:${color};`}"
-        onclick="toggleTrendPlayer('${p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this, '${color}')">
-        ${p.emoji || '🎳'} ${escHtml(p.name)}
+        data-pname="${escHtml(p.name)}" data-pcolor="${escHtml(color)}"
+        onclick="toggleTrendPlayer(this.dataset.pname, this, this.dataset.pcolor)">
+        ${escHtml(p.emoji || '🎳')} ${escHtml(p.name)}
       </button>`;
   }).join('');
 }

@@ -25,10 +25,14 @@ $body = json_decode(file_get_contents('php://input'), true) ?? [];
 // ── Validazione ──────────────────────────────
 $inviteCode = strtoupper(trim($body['invite_code'] ?? ''));
 $name       = trim($body['name']       ?? '');
-$emoji      = trim($body['emoji']      ?? '🎳');
+$rawEmoji   = trim($body['emoji']      ?? '🎳');
 $nickname   = trim($body['nickname']   ?? '');
 $email      = trim($body['email']      ?? '');
 $pass       = $body['password'] ?? '';
+
+// Sanifica emoji: accetta solo caratteri che non contengono HTML (strip tags + limita lunghezza)
+$emoji = strip_tags($rawEmoji) ?: '🎳';
+if (mb_strlen($emoji) > 10) $emoji = '🎳'; // emoji valide sono max 1-2 char
 
 if ($inviteCode === '') {
     http_response_code(400);
@@ -53,6 +57,20 @@ if (strlen($pass) < 8) {
 
 try {
     $pdo = getPDO();
+
+    // Rate limiting: max 10 registrazioni per IP in 1 ora
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $stmtRL = $pdo->prepare("
+        SELECT COUNT(*) FROM security_logs
+        WHERE event_type = 'player_self_registered' AND ip_address = ?
+          AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+    ");
+    $stmtRL->execute([$clientIp]);
+    if ((int)$stmtRL->fetchColumn() >= 10) {
+        http_response_code(429);
+        echo json_encode(['error' => 'Troppi tentativi di registrazione. Riprova tra 1 ora.']);
+        exit;
+    }
 
     // Trova gruppo da invite_code
     $stmt = $pdo->prepare("SELECT id FROM `groups` WHERE invite_code = ?");

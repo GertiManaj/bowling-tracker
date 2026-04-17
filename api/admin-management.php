@@ -162,11 +162,13 @@ if ($method === 'PUT') {
     ];
     $fields = ['group_id', 'role', ...$perms];
 
+    $validRoles = ['super_admin', 'group_admin'];
     $updates = [];
     $params  = [];
 
     foreach ($fields as $f) {
         if (!array_key_exists($f, $data)) continue;
+        if ($f === 'role' && !in_array($data[$f], $validRoles, true)) continue; // Ignora ruoli non validi
         $updates[] = "$f = ?";
         $params[]  = in_array($f, $perms)
             ? (int)(bool)$data[$f]

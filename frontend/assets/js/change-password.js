@@ -3,10 +3,8 @@
 // ══════════════════════════════════════════
 
 function openChangePasswordModal() {
-  console.log('openChangePasswordModal chiamata');
   const overlay = document.getElementById('changePasswordOverlay');
   if (!overlay) {
-    console.error('changePasswordOverlay non trovato nel DOM');
     return;
   }
   
@@ -131,4 +129,3 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-console.log('✅ change-password.js caricato - openChangePasswordModal disponibile:', typeof openChangePasswordModal);

@@ -98,9 +98,9 @@ if ($method === 'POST') {
         ]);
         $groupId = (int)$pdo->lastInsertId();
 
-        // Genera invite_code univoco
+        // Genera invite_code univoco con CSPRNG
         do {
-            $inviteCode = strtoupper(substr(md5(uniqid($groupId . mt_rand(), true)), 0, 8));
+            $inviteCode = strtoupper(bin2hex(random_bytes(4)));
             $chk = $pdo->prepare("SELECT id FROM `groups` WHERE invite_code = ?");
             $chk->execute([$inviteCode]);
         } while ($chk->fetch());

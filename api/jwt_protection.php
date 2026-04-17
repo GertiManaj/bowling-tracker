@@ -27,6 +27,9 @@ function requireAuth($protectedMethods = ['POST', 'PUT', 'DELETE']) {
 
     $token = $matches[1];
     $secret = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
+    if (!getenv('JWT_SECRET')) {
+        error_log('[SECURITY] JWT_SECRET non impostata! Usa il secret di default — CONFIGURA JWT_SECRET nelle variabili Railway!');
+    }
 
     $parts = explode('.', $token);
     if (count($parts) !== 3) {
@@ -35,6 +38,13 @@ function requireAuth($protectedMethods = ['POST', 'PUT', 'DELETE']) {
     }
 
     [$headerB64, $payloadB64, $signatureB64] = $parts;
+
+    // Verifica header: accetta SOLO HS256 (previene alg:none e algorithm confusion)
+    $headerData = json_decode(base64_decode(strtr($headerB64, '-_', '+/')), true);
+    if (!$headerData || ($headerData['alg'] ?? '') !== 'HS256') {
+        http_response_code(401);
+        die(json_encode(['error' => 'Token non valido: algoritmo non supportato']));
+    }
 
     // Verifica firma HMAC-SHA256
     $signature = base64_decode(strtr($signatureB64, '-_', '+/'));
@@ -78,6 +88,10 @@ function tryParseJWT(): ?array {
     if (count($parts) !== 3) return null;
 
     [$headerB64, $payloadB64, $signatureB64] = $parts;
+
+    // Rifiuta alg:none e algorithm confusion
+    $hdr = json_decode(base64_decode(strtr($headerB64, '-_', '+/')), true);
+    if (!$hdr || ($hdr['alg'] ?? '') !== 'HS256') return null;
 
     $secret    = getenv('JWT_SECRET') ?: 'strikezone_jwt_secret_2024';
     $signature = base64_decode(strtr($signatureB64, '-_', '+/'));

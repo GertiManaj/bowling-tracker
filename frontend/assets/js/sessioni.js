@@ -161,7 +161,7 @@ function renderSessions() {
   document.getElementById('sessions-list').innerHTML = filtered.map((s, i) => {
     const scores = s.scores || [];
     const teams = s.teams || [];
-    const players = [...new Set(scores.map(x => x.player_name))];
+    const players = [...new Set(scores.map(x => x.player_name))].map(n => escHtml(n));
     const best = scores.reduce((a, b) => b.score > a.score ? b : a, { score: 0 });
     const delay = (i * 0.04).toFixed(2);
 
@@ -215,7 +215,7 @@ function renderSessions() {
         const isTop = p.total === maxPlayerScore;
         return `
           <div class="detail-player-row">
-            <span>${p.emoji || '🎳'} ${p.player_name}</span>
+            <span>${escHtml(p.emoji || '🎳')} ${escHtml(p.player_name)}</span>
             <div style="display:flex;align-items:center;gap:0.4rem;font-family:'Share Tech Mono',monospace;font-size:0.8rem">
               ${gamesHtml ? `<span style="font-size:0.7rem;color:var(--text-muted)">${gamesHtml}</span>` : ''}
               <span class="detail-player-score${isTop ? ' top' : ''}">${p.total}</span>
@@ -230,7 +230,7 @@ function renderSessions() {
       return `
         <div class="detail-team">
           <div class="detail-team-header">
-            <span class="detail-team-name" style="color:${color}">${t.name}</span>
+            <span class="detail-team-name" style="color:${color}">${escHtml(t.name)}</span>
             <div style="display:flex;align-items:center;gap:0.5rem">
               ${tag}
               <span class="detail-team-total" style="color:${win ? color : 'var(--text-muted)'}">${t.total}</span>
@@ -262,7 +262,7 @@ function renderSessions() {
           : '';
         return `
           <div class="detail-player-row">
-            <span>${p.emoji || '🎳'} ${p.player_name} ${isWinner ? '🏆' : ''}</span>
+            <span>${escHtml(p.emoji || '🎳')} ${escHtml(p.player_name)} ${isWinner ? '🏆' : ''}</span>
             <div style="display:flex;align-items:center;gap:0.4rem;font-family:'Share Tech Mono',monospace;font-size:0.8rem">
               ${gamesHtml ? `<span style="font-size:0.7rem;color:var(--text-muted)">${gamesHtml}</span>` : ''}
               <span class="detail-player-score${isWinner ? ' top' : ''}">${p.total}</span>
@@ -298,7 +298,7 @@ function renderSessions() {
           : '';
         return `
           <div class="detail-player-row">
-            <span>${p.emoji || '🎳'} ${p.player_name}</span>
+            <span>${escHtml(p.emoji || '🎳')} ${escHtml(p.player_name)}</span>
             <div style="display:flex;align-items:center;gap:0.4rem;font-family:'Share Tech Mono',monospace;font-size:0.8rem">
               ${gamesHtml ? `<span style="font-size:0.7rem;color:var(--text-muted)">${gamesHtml}</span>` : ''}
               <span class="detail-player-score" style="color:var(--neon3)">${p.total}</span>
@@ -316,7 +316,7 @@ function renderSessions() {
         </div>`;
     }
 
-    const notesHtml = s.notes ? `<div class="session-notes">📝 ${s.notes}</div>` : '';
+    const notesHtml = s.notes ? `<div class="session-notes">📝 ${escHtml(s.notes)}</div>` : '';
 
     return `
       <div class="session-card" id="card-${s.id}" style="animation-delay:${delay}s">
@@ -331,7 +331,7 @@ function renderSessions() {
           </div>
           <div class="session-card-winner">
             <div class="winner-label">Top score</div>
-            <div class="winner-name">${best.player_name || '—'}</div>
+            <div class="winner-name">${escHtml(best.player_name || '—')}</div>
             <div class="winner-score">${best.score || '—'} pts</div>
           </div>
           <div class="session-card-toggle">▼</div>

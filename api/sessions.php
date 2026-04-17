@@ -16,15 +16,8 @@ if ($method !== 'GET') {
     // POST/PUT/DELETE: JWT obbligatorio
     $payload = requireAuth(['POST', 'PUT', 'DELETE']);
 } else {
-    // GET pubblico: leggi JWT opzionale per group filter
-    $ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
-        $parts = explode('.', $m[1]);
-        if (count($parts) === 3) {
-            $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-            if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
-        }
-    }
+    // GET pubblico: JWT opzionale con verifica firma completa (per group filter)
+    $payload = tryParseJWT();
 }
 
 // Determina filtro gruppo
@@ -39,6 +32,16 @@ if ($payload) {
 }
 
 $pdo = getPDO();
+
+// Helper: valida e normalizza un singolo record score (usato in POST e PUT)
+function validateScoreRecord(array $player): ?array {
+    $pid   = (int)($player['player_id'] ?? 0);
+    $score = isset($player['score']) ? intval($player['score']) : null;
+    $game  = max(1, min(100, (int)($player['game_number'] ?? 1)));
+    if ($pid <= 0 || $score === null) return null;
+    if ($score < 0 || $score > 300) return null; // range bowling valido
+    return ['player_id' => $pid, 'score' => $score, 'game_number' => $game];
+}
 
 // ── GET ──────────────────────────────────────
 if ($method === 'GET') {
@@ -102,6 +105,18 @@ if ($method === 'POST') {
         ? (int)($data['group_id'] ?? 1)
         : (int)getGroupId($payload);
 
+    // Limite anti-DoS: max 200 righe score totali
+    $allPlayers = array_merge(
+        array_merge(...array_map(fn($t) => $t['players'] ?? [], $data['teams'] ?? [])),
+        $data['solo_players'] ?? [],
+        $data['ffa_players']  ?? []
+    );
+    if (count($allPlayers) > 200) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Troppi giocatori nella sessione (max 200)']);
+        exit;
+    }
+
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare('INSERT INTO sessions (date, location, notes, cost_per_game, mode, group_id) VALUES (?, ?, ?, ?, ?, ?)');
@@ -122,19 +137,19 @@ if ($method === 'POST') {
             $teamId = $pdo->lastInsertId();
 
             foreach ($team['players'] as $player) {
-                if (empty($player['player_id']) || !isset($player['score'])) continue;
-                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $p = validateScoreRecord($player);
+                if (!$p) continue;
                 $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
-                $sc->execute([$sessionId, $player['player_id'], $teamId, $player['score'], $gameNumber]);
+                $sc->execute([$sessionId, $p['player_id'], $teamId, $p['score'], $p['game_number']]);
             }
         }
 
         // Giocatori singoli (senza squadra, team_id = NULL)
         foreach (($data['solo_players'] ?? []) as $player) {
-            if (empty($player['player_id']) || !isset($player['score'])) continue;
-            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+            $p = validateScoreRecord($player);
+            if (!$p) continue;
             $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
-            $sc->execute([$sessionId, $player['player_id'], $player['score'], $gameNumber]);
+            $sc->execute([$sessionId, $p['player_id'], $p['score'], $p['game_number']]);
         }
 
         // Giocatori FFA — salvati sotto team __FFA__ per distinguerli dai singoli
@@ -143,10 +158,10 @@ if ($method === 'POST') {
             $tFFA->execute([$sessionId, '__FFA__']);
             $ffaTeamId = $pdo->lastInsertId();
             foreach ($data['ffa_players'] as $player) {
-                if (empty($player['player_id']) || !isset($player['score'])) continue;
-                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $p = validateScoreRecord($player);
+                if (!$p) continue;
                 $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
-                $sc->execute([$sessionId, $player['player_id'], $ffaTeamId, $player['score'], $gameNumber]);
+                $sc->execute([$sessionId, $p['player_id'], $ffaTeamId, $p['score'], $p['game_number']]);
             }
         }
 
@@ -157,7 +172,7 @@ if ($method === 'POST') {
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
+        echo json_encode(['error' => 'Errore salvataggio sessione']);
     }
     exit;
 }
@@ -215,19 +230,19 @@ if ($method === 'PUT') {
             $teamId = $pdo->lastInsertId();
 
             foreach ($team['players'] as $player) {
-                if (empty($player['player_id']) || !isset($player['score'])) continue;
-                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $p = validateScoreRecord($player);
+                if (!$p) continue;
                 $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
-                $sc->execute([$id, $player['player_id'], $teamId, $player['score'], $gameNumber]);
+                $sc->execute([$id, $p['player_id'], $teamId, $p['score'], $p['game_number']]);
             }
         }
 
         // 4. Ricrea giocatori singoli
         foreach (($data['solo_players'] ?? []) as $player) {
-            if (empty($player['player_id']) || !isset($player['score'])) continue;
-            $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+            $p = validateScoreRecord($player);
+            if (!$p) continue;
             $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, NULL, ?, ?)');
-            $sc->execute([$id, $player['player_id'], $player['score'], $gameNumber]);
+            $sc->execute([$id, $p['player_id'], $p['score'], $p['game_number']]);
         }
 
         // 5. Ricrea giocatori FFA sotto team __FFA__
@@ -236,10 +251,10 @@ if ($method === 'PUT') {
             $tFFA->execute([$id, '__FFA__']);
             $ffaTeamId = $pdo->lastInsertId();
             foreach ($data['ffa_players'] as $player) {
-                if (empty($player['player_id']) || !isset($player['score'])) continue;
-                $gameNumber = isset($player['game_number']) ? intval($player['game_number']) : 1;
+                $p = validateScoreRecord($player);
+                if (!$p) continue;
                 $sc = $pdo->prepare('INSERT INTO scores (session_id, player_id, team_id, score, game_number) VALUES (?, ?, ?, ?, ?)');
-                $sc->execute([$id, $player['player_id'], $ffaTeamId, $player['score'], $gameNumber]);
+                $sc->execute([$id, $p['player_id'], $ffaTeamId, $p['score'], $p['game_number']]);
             }
         }
 
@@ -249,7 +264,7 @@ if ($method === 'PUT') {
     } catch (Exception $e) {
         $pdo->rollBack();
         http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
+        echo json_encode(['error' => 'Errore aggiornamento sessione']);
     }
     exit;
 }

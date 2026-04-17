@@ -6,7 +6,14 @@
 // ============================================
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/jwt_protection.php';
-requireAuth(['GET']);
+$slPayload = requireAuth(['GET']);
+
+// Solo super_admin o chi ha il permesso can_view_security_logs
+if (!isSuperAdmin($slPayload) && !checkPermission($slPayload, 'can_view_security_logs')) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Accesso negato: permesso can_view_security_logs richiesto']);
+    exit;
+}
 
 $pdo = getPDO();
 

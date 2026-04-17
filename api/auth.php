@@ -783,10 +783,9 @@ if ($_GET['action'] === 'request-reset' && $_SERVER['REQUEST_METHOD'] === 'POST'
             logSecurityEvent($pdo, 'player_password_reset_requested', 'WARNING', null, ['email' => $email]);
         }
 
-        // Invia email
-        $resetLink = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') .
-                     $_SERVER['HTTP_HOST'] .
-                     '/frontend/pages/reset-password.html?token=' . $token;
+        // Costruisce URL da APP_URL (mai da HTTP_HOST per evitare Host Header Injection)
+        $appUrl    = rtrim(getenv('APP_URL') ?: 'https://mystrikezone.xyz', '/');
+        $resetLink = $appUrl . '/frontend/pages/reset-password.html?token=' . urlencode($token);
 
         $sent = sendPasswordResetEmail($email, $resetLink, $displayName);
 

@@ -8,16 +8,8 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/jwt_protection.php';
 $pdo = getPDO();
 
-// ── Group filter: JWT ha precedenza su ?group_id (sicurezza) ──
-$payload = null;
-$ah = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-if (preg_match('/Bearer\s+(.+)$/i', $ah, $m)) {
-    $parts = explode('.', $m[1]);
-    if (count($parts) === 3) {
-        $pd = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-        if ($pd && isset($pd['exp']) && $pd['exp'] > time()) $payload = $pd;
-    }
-}
+// ── Group filter: JWT con verifica firma completa ──
+$payload = tryParseJWT();
 
 if ($payload && !isSuperAdmin($payload)) {
     // group_admin o player: sempre il proprio gruppo, ignora ?group_id

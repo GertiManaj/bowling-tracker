@@ -125,6 +125,14 @@ if ($method === 'GET') {
     $tickets = $q->fetchAll(PDO::FETCH_ASSOC);
     $unread  = count(array_filter($tickets, fn($t) => in_array($t['status'], ['nuovo', 'in_lavorazione'])));
 
+    // Rimuovi user_email dalle risposte non autenticate (GDPR)
+    if (!$payload || !isSuperAdmin($payload)) {
+        $tickets = array_map(function ($t) {
+            unset($t['user_email']);
+            return $t;
+        }, $tickets);
+    }
+
     echo json_encode(['tickets' => $tickets, 'unread' => $unread]);
     exit;
 }
